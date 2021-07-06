@@ -6,8 +6,12 @@ SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "mozilla_django_oidc_db.db"),
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("PGDATABASE", "mozilla_django_oidc_db"),
+        "USER": os.getenv("PGUSER", "mozilla_django_oidc_db"),
+        "PASSWORD": os.getenv("PGPASSWORD", "mozilla_django_oidc_db"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", 5432),
     }
 }
 
@@ -16,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.admin",
+    "mozilla_django_oidc",
     "mozilla_django_oidc_db",
     "testapp",
 ]
