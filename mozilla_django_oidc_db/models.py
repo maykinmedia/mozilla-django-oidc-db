@@ -121,8 +121,8 @@ class OpenIDConnectConfig(SingletonModel):
         cache_key = self.get_cache_key()
         timeout = getattr(
             settings,
-            "MOZILLA_DJANGO_OIDC_DB_TIMEOUT",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_TIMEOUT,
+            "MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT",
+            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT,
         )
         cache.set(cache_key, self, timeout)
 
