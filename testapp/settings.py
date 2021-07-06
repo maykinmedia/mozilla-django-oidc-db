@@ -15,6 +15,11 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "oidc": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+}
+
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
