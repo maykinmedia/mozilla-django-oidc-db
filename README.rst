@@ -172,8 +172,8 @@ will be used (if there is one). A detailed description of all settings can be fo
 For more detailed documentation, refer to the `mozilla-django-oidc documentation`_. In this documentation
 the origin of the admin configurable settings is also explained.
 
-.. |build-status| image:: https://travis-ci.org/maykinmedia/mozilla_django_oidc_db.svg?branch=master
-    :target: https://travis-ci.org/maykinmedia/mozilla_django_oidc_db
+.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
+    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db
