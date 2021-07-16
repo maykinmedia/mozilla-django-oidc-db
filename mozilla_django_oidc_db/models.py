@@ -53,6 +53,16 @@ class OpenIDConnectConfig(SingletonModel):
         help_text=_("OpenID Connect scopes that are requested during login"),
     )
 
+    oidc_op_discovery_endpoint = models.URLField(
+        _("Discovery endpoint"),
+        max_length=1000,
+        help_text=_(
+            "URL of your OpenID Connect provider discovery endpoint. "
+            "If this is provided, the remaining endpoints can be omitted, as "
+            "they will be derived from this endpoint."
+        ),
+        blank=True,
+    )
     oidc_op_jwks_endpoint = models.URLField(
         _("JSON Web Key Set endpoint"),
         max_length=1000,
@@ -61,7 +71,6 @@ class OpenIDConnectConfig(SingletonModel):
         ),
         blank=True,
     )
-
     oidc_op_authorization_endpoint = models.URLField(
         _("Authorization endpoint"),
         max_length=1000,
