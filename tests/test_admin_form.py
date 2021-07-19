@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.utils.translation import gettext as _
 
 import pytest
+import requests_mock
 from requests import Response
 from requests.exceptions import RequestException
 
@@ -12,14 +13,12 @@ from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 
 @pytest.mark.django_db
-@patch("requests.get", return_value=Response())
-@patch("requests.Response.json", return_value={})
-def test_derive_endpoints_success(*m):
+def test_derive_endpoints_success():
     form_data = {
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
-        "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
+        "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -29,7 +28,11 @@ def test_derive_endpoints_success(*m):
         "userinfo_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/userinfo",
         "jwks_uri": "http://provider.com/auth/realms/master/protocol/openid-connect/certs",
     }
-    with patch("requests.Response.json", return_value=configuration):
+    with requests_mock.Mocker() as m:
+        m.get(
+            "http://discovery-endpoint.nl/.well-known/openid-configuration",
+            json=configuration,
+        )
         assert form.is_valid()
 
     config = form.save()
