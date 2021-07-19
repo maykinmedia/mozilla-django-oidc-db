@@ -57,7 +57,8 @@ class OpenIDConnectConfig(SingletonModel):
         _("Discovery endpoint"),
         max_length=1000,
         help_text=_(
-            "URL of your OpenID Connect provider discovery endpoint. "
+            "URL of your OpenID Connect provider discovery endpoint ending with a slash "
+            "(`.well-known/...` will be added automatically). "
             "If this is provided, the remaining endpoints can be omitted, as "
             "they will be derived from this endpoint."
         ),

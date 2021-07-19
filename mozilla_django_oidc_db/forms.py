@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 import requests
 
-from .constants import OIDC_MAPPING
+from .constants import OIDC_MAPPING, OPEN_ID_CONFIG_PATH
 from .models import OpenIDConnectConfig
 
 
@@ -29,7 +29,9 @@ class OpenIDConnectConfigForm(forms.ModelForm):
         # Derive the endpoints from the discovery endpoint
         if discovery_endpoint:
             try:
-                response = requests.get(discovery_endpoint, timeout=10)
+                response = requests.get(
+                    f"{discovery_endpoint}{OPEN_ID_CONFIG_PATH}", timeout=10
+                )
                 configuration = response.json()
 
                 for model_attr, oidc_attr in OIDC_MAPPING.items():

@@ -6,3 +6,5 @@ OIDC_MAPPING = {
     "oidc_op_user_endpoint": "userinfo_endpoint",
     "oidc_op_jwks_endpoint": "jwks_uri",
 }
+
+OPEN_ID_CONFIG_PATH = ".well-known/openid-configuration"
