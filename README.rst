@@ -160,11 +160,15 @@ and the following settings for OpenID Connect can be configured in the admin:
 - ``oidc_rp_client_secret``
 - ``oidc_rp_sign_algo``
 - ``oidc_rp_scopes_list``
+- ``oidc_op_discovery_endpoint``
 - ``oidc_op_jwks_endpoint``
 - ``oidc_op_authorization_endpoint``
 - ``oidc_op_token_endpoint``
 - ``oidc_op_user_endpoint``
 - ``oidc_rp_idp_sign_key``
+
+If the ``oidc_op_discovery_endpoint`` is supplied, the other endpoints will be derived
+from this discovery endpoint.
 
 In case no value is provided for one of these variables, the default from ``mozilla-django-oidc``
 will be used (if there is one). A detailed description of all settings can be found in the `mozilla-django-oidc settings documentation`_
