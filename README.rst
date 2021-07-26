@@ -74,9 +74,9 @@ Make sure the following libraries are added to your ``INSTALLED_APPS``:
     INSTALLED_APPS = [
         ...
         "django_better_admin_arrayfield",
-        "django_auth_adfs",
-        "django_auth_adfs_db",
         "solo",
+        "mozilla_django_oidc",
+        "mozilla_django_oidc_db",
         ...
     ]
 
