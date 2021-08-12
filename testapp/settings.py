@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
+    "django.contrib.messages",
     "django.contrib.admin",
     "mozilla_django_oidc",
     "mozilla_django_oidc_db",
