@@ -114,15 +114,30 @@ class OpenIDConnectConfig(SingletonModel):
     claim_mapping = JSONField(
         _("claim mapping"),
         default=get_claim_mapping,
-        help_text=("Mapping from user-model fields to ADFS claims"),
+        help_text=("Mapping from user-model fields to OIDC claims"),
+    )
+    groups_claim = models.CharField(
+        _("groups claim"),
+        max_length=50,
+        default="roles",
+        help_text=_(
+            "The name of the OIDC claim that holds the values to map to local user groups."
+        ),
     )
     sync_groups = models.BooleanField(
-        _("synchronize groups?"),
+        _("synchronize groups"),
         default=True,
         help_text=_(
             "Synchronize the local user groups with the provided groups. Note that this "
             "means a user is removed from all groups if there is no group claim. "
             "Uncheck to manage groups manually."
+        ),
+    )
+    make_users_staff = models.BooleanField(
+        _("make users staff"),
+        default=False,
+        help_text=_(
+            "Users will be flagged as being a staff user automatically. This allows users to login to the admin interface. By default they have no permissions, even if they are staff."
         ),
     )
 

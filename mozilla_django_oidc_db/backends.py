@@ -1,5 +1,8 @@
 import logging
 
+from django.contrib.auth.models import Group
+from django.core.exceptions import ObjectDoesNotExist
+
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
@@ -41,13 +44,16 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def create_user(self, claims):
         """Return object for a newly created user account."""
-        values = self.get_user_instance_values(claims)
         sub = claims.get("sub")
 
-        logger.debug("Creating OIDC user %s with: %s", sub, values)
+        logger.debug("Creating OIDC user: %s", sub)
 
-        values[self.UserModel.USERNAME_FIELD] = claims.get("sub")
-        return self.UserModel.objects.create_user(**values)
+        user = self.UserModel.objects.create_user(
+            **{self.UserModel.USERNAME_FIELD: sub}
+        )
+        self.update_user(user, claims)
+
+        return user
 
     def filter_users_by_claims(self, claims):
         """Return all users matching the specified subject."""
@@ -74,5 +80,62 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         for field, value in values.items():
             setattr(user, field, value)
         logger.debug("Updating OIDC user %s with: %s", user, values)
+
+        # Users can only be promoted to staff. Staff rights are never taken by OIDC.
+        if self.config.make_users_staff and not user.is_staff:
+            user.is_staff = True
+            user.save(update_fields=["is_staff"])
+
         user.save(update_fields=values.keys())
+
+        self.update_user_groups(user, claims)
+
         return user
+
+    def update_user_groups(self, user, claims):
+        """
+        Updates user group memberships based on the group_claim setting.
+
+        Copied and modified from: https://github.com/snok/django-auth-adfs/blob/master/django_auth_adfs/backend.py
+        """
+        groups_claim = self.config.groups_claim
+
+        if groups_claim:
+            # Update the user's group memberships
+            django_groups = [group.name for group in user.groups.all()]
+
+            if groups_claim in claims:
+                claim_groups = claims[groups_claim]
+                if not isinstance(claim_groups, list):
+                    claim_groups = [
+                        claim_groups,
+                    ]
+            else:
+                logger.debug(
+                    "The configured groups claim '%s' was not found in the access token",
+                    groups_claim,
+                )
+                claim_groups = []
+            if sorted(claim_groups) != sorted(django_groups):
+                existing_groups = list(
+                    Group.objects.filter(name__in=claim_groups).iterator()
+                )
+                existing_group_names = frozenset(
+                    group.name for group in existing_groups
+                )
+                new_groups = []
+                if self.config.sync_groups:
+                    new_groups = [
+                        Group.objects.get_or_create(name=name)[0]
+                        for name in claim_groups
+                        if name not in existing_group_names
+                    ]
+                else:
+                    for name in claim_groups:
+                        if name not in existing_group_names:
+                            try:
+                                group = Group.objects.get(name=name)
+                                new_groups.append(group)
+                            except ObjectDoesNotExist:
+                                pass
+                user.groups.set(existing_groups + new_groups)
