@@ -40,4 +40,13 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
                 )
             },
         ),
+        (
+            _("Mapping and synrhonization"),
+            {
+                "fields": (
+                    "claim_mapping",
+                    "sync_groups",
+                )
+            },
+        ),
     )

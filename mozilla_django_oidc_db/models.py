@@ -1,4 +1,9 @@
+from typing import Dict
+
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import force_text
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +19,16 @@ def get_default_scopes():
     Returns the default scopes to request for OpenID Connect logins
     """
     return ["openid", "email", "profile"]
+
+
+def get_claim_mapping() -> Dict[str, str]:
+    # Map (some) claim names from https://openid.net/specs/openid-connect-core-1_0.html#Claims
+    # to corresponding field names on the User model
+    return {
+        "email": "email",
+        "first_name": "given_name",
+        "last_name": "family_name",
+    }
 
 
 class OpenIDConnectConfig(SingletonModel):
@@ -96,11 +111,52 @@ class OpenIDConnectConfig(SingletonModel):
         blank=True,
     )
 
+    claim_mapping = JSONField(
+        _("claim mapping"),
+        default=get_claim_mapping,
+        help_text=("Mapping from user-model fields to ADFS claims"),
+    )
+    sync_groups = models.BooleanField(
+        _("synchronize groups?"),
+        default=True,
+        help_text=_(
+            "Synchronize the local user groups with the provided groups. Note that this "
+            "means a user is removed from all groups if there is no group claim. "
+            "Uncheck to manage groups manually."
+        ),
+    )
+
     class Meta:
         verbose_name = _("OpenID Connect configuration")
 
     def __str__(self):
         return force_text(self._meta.verbose_name)
+
+    def clean(self):
+        super().clean()
+
+        # validate claim mapping
+        User = get_user_model()
+        for field in self.claim_mapping.keys():
+            try:
+                User._meta.get_field(field)
+            except models.FieldDoesNotExist:
+                raise ValidationError(
+                    {
+                        "claim_mapping": _(
+                            "Field {field} does not exist on the user model"
+                        ).format(field=field)
+                    }
+                )
+
+        if User.USERNAME_FIELD in self.claim_mapping:
+            raise ValidationError(
+                {
+                    "claim_mapping": _(
+                        "The username field may not be in the claim mapping"
+                    ),
+                }
+            )
 
     @property
     def oidc_rp_scopes(self):

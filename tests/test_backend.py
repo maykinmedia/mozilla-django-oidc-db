@@ -37,7 +37,6 @@ def test_backend_get_user_instance_values():
     user_values = backend.get_user_instance_values(claims)
 
     assert user_values == {
-        "username": "123456",
         "email": "admin@localhost",
         "first_name": "John",
         "last_name": "Doe",

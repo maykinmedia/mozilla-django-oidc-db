@@ -16,27 +16,16 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
     as unique identifier.
     """
 
-    # Map (some) claim names from https://openid.net/specs/openid-connect-core-1_0.html#Claims
-    # to corresponding field names on the User model
-    claims_field_mapping = {
-        "sub": "username",
-        "email": "email",
-        "given_name": "first_name",
-        "family_name": "last_name",
-    }
-
     def __init__(self, *args, **kwargs):
-        config = OpenIDConnectConfig.get_solo()
+        self.config = OpenIDConnectConfig.get_solo()
 
-        if not config.enabled:
+        if not self.config.enabled:
             return
 
         super().__init__(*args, **kwargs)
 
     def authenticate(self, *args, **kwargs):
-        config = OpenIDConnectConfig.get_solo()
-
-        if not config.enabled:
+        if not self.config.enabled:
             return None
 
         return super().authenticate(*args, **kwargs)
@@ -47,12 +36,17 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         """
         return {
             model_field: claims.get(claims_field, "")
-            for claims_field, model_field in self.claims_field_mapping.items()
+            for model_field, claims_field in self.config.claim_mapping.items()
         }
 
     def create_user(self, claims):
         """Return object for a newly created user account."""
         values = self.get_user_instance_values(claims)
+        sub = claims.get("sub")
+
+        logger.debug("Creating OIDC user %s with: %s", sub, values)
+
+        values[self.UserModel.USERNAME_FIELD] = claims.get("sub")
         return self.UserModel.objects.create_user(**values)
 
     def filter_users_by_claims(self, claims):
@@ -67,6 +61,8 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         """Verify the provided claims to decide if authentication should be allowed."""
         scopes = self.get_settings("OIDC_RP_SCOPES", "openid email")
 
+        logger.debug("OIDC claims received: %s", claims)
+
         if "sub" not in claims:
             logger.error("`sub` not in OIDC claims, cannot proceed with authentication")
             return False
@@ -77,5 +73,6 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         values = self.get_user_instance_values(claims)
         for field, value in values.items():
             setattr(user, field, value)
+        logger.debug("Updating OIDC user %s with: %s", user, values)
         user.save(update_fields=values.keys())
         return user

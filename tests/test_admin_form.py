@@ -9,7 +9,7 @@ from requests import Response
 from requests.exceptions import RequestException
 
 from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.models import OpenIDConnectConfig, get_claim_mapping
 
 
 @pytest.mark.django_db
@@ -19,6 +19,7 @@ def test_derive_endpoints_success():
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
+        "claim_mapping": get_claim_mapping(),
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -61,6 +62,7 @@ def test_derive_endpoints_request_error(*m):
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
+        "claim_mapping": get_claim_mapping(),
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -80,6 +82,7 @@ def test_derive_endpoints_json_error(*m):
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
+        "claim_mapping": get_claim_mapping(),
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -97,6 +100,7 @@ def test_no_discovery_endpoint_other_fields_required():
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
+        "claim_mapping": get_claim_mapping(),
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
