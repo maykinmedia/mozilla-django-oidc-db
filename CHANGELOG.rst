@@ -2,11 +2,19 @@
 Changelog
 =========
 
+0.4.0 (2021-08-16)
+==================
+
+* Allow claim mappings to be configured via admin.
+* Allow group synchronization between role claims and Django groups.
+* Allow added users to be promoted to staff users directly.
+* Fixed missing INSTALLED_APP in the testproject.
+
 0.3.0 (2021-07-19)
 ==================
+
 * Add derivation of endpoints via OpenID Connect discovery endpoint (`029c6e`_)
 * Add fieldsets for OpenID Connect configuration admin page (`18aae5`_)
-
 
 .. _029c6e: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/029c6efe561c9024b716ea9316fde4f81c0ec3d0
 .. _18aae5 : https://github.com/maykinmedia/mozilla-django-oidc-db/commit/18aae53fed05157874949e15dabeda42af0ebc48
