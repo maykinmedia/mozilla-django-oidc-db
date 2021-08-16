@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import RequestFactory
 
 import pytest
@@ -37,7 +38,6 @@ def test_backend_get_user_instance_values():
     user_values = backend.get_user_instance_values(claims)
 
     assert user_values == {
-        "username": "123456",
         "email": "admin@localhost",
         "first_name": "John",
         "last_name": "Doe",
@@ -167,3 +167,47 @@ def test_backend_update_user():
     assert user.email == "modified@localhost"
     assert user.first_name == "Name"
     assert user.last_name == "Modified"
+
+
+@pytest.mark.django_db
+def test_backend_create_user_with_profile_settings():
+    config = OpenIDConnectConfig.get_solo()
+
+    config.enabled = True
+    config.groups_claim = "roles"
+    config.sync_groups = True
+    config.claim_mapping = {
+        "first_name": "given_name",
+        "last_name": "family_name",
+        "email": "email",
+        "is_superuser": "is_god",
+    }
+    config.make_users_staff = True
+    config.save()
+
+    Group.objects.create(name="useradmin")
+    Group.objects.create(name="groupadmin")
+
+    claims = {
+        "sub": "123456",
+        "email": "admin@localhost",
+        "given_name": "John",
+        "family_name": "Doe",
+        "is_god": 1,
+        "roles": [
+            "useradmin",
+        ],
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify that a user is created with the correct values
+    assert user.username == "123456"
+    assert user.email == "admin@localhost"
+    assert user.first_name == "John"
+    assert user.last_name == "Doe"
+    assert user.is_staff == True
+    assert user.is_superuser == True
+    assert list(user.groups.values_list("name", flat=True)) == ["useradmin"]
