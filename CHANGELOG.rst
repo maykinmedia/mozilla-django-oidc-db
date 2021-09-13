@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.5.0 (2021-09-13)
+==================
+* Pin mozilla-django-oidc to >=1.0.0, <2.0.0 (due to compatibility issues) (`f50408`_)
+* Adapt admin form to allow configurable endpoints that must be derived from discovery endpoint (`07203f`_)
+
+.. _f50408: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/f50408e7e94b2e95f6d1e2c122bb693b1e8d91f8
+.. _07203f: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/07203f9fb42004fe2e351980953a3f774d07a442
+
 0.4.0 (2021-08-16)
 ==================
 
