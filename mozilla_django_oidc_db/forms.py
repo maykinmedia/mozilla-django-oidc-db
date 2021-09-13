@@ -10,6 +10,13 @@ from .models import OpenIDConnectConfig
 
 
 class OpenIDConnectConfigForm(forms.ModelForm):
+    required_endpoints = [
+        "oidc_op_authorization_endpoint",
+        "oidc_op_token_endpoint",
+        "oidc_op_user_endpoint",
+    ]
+    oidc_mapping = OIDC_MAPPING
+
     class Meta:
         model = OpenIDConnectConfig
         fields = "__all__"
@@ -17,9 +24,10 @@ class OpenIDConnectConfigForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["oidc_op_authorization_endpoint"].required = False
-        self.fields["oidc_op_token_endpoint"].required = False
-        self.fields["oidc_op_user_endpoint"].required = False
+        # Required endpoints should be optional in the form, if the can be
+        # derived from the discovery endpoint
+        for endpoint in self.required_endpoints:
+            self.fields[endpoint].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -34,7 +42,7 @@ class OpenIDConnectConfigForm(forms.ModelForm):
                 )
                 configuration = response.json()
 
-                for model_attr, oidc_attr in OIDC_MAPPING.items():
+                for model_attr, oidc_attr in self.oidc_mapping.items():
                     cleaned_data[model_attr] = configuration.get(oidc_attr)
             except (
                 requests.exceptions.RequestException,
@@ -48,12 +56,9 @@ class OpenIDConnectConfigForm(forms.ModelForm):
                     }
                 )
         else:
-            required_endpoints = [
-                "oidc_op_authorization_endpoint",
-                "oidc_op_token_endpoint",
-                "oidc_op_user_endpoint",
-            ]
-            for field in required_endpoints:
+            # Verify that the required endpoints were derived from the
+            # discovery endpoint
+            for field in self.required_endpoints:
                 if not cleaned_data.get(field):
                     self.add_error(field, _("This field is required."))
 
