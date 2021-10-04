@@ -176,6 +176,25 @@ will be used (if there is one). A detailed description of all settings can be fo
 For more detailed documentation, refer to the `mozilla-django-oidc documentation`_. In this documentation
 the origin of the admin configurable settings is also explained.
 
+User profile
+------------
+
+In order to set certain attributes on the ``User`` object, a ``claim_mapping``
+can be specified via the admin. This maps the names of claims returned by the OIDC provider to
+fields on the ``User`` model, and whenever a ``User`` is created/updated, these
+fields will be set to the values of these claims.
+
+Assigning users to groups
+-------------------------
+
+When users are created/updated, they can be automatically assigned to ``Groups``
+by checking the ``Synchronize groups`` option in the admin and setting the
+appropriate value for ``Groups claim``, which is the name of the claim that
+contains the groups the user is assigned to by the OIDC provider.
+
+**NOTE**: The names of the groups in the environment of the OIDC provider must match **exactly**
+with the names of the ``Groups`` in Django for this to work.
+
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
 
