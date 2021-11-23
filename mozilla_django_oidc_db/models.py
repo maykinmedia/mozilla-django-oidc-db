@@ -133,6 +133,15 @@ class OpenIDConnectConfig(SingletonModel):
             "Uncheck to manage groups manually."
         ),
     )
+    sync_groups_glob_pattern = models.CharField(
+        _("groups glob pattern"),
+        default="*",
+        max_length=255,
+        help_text=_(
+            "The glob pattern that groups must match to be synchronized to "
+            "the local database."
+        ),
+    )
     make_users_staff = models.BooleanField(
         _("make users staff"),
         default=False,
