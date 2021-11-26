@@ -170,7 +170,63 @@ def test_backend_update_user():
 
 
 @pytest.mark.django_db
+def test_backend_create_user_sync_all_groups():
+    config = OpenIDConnectConfig.get_solo()
+
+    config.enabled = True
+    config.groups_claim = "roles"
+    config.sync_groups = True
+    config.sync_groups_glob_pattern = "*"
+    config.save()
+
+    claims = {
+        "sub": "123456",
+        "roles": ["useradmin", "groupadmin"],
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify that the groups were created
+    assert Group.objects.count() == 2
+
+    # Verify that a user is created with the correct values
+    assert user.username == "123456"
+    assert list(user.groups.values_list("name", flat=True)) == [
+        "useradmin",
+        "groupadmin",
+    ]
+
+
+@pytest.mark.django_db
+def test_backend_create_user_sync_groups_according_to_pattern():
+    Group.objects.all().delete()
+    config = OpenIDConnectConfig.get_solo()
+
+    config.enabled = True
+    config.groups_claim = "roles"
+    config.sync_groups = True
+    config.sync_groups_glob_pattern = "group*"
+    config.save()
+
+    claims = {
+        "sub": "123456",
+        "roles": ["useradmin", "groupadmin"],
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify that a user is created with the correct values
+    assert user.username == "123456"
+    assert list(user.groups.values_list("name", flat=True)) == ["groupadmin"]
+
+
+@pytest.mark.django_db
 def test_backend_create_user_with_profile_settings():
+    Group.objects.all().delete()
     config = OpenIDConnectConfig.get_solo()
 
     config.enabled = True
@@ -182,6 +238,7 @@ def test_backend_create_user_with_profile_settings():
         "email": "email",
         "is_superuser": "is_god",
     }
+    config.sync_groups_glob_pattern = "*"
     config.make_users_staff = True
     config.save()
 
