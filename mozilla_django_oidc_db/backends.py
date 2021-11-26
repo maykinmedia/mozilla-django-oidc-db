@@ -1,3 +1,4 @@
+import fnmatch
 import logging
 
 from django.contrib.auth.models import Group
@@ -125,9 +126,12 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
                 )
                 new_groups = []
                 if self.config.sync_groups:
+                    # Only sync groups that match the supplied glob pattern
                     new_groups = [
                         Group.objects.get_or_create(name=name)[0]
-                        for name in claim_groups
+                        for name in fnmatch.filter(
+                            claim_groups, self.config.sync_groups_glob_pattern
+                        )
                         if name not in existing_group_names
                     ]
                 else:

@@ -192,6 +192,9 @@ by checking the ``Synchronize groups`` option in the admin and setting the
 appropriate value for ``Groups claim``, which is the name of the claim that
 contains the groups the user is assigned to by the OIDC provider.
 
+Additionally, a ``groups glob pattern`` can be supplied to only sync groups with
+specific names (default ``*``, to match all groups).
+
 **NOTE**: The names of the groups in the environment of the OIDC provider must match **exactly**
 with the names of the ``Groups`` in Django for this to work.
 
