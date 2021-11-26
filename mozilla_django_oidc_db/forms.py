@@ -24,10 +24,12 @@ class OpenIDConnectConfigForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Required endpoints should be optional in the form, if the can be
-        # derived from the discovery endpoint
-        for endpoint in self.required_endpoints:
-            self.fields[endpoint].required = False
+        # Only applicable if user has write access
+        if self.fields:
+            # Required endpoints should be optional in the form, if the can be
+            # derived from the discovery endpoint
+            for endpoint in self.required_endpoints:
+                self.fields[endpoint].required = False
 
     def clean(self):
         cleaned_data = super().clean()
