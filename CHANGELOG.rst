@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.6.0 (2021-11-26)
+==================
+* Add configurable glob pattern for groups sync, to only sync groups that match the pattern (`f325fe`_)
+* Fix OIDC config form for users with readonly access (`99aeb4`_)
+
+.. _f325fe: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/f325feea4f10e86c1e69979026b523c6ce68d20c
+.. _99aeb4: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/99aeb4eb6d7ee8d21fe0c7edb93d62af38658a0e
+
 0.5.0 (2021-09-13)
 ==================
 * Pin mozilla-django-oidc to >=1.0.0, <2.0.0 (due to compatibility issues) (`f50408`_)
