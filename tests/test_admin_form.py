@@ -163,3 +163,13 @@ def test_no_discovery_endpoint_other_fields_required():
         "oidc_op_token_endpoint": [_("This field is required.")],
         "oidc_op_user_endpoint": [_("This field is required.")],
     }
+
+
+def test_admin_form_readonly_access():
+    # Empty the base_fields, causing OpenIDConnectConfigForm.fields to be empty
+    # as well, which is also the case for when users access the form with
+    # read only access
+    OpenIDConnectConfigForm.base_fields = {}
+
+    # Form initialization should not raise any errors
+    form = OpenIDConnectConfigForm()
