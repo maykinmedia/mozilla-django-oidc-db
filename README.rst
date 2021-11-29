@@ -7,7 +7,7 @@
 Welcome to mozilla_django_oidc_db's documentation!
 ==================================================
 
-:Version: 0.6.0
+:Version: 0.7.0
 :Source: https://github.com/maykinmedia/mozilla-django-oidc-db
 :Keywords: OIDC, django, database, authentication
 :PythonVersion: 3.7
@@ -197,6 +197,13 @@ specific names (default ``*``, to match all groups).
 
 **NOTE**: The names of the groups in the environment of the OIDC provider must match **exactly**
 with the names of the ``Groups`` in Django for this to work.
+
+Custom username claim
+---------------------
+
+The name of the claim that is used for the ``User.username`` property
+can be configured via the admin. By default, the username is derived from the ``sub`` claim that
+is returned by the OIDC provider.
 
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
