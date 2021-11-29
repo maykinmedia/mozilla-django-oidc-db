@@ -2,8 +2,14 @@
 Changelog
 =========
 
-0.7.0 (2021-11-29)
+0.7.1 (2021-11-29)
 ==================
+* Fix verbose_name/help_text in username_claim migration (`d888d8`_)
+
+.. _d888d8: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/d888d866ae24df2a3eacb6743b716fa48afa74b1
+
+0.7.0 (2021-11-29) **YANKED**
+=============================
 * Add configurable username claim (defaults to ``sub``) (`ea07b3`_)
 
 .. _ea07b3: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/ea07b3cbb687b3b0ddf738731686fceb930e3c76
