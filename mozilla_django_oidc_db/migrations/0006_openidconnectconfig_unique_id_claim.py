@@ -15,9 +15,9 @@ class Migration(migrations.Migration):
             name="username_claim",
             field=models.CharField(
                 default="sub",
-                help_text="The name of the OIDC claim that is used as the username.",
+                help_text="The name of the OIDC claim that is used as the username",
                 max_length=50,
-                verbose_name="unique identifier claim",
+                verbose_name="username claim",
             ),
         ),
     ]
