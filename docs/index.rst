@@ -38,8 +38,8 @@ Indices and tables
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db
+.. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db
     :alt: Coverage status
 
 .. |python-versions| image:: https://img.shields.io/pypi/pyversions/mozilla_django_oidc_db.svg
