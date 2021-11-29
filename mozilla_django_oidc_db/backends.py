@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
     """
-    Modifies the default OIDCAuthenticationBackend to use the `sub` claim
-    as unique identifier.
+    Modifies the default OIDCAuthenticationBackend to use a configurable claim
+    as unique identifier (default `sub`).
     """
 
     def __init__(self, *args, **kwargs):
@@ -45,12 +45,13 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def create_user(self, claims):
         """Return object for a newly created user account."""
-        sub = claims.get("sub")
+        username_claim = self.config.username_claim
+        unique_id = claims.get(username_claim)
 
-        logger.debug("Creating OIDC user: %s", sub)
+        logger.debug("Creating OIDC user: %s", unique_id)
 
         user = self.UserModel.objects.create_user(
-            **{self.UserModel.USERNAME_FIELD: sub}
+            **{self.UserModel.USERNAME_FIELD: unique_id}
         )
         self.update_user(user, claims)
 
@@ -58,11 +59,14 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def filter_users_by_claims(self, claims):
         """Return all users matching the specified subject."""
-        sub = claims.get("sub")
+        username_claim = self.config.username_claim
+        unique_id = claims.get(username_claim)
 
-        if not sub:
+        if not unique_id:
             return self.UserModel.objects.none()
-        return self.UserModel.objects.filter(username__iexact=sub)
+        return self.UserModel.objects.filter(
+            **{f"{self.UserModel.USERNAME_FIELD}__iexact": unique_id}
+        )
 
     def verify_claims(self, claims):
         """Verify the provided claims to decide if authentication should be allowed."""
@@ -70,8 +74,13 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
         logger.debug("OIDC claims received: %s", claims)
 
-        if "sub" not in claims:
-            logger.error("`sub` not in OIDC claims, cannot proceed with authentication")
+        username_claim = self.config.username_claim
+
+        if username_claim not in claims:
+            logger.error(
+                "%s not in OIDC claims, cannot proceed with authentication",
+                username_claim,
+            )
             return False
         return True
 

@@ -111,6 +111,12 @@ class OpenIDConnectConfig(SingletonModel):
         blank=True,
     )
 
+    username_claim = models.CharField(
+        _("username claim"),
+        max_length=50,
+        default="sub",
+        help_text=_("The name of the OIDC claim that is used as the username"),
+    )
     claim_mapping = JSONField(
         _("claim mapping"),
         default=get_claim_mapping,
