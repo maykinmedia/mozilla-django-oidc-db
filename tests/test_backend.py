@@ -80,6 +80,43 @@ def test_backend_create_user():
 
 
 @pytest.mark.django_db
+def test_backend_create_user_different_username_claim():
+    config = OpenIDConnectConfig.get_solo()
+
+    config.enabled = True
+    config.oidc_rp_client_id = "testid"
+    config.oidc_rp_client_secret = "secret"
+    config.oidc_rp_sign_algo = "HS256"
+    config.oidc_rp_scopes_list = ["openid", "email"]
+    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
+    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
+    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
+    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
+    config.username_claim = "upn"
+    config.save()
+
+    User = get_user_model()
+
+    claims = {
+        "sub": "123456",
+        "upn": "admin",
+        "email": "admin@localhost",
+        "given_name": "John",
+        "family_name": "Doe",
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify `upn` is used as username
+    assert user.username == "admin"
+    assert user.email == "admin@localhost"
+    assert user.first_name == "John"
+    assert user.last_name == "Doe"
+
+
+@pytest.mark.django_db
 def test_backend_filter_users():
     config = OpenIDConnectConfig.get_solo()
 
@@ -92,6 +129,7 @@ def test_backend_filter_users():
     config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
     config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
     config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
+    config.username_claim = "sub"
     config.save()
 
     User = get_user_model()
@@ -127,6 +165,54 @@ def test_backend_filter_users():
 
 
 @pytest.mark.django_db
+def test_backend_filter_users_different_username_claim():
+    config = OpenIDConnectConfig.get_solo()
+
+    config.enabled = True
+    config.oidc_rp_client_id = "testid"
+    config.oidc_rp_client_secret = "secret"
+    config.oidc_rp_sign_algo = "HS256"
+    config.oidc_rp_scopes_list = ["openid", "email"]
+    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
+    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
+    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
+    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
+    config.username_claim = "upn"
+    config.save()
+
+    User = get_user_model()
+
+    # Create two users with the same email address, this shouldn't cause problems
+    user1 = User.objects.create(
+        username="admin", email="admin@localhost", first_name="John", last_name="Doe"
+    )
+    user2 = User.objects.create(
+        username="admin2", email="admin@localhost", first_name="Jane", last_name="Doe"
+    )
+
+    claims = {
+        "upn": "admin2",
+        "email": "admin@localhost",
+        "given_name": "Jane",
+        "family_name": "Doe",
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    users = backend.filter_users_by_claims(claims)
+
+    assert users.count() == 1
+
+    user = users.first()
+
+    # Verify that a user is created with the correct values
+    assert user.username == "admin2"
+    assert user.email == "admin@localhost"
+    assert user.first_name == "Jane"
+    assert user.last_name == "Doe"
+
+
+@pytest.mark.django_db
 def test_backend_update_user():
     config = OpenIDConnectConfig.get_solo()
 
@@ -139,6 +225,7 @@ def test_backend_update_user():
     config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
     config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
     config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
+    config.username_claim = "sub"
     config.save()
 
     User = get_user_model()

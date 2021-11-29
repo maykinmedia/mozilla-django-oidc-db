@@ -44,6 +44,7 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
             _("User profile"),
             {
                 "fields": (
+                    "username_claim",
                     "groups_claim",
                     "claim_mapping",
                     "sync_groups",
