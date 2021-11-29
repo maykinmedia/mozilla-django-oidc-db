@@ -208,8 +208,8 @@ is returned by the OIDC provider.
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
 
-.. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/mozilla_django_oidc_db
+.. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db
     :alt: Coverage status
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
