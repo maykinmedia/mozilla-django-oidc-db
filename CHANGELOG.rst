@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.7.0 (2021-11-29)
+==================
+* Add configurable username claim (defaults to ``sub``) (`ea07b3`_)
+
+.. _ea07b3: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/ea07b3cbb687b3b0ddf738731686fceb930e3c76
+
 0.6.0 (2021-11-26)
 ==================
 * Add configurable glob pattern for groups sync, to only sync groups that match the pattern (`f325fe`_)
