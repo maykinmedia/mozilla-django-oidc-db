@@ -22,6 +22,7 @@ def test_derive_endpoints_success():
         "claim_mapping": get_claim_mapping(),
         "groups_claim": "roles",
         "sync_groups_glob_pattern": "*",
+        "username_claim": "sub",
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -67,6 +68,7 @@ def test_derive_endpoints_extra_field():
         "claim_mapping": get_claim_mapping(),
         "groups_claim": "roles",
         "sync_groups_glob_pattern": "*",
+        "username_claim": "sub",
     }
 
     class ExtendedOpenIDConnectConfigForm(OpenIDConnectConfigForm):
@@ -111,6 +113,7 @@ def test_derive_endpoints_request_error(*m):
         "claim_mapping": get_claim_mapping(),
         "groups_claim": "roles",
         "sync_groups_glob_pattern": "*",
+        "username_claim": "sub",
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -133,6 +136,7 @@ def test_derive_endpoints_json_error(*m):
         "claim_mapping": get_claim_mapping(),
         "groups_claim": "roles",
         "sync_groups_glob_pattern": "*",
+        "username_claim": "sub",
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -153,6 +157,7 @@ def test_no_discovery_endpoint_other_fields_required():
         "claim_mapping": get_claim_mapping(),
         "groups_claim": "roles",
         "sync_groups_glob_pattern": "*",
+        "username_claim": "sub",
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
