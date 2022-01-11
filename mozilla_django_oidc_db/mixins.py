@@ -4,10 +4,22 @@ from .models import OpenIDConnectConfig
 
 
 class SoloConfigMixin:
-    @staticmethod
-    def get_settings(attr, *args):
-        config = OpenIDConnectConfig.get_solo()
+    @property
+    def config(self):
+        if not hasattr(self, "_solo_config"):
+            self._solo_config = OpenIDConnectConfig.get_solo()
+        return self._solo_config
+
+    def refresh_config(self):
+        """
+        Refreshes the cached config on the instance, required for middleware
+        since middleware is only instantiated once (during the Django startup phase)
+        """
+        if hasattr(self, "_solo_config"):
+            del self._solo_config
+
+    def get_settings(self, attr, *args):
         attr_lowercase = attr.lower()
-        if getattr(config, attr_lowercase, ""):
-            return getattr(config, attr_lowercase)
+        if getattr(self.config, attr_lowercase, ""):
+            return getattr(self.config, attr_lowercase)
         return import_from_settings(attr, *args)

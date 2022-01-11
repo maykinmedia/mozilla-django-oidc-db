@@ -1,15 +1,16 @@
 import fnmatch
 import logging
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ObjectDoesNotExist
 
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
+from mozilla_django_oidc.utils import import_from_settings
 
 from .mixins import SoloConfigMixin
-from .models import OpenIDConnectConfig
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +21,21 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
     as unique identifier (default `sub`).
     """
 
+    def __getattribute__(self, attr):
+        if attr.startswith("OIDC"):
+            return self.get_settings(attr, None)
+        return super().__getattribute__(attr)
+
     def __init__(self, *args, **kwargs):
-        self.config = OpenIDConnectConfig.get_solo()
+        self.UserModel = get_user_model()
 
-        if not self.config.enabled:
-            return
+        # See: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/30
+        # `super().__init__` is not called here, because this attempts to initialize
+        # the settings (which should be retrieved from `OpenIDConnectConfig`).
 
-        super().__init__(*args, **kwargs)
+        # The retrieval of these settings has been moved to runtime (`__getattribute__`)
+        # to avoid a large number of `OpenIDConnectConfig.get_solo` calls when
+        # `OIDCAuthenticationBackend.__init__` is called for permission checks
 
     def authenticate(self, *args, **kwargs):
         if not self.config.enabled:
@@ -139,7 +148,8 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
                     new_groups = [
                         Group.objects.get_or_create(name=name)[0]
                         for name in fnmatch.filter(
-                            claim_groups, self.config.sync_groups_glob_pattern
+                            claim_groups,
+                            self.config.sync_groups_glob_pattern,
                         )
                         if name not in existing_group_names
                     ]

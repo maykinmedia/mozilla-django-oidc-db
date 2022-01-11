@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import RequestFactory
@@ -8,12 +10,9 @@ from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 
-@pytest.mark.django_db
-def test_backend_authenticate_oidc_not_enabled():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = False
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_authenticate_oidc_not_enabled(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(enabled=False)
 
     backend = OIDCAuthenticationBackend()
 
@@ -24,8 +23,12 @@ def test_backend_authenticate_oidc_not_enabled():
     assert backend.authenticate(request) is None
 
 
-@pytest.mark.django_db
-def test_backend_get_user_instance_values():
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_get_user_instance_values(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        claim_mapping=OpenIDConnectConfig._meta.get_field("claim_mapping").get_default()
+    )
+
     claims = {
         "sub": "123456",
         "email": "admin@localhost",
@@ -45,19 +48,19 @@ def test_backend_get_user_instance_values():
 
 
 @pytest.mark.django_db
-def test_backend_create_user():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.oidc_rp_client_id = "testid"
-    config.oidc_rp_client_secret = "secret"
-    config.oidc_rp_sign_algo = "HS256"
-    config.oidc_rp_scopes_list = ["openid", "email"]
-    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
-    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
-    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
-    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+    )
 
     User = get_user_model()
 
@@ -80,20 +83,20 @@ def test_backend_create_user():
 
 
 @pytest.mark.django_db
-def test_backend_create_user_different_username_claim():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.oidc_rp_client_id = "testid"
-    config.oidc_rp_client_secret = "secret"
-    config.oidc_rp_sign_algo = "HS256"
-    config.oidc_rp_scopes_list = ["openid", "email"]
-    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
-    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
-    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
-    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
-    config.username_claim = "upn"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_different_username_claim(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        username_claim="upn",
+    )
 
     User = get_user_model()
 
@@ -117,20 +120,20 @@ def test_backend_create_user_different_username_claim():
 
 
 @pytest.mark.django_db
-def test_backend_filter_users():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.oidc_rp_client_id = "testid"
-    config.oidc_rp_client_secret = "secret"
-    config.oidc_rp_sign_algo = "HS256"
-    config.oidc_rp_scopes_list = ["openid", "email"]
-    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
-    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
-    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
-    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
-    config.username_claim = "sub"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_filter_users(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        username_claim="sub",
+    )
 
     User = get_user_model()
 
@@ -165,20 +168,20 @@ def test_backend_filter_users():
 
 
 @pytest.mark.django_db
-def test_backend_filter_users_different_username_claim():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.oidc_rp_client_id = "testid"
-    config.oidc_rp_client_secret = "secret"
-    config.oidc_rp_sign_algo = "HS256"
-    config.oidc_rp_scopes_list = ["openid", "email"]
-    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
-    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
-    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
-    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
-    config.username_claim = "upn"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_filter_users_different_username_claim(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        username_claim="upn",
+    )
 
     User = get_user_model()
 
@@ -213,20 +216,20 @@ def test_backend_filter_users_different_username_claim():
 
 
 @pytest.mark.django_db
-def test_backend_update_user():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.oidc_rp_client_id = "testid"
-    config.oidc_rp_client_secret = "secret"
-    config.oidc_rp_sign_algo = "HS256"
-    config.oidc_rp_scopes_list = ["openid", "email"]
-    config.oidc_op_jwks_endpoint = "http://some.endpoint/v1/jwks"
-    config.oidc_op_authorization_endpoint = "http://some.endpoint/v1/auth"
-    config.oidc_op_token_endpoint = "http://some.endpoint/v1/token"
-    config.oidc_op_user_endpoint = "http://some.endpoint/v1/user"
-    config.username_claim = "sub"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_update_user(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        username_claim="sub",
+    )
 
     User = get_user_model()
 
@@ -257,14 +260,22 @@ def test_backend_update_user():
 
 
 @pytest.mark.django_db
-def test_backend_create_user_sync_all_groups():
-    config = OpenIDConnectConfig.get_solo()
-
-    config.enabled = True
-    config.groups_claim = "roles"
-    config.sync_groups = True
-    config.sync_groups_glob_pattern = "*"
-    config.save()
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_sync_all_groups(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        groups_claim="roles",
+        sync_groups=True,
+        sync_groups_glob_pattern="*",
+    )
 
     claims = {
         "sub": "123456",
@@ -287,15 +298,24 @@ def test_backend_create_user_sync_all_groups():
 
 
 @pytest.mark.django_db
-def test_backend_create_user_sync_groups_according_to_pattern():
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_sync_groups_according_to_pattern(mock_get_solo):
     Group.objects.all().delete()
-    config = OpenIDConnectConfig.get_solo()
 
-    config.enabled = True
-    config.groups_claim = "roles"
-    config.sync_groups = True
-    config.sync_groups_glob_pattern = "group*"
-    config.save()
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        groups_claim="roles",
+        sync_groups=True,
+        sync_groups_glob_pattern="group*",
+    )
 
     claims = {
         "sub": "123456",
@@ -312,22 +332,31 @@ def test_backend_create_user_sync_groups_according_to_pattern():
 
 
 @pytest.mark.django_db
-def test_backend_create_user_with_profile_settings():
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_with_profile_settings(mock_get_solo):
     Group.objects.all().delete()
-    config = OpenIDConnectConfig.get_solo()
 
-    config.enabled = True
-    config.groups_claim = "roles"
-    config.sync_groups = True
-    config.claim_mapping = {
-        "first_name": "given_name",
-        "last_name": "family_name",
-        "email": "email",
-        "is_superuser": "is_god",
-    }
-    config.sync_groups_glob_pattern = "*"
-    config.make_users_staff = True
-    config.save()
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        groups_claim="roles",
+        sync_groups=True,
+        claim_mapping={
+            "first_name": "given_name",
+            "last_name": "family_name",
+            "email": "email",
+            "is_superuser": "is_god",
+        },
+        sync_groups_glob_pattern="*",
+        make_users_staff=True,
+    )
 
     Group.objects.create(name="useradmin")
     Group.objects.create(name="groupadmin")
@@ -355,3 +384,30 @@ def test_backend_create_user_with_profile_settings():
     assert user.is_staff == True
     assert user.is_superuser == True
     assert list(user.groups.values_list("name", flat=True)) == ["useradmin"]
+
+
+@pytest.mark.django_db
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_init_cache_not_called(mock_get_solo):
+    """
+    Regression test for https://github.com/maykinmedia/mozilla-django-oidc-db/issues/30
+    """
+
+    mock_get_solo.return_value = OpenIDConnectConfig(enabled=False)
+
+    User = get_user_model()
+    user = User.objects.create(
+        username="123456", email="admin@localhost", first_name="John", last_name="Doe"
+    )
+
+    with patch(
+        "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
+        side_effect=OIDCAuthenticationBackend,
+    ) as mock_init:
+        # `User.has_perm` should cause all backends to be instantiated
+        user.has_perm("test")
+
+        assert mock_init.call_count == 1
+
+    # `OpenIDConnectConfig.get_solo` should not be called when initializing the backend
+    assert mock_get_solo.call_count == 0
