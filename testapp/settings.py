@@ -58,3 +58,8 @@ TEMPLATES = [
 ]
 
 ROOT_URLCONF = "testapp.urls"
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
+]
