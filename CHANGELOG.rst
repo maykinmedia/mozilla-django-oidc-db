@@ -2,11 +2,19 @@
 Changelog
 =========
 
+0.7.2 (2022-01-11)
+==================
+* Fix caching issues caused by `OpenIDConnectConfig.get_solo` in backend initialization (`ebb67c`_)
+* Rename imported `SessionRefresh` in middleware to avoid conflicting names (`a6c4f6`_)
+
+.. _ebb67c: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/ebb67cbdc4ede69d8e5e81c44626b29fe2dbb092
+.. _a6c4f6: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/a6c4f6a78111f876549f55e38c3b197849cda4ef
+
 0.7.1 (2021-11-29)
 ==================
 * Fix verbose_name/help_text in username_claim migration (`d888d8`_)
 
-.. _d888d8: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/d888d866ae24df2a3eacb6743b716fa48afa74b1
+.. _d888d8: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/a6c4f6a78111f876549f55e38c3b197849cda4ef
 
 0.7.0 (2021-11-29) **YANKED**
 =============================
