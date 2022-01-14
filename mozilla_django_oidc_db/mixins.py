@@ -4,10 +4,12 @@ from .models import OpenIDConnectConfig
 
 
 class SoloConfigMixin:
+    config_class = OpenIDConnectConfig
+
     @property
     def config(self):
         if not hasattr(self, "_solo_config"):
-            self._solo_config = OpenIDConnectConfig.get_solo()
+            self._solo_config = self.config_class.get_solo()
         return self._solo_config
 
     def refresh_config(self):
