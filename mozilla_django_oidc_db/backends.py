@@ -8,7 +8,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
-from mozilla_django_oidc.utils import import_from_settings
 
 from .mixins import SoloConfigMixin
 
