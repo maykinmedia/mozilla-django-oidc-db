@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.8.0 (2022-02-15)
+==================
+* Allow usage of other config classes in SoloConfigMixin (`3f9c1d`_)
+
+.. _3f9c1d: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/3f9c1d0ebc7c09df04c6e76406359da11fe84f7a
+
 0.7.2 (2022-01-11)
 ==================
 * Fix caching issues caused by `OpenIDConnectConfig.get_solo` in backend initialization (`ebb67c`_)
