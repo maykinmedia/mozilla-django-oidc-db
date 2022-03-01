@@ -63,3 +63,5 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
 ]
+
+MOZILLA_DJANGO_OIDC_DB_PREFIX = "default"
