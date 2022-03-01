@@ -13,6 +13,8 @@ from solo.models import SingletonModel, get_cache
 
 import mozilla_django_oidc_db.settings as oidc_settings
 
+from .compat import classproperty
+
 
 def get_default_scopes():
     """
@@ -31,7 +33,63 @@ def get_claim_mapping() -> Dict[str, str]:
     }
 
 
-class OpenIDConnectConfig(SingletonModel):
+class CachingMixin:
+    @classmethod
+    def clear_cache(cls):
+        cache_name = getattr(
+            settings, "OIDC_CACHE", oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE
+        )
+        if cache_name:
+            cache = get_cache(cache_name)
+            cache_key = cls.get_cache_key()
+            cache.delete(cache_key)
+
+    def set_to_cache(self):
+        cache_name = getattr(
+            settings,
+            "MOZILLA_DJANGO_OIDC_DB_CACHE",
+            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
+        )
+        if not cache_name:
+            return None
+        cache = get_cache(cache_name)
+        cache_key = self.get_cache_key()
+        timeout = getattr(
+            settings,
+            "MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT",
+            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT,
+        )
+        cache.set(cache_key, self, timeout)
+
+    @classmethod
+    def get_cache_key(cls):
+        prefix = cls.custom_oidc_db_prefix or getattr(
+            settings,
+            "MOZILLA_DJANGO_OIDC_DB_PREFIX",
+            oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX,
+        )
+        return "%s:%s" % (prefix, cls.__name__.lower())
+
+    @classmethod
+    def get_solo(cls):
+        cache_name = getattr(
+            settings,
+            "MOZILLA_DJANGO_OIDC_DB_CACHE",
+            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
+        )
+        if not cache_name:
+            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            return obj
+        cache = get_cache(cache_name)
+        cache_key = cls.get_cache_key()
+        obj = cache.get(cache_key)
+        if not obj:
+            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            obj.set_to_cache()
+        return obj
+
+
+class OpenIDConnectConfig(CachingMixin, SingletonModel):
     """
     Configuration for authentication/authorization via OpenID connect
     """
@@ -195,56 +253,9 @@ class OpenIDConnectConfig(SingletonModel):
         """
         return " ".join(self.oidc_rp_scopes_list)
 
-    @classmethod
-    def clear_cache(cls):
-        cache_name = getattr(
-            settings, "OIDC_CACHE", oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE
-        )
-        if cache_name:
-            cache = get_cache(cache_name)
-            cache_key = cls.get_cache_key()
-            cache.delete(cache_key)
-
-    def set_to_cache(self):
-        cache_name = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
-        )
-        if not cache_name:
-            return None
-        cache = get_cache(cache_name)
-        cache_key = self.get_cache_key()
-        timeout = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT,
-        )
-        cache.set(cache_key, self, timeout)
-
-    @classmethod
-    def get_cache_key(cls):
-        prefix = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_PREFIX",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX,
-        )
-        return "%s:%s" % (prefix, cls.__name__.lower())
-
-    @classmethod
-    def get_solo(cls):
-        cache_name = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
-        )
-        if not cache_name:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
-            return obj
-        cache = get_cache(cache_name)
-        cache_key = cls.get_cache_key()
-        obj = cache.get(cache_key)
-        if not obj:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
-            obj.set_to_cache()
-        return obj
+    @classproperty
+    def custom_oidc_db_prefix(cls):
+        """
+        Cache prefix that can be overridden
+        """
+        return oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX
