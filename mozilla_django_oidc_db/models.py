@@ -1,5 +1,7 @@
+from distutils.version import StrictVersion
 from typing import Dict
 
+import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
@@ -12,6 +14,13 @@ from django_better_admin_arrayfield.models.fields import ArrayField
 from solo.models import SingletonModel, get_cache
 
 import mozilla_django_oidc_db.settings as oidc_settings
+
+# `classproperty` was moved to another module in Django 3.1
+# See https://github.com/django/django/blob/ca9872905559026af82000e46cde6f7dedc897b6/docs/releases/3.1.txt#L649
+if StrictVersion(django.__version__) >= StrictVersion("3.1"):
+    from django.utils.functional import classproperty
+else:
+    from django.utils.decorators import classproperty
 
 
 def get_default_scopes():
@@ -195,6 +204,13 @@ class OpenIDConnectConfig(SingletonModel):
         """
         return " ".join(self.oidc_rp_scopes_list)
 
+    @classproperty
+    def custom_oidc_db_prefix(cls):
+        """
+        Cache prefix that can be overridden
+        """
+        return oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX
+
     @classmethod
     def clear_cache(cls):
         cache_name = getattr(
@@ -227,7 +243,7 @@ class OpenIDConnectConfig(SingletonModel):
         prefix = getattr(
             settings,
             "MOZILLA_DJANGO_OIDC_DB_PREFIX",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX,
+            cls.custom_oidc_db_prefix,
         )
         return "%s:%s" % (prefix, cls.__name__.lower())
 
