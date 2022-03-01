@@ -90,9 +90,9 @@ class CachingMixin:
         return obj
 
 
-class OpenIDConnectConfig(CachingMixin, SingletonModel):
+class OpenIDConnectConfigBase(SingletonModel):
     """
-    Configuration for authentication/authorization via OpenID connect
+    Defines the required fields for a config to establish an OIDC connection
     """
 
     enabled = models.BooleanField(
@@ -170,6 +170,25 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
         blank=True,
     )
 
+    @property
+    def oidc_rp_scopes(self):
+        """
+        Scopes should be formatted as a string with spaces
+        """
+        return " ".join(self.oidc_rp_scopes_list)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return force_text(self._meta.verbose_name)
+
+
+class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
+    """
+    Configuration for authentication/authorization via OpenID connect
+    """
+
     username_claim = models.CharField(
         _("username claim"),
         max_length=50,
@@ -218,9 +237,6 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
     class Meta:
         verbose_name = _("OpenID Connect configuration")
 
-    def __str__(self):
-        return force_text(self._meta.verbose_name)
-
     def clean(self):
         super().clean()
 
@@ -246,13 +262,6 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
                     ),
                 }
             )
-
-    @property
-    def oidc_rp_scopes(self):
-        """
-        Scopes should be formatted as a string with spaces
-        """
-        return " ".join(self.oidc_rp_scopes_list)
 
     @classproperty
     def custom_oidc_db_prefix(cls):
