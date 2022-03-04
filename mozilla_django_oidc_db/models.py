@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import django
 from django.conf import settings
@@ -17,7 +17,7 @@ import mozilla_django_oidc_db.settings as oidc_settings
 from .compat import classproperty
 
 
-def get_default_scopes():
+def get_default_scopes() -> List[str]:
     """
     Returns the default scopes to request for OpenID Connect logins
     """
@@ -63,7 +63,7 @@ class CachingMixin:
         cache.set(cache_key, self, timeout)
 
     @classmethod
-    def get_cache_key(cls):
+    def get_cache_key(cls) -> str:
         prefix = cls.custom_oidc_db_prefix or getattr(
             settings,
             "MOZILLA_DJANGO_OIDC_DB_PREFIX",
@@ -72,7 +72,7 @@ class CachingMixin:
         return "%s:%s" % (prefix, cls.__name__.lower())
 
     @classmethod
-    def get_solo(cls):
+    def get_solo(cls) -> SingletonModel:
         cache_name = getattr(
             settings,
             "MOZILLA_DJANGO_OIDC_DB_CACHE",
@@ -171,7 +171,7 @@ class OpenIDConnectConfigBase(SingletonModel):
     )
 
     @property
-    def oidc_rp_scopes(self):
+    def oidc_rp_scopes(self) -> str:
         """
         Scopes should be formatted as a string with spaces
         """
@@ -180,7 +180,7 @@ class OpenIDConnectConfigBase(SingletonModel):
     class Meta:
         abstract = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         return force_text(self._meta.verbose_name)
 
 
@@ -264,7 +264,7 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
             )
 
     @classproperty
-    def custom_oidc_db_prefix(cls):
+    def custom_oidc_db_prefix(cls) -> str:
         """
         Cache prefix that can be overridden
         """
