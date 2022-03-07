@@ -1,5 +1,7 @@
 import os
 
+from django.urls import reverse_lazy
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
@@ -65,3 +67,5 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 MOZILLA_DJANGO_OIDC_DB_PREFIX = "default"
+OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
+LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
