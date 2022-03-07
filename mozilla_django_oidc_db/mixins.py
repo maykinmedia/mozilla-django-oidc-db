@@ -22,8 +22,14 @@ class SoloConfigMixin:
 
     def get_settings(self, attr, *args):
         attr_lowercase = attr.lower()
-        if getattr(self.config, attr_lowercase, ""):
-            return getattr(self.config, attr_lowercase)
+        if hasattr(self.config, attr_lowercase):
+            # Workaround for OIDC_RP_IDP_SIGN_KEY being an empty string by default.
+            # mozilla-django-oidc explicitly checks if `OIDC_RP_IDP_SIGN_KEY` is not `None`
+            # https://github.com/mozilla/mozilla-django-oidc/blob/master/mozilla_django_oidc/auth.py#L189
+            value_from_config = getattr(self.config, attr_lowercase)
+            if value_from_config == "":
+                return None
+            return value_from_config
         return import_from_settings(attr, *args)
 
 
