@@ -25,3 +25,14 @@ class SoloConfigMixin:
         if getattr(self.config, attr_lowercase, ""):
             return getattr(self.config, attr_lowercase)
         return import_from_settings(attr, *args)
+
+
+class GetAttributeMixin:
+    def __getattribute__(self, attr):
+        """
+        Mixin used to avoid calls to the config model on __init__ and instead
+        do these calls runtime
+        """
+        if attr.startswith("OIDC"):
+            return self.get_settings(attr, None)
+        return super().__getattribute__(attr)

@@ -11,13 +11,15 @@ from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
 
-from .mixins import SoloConfigMixin
+from .mixins import GetAttributeMixin, SoloConfigMixin
 from .utils import obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
 
-class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
+class OIDCAuthenticationBackend(
+    GetAttributeMixin, SoloConfigMixin, _OIDCAuthenticationBackend
+):
     """
     Modifies the default OIDCAuthenticationBackend to use a configurable claim
     as unique identifier (default `sub`).
@@ -25,11 +27,6 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     config_identifier_field = "username_claim"
     sensitive_claim_names = []
-
-    def __getattribute__(self, attr):
-        if attr.startswith("OIDC"):
-            return self.get_settings(attr, None)
-        return super().__getattribute__(attr)
 
     def __init__(self, *args, **kwargs):
         self.UserModel = get_user_model()
