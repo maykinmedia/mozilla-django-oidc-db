@@ -1,5 +1,6 @@
 import fnmatch
 import logging
+from typing import Any, Dict
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -42,7 +43,7 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
         return super().authenticate(*args, **kwargs)
 
-    def get_user_instance_values(self, claims):
+    def get_user_instance_values(self, claims) -> Dict[str, Any]:
         """
         Map the names and values of the claims to the fields of the User model
         """
@@ -76,7 +77,7 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
             **{f"{self.UserModel.USERNAME_FIELD}__iexact": unique_id}
         )
 
-    def verify_claims(self, claims):
+    def verify_claims(self, claims) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
         scopes = self.get_settings("OIDC_RP_SCOPES", "openid email")
 
