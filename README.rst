@@ -115,8 +115,20 @@ Furthermore, ensure the following settings are configured:
 .. code-block:: python
 
     OIDC_AUTHENTICATE_CLASS = "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
+    OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
     MOZILLA_DJANGO_OIDC_DB_CACHE = "oidc"
     MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT = 1
+
+In order to properly catch admin login errors, add the following to urlpatterns:
+
+.. code-block:: python
+    from mozilla_django_oidc_db.views import AdminLoginFailure
+
+    urlpatterns = [
+        ...
+        path("admin/login/failure/", AdminLoginFailure.as_view(), name="admin-oidc-error"),
+        ...
+    ]
 
 ``MOZILLA_DJANGO_OIDC_DB_CACHE`` is used to cache the configuration that is stored in the database,
 to prevent a lot of database lookups. Ensure this cache is configured in ``CACHES`` (using the backend of choice):
