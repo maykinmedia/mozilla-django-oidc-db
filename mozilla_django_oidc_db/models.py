@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List
 
+import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
@@ -16,7 +17,7 @@ import mozilla_django_oidc_db.settings as oidc_settings
 from .compat import classproperty
 
 
-def get_default_scopes():
+def get_default_scopes() -> List[str]:
     """
     Returns the default scopes to request for OpenID Connect logins
     """
@@ -62,7 +63,7 @@ class CachingMixin:
         cache.set(cache_key, self, timeout)
 
     @classmethod
-    def get_cache_key(cls):
+    def get_cache_key(cls) -> str:
         prefix = cls.custom_oidc_db_prefix or getattr(
             settings,
             "MOZILLA_DJANGO_OIDC_DB_PREFIX",
@@ -71,7 +72,7 @@ class CachingMixin:
         return "%s:%s" % (prefix, cls.__name__.lower())
 
     @classmethod
-    def get_solo(cls):
+    def get_solo(cls) -> SingletonModel:
         cache_name = getattr(
             settings,
             "MOZILLA_DJANGO_OIDC_DB_CACHE",
@@ -89,9 +90,9 @@ class CachingMixin:
         return obj
 
 
-class OpenIDConnectConfig(CachingMixin, SingletonModel):
+class OpenIDConnectConfigBase(SingletonModel):
     """
-    Configuration for authentication/authorization via OpenID connect
+    Defines the required fields for a config to establish an OIDC connection
     """
 
     enabled = models.BooleanField(
@@ -169,6 +170,25 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
         blank=True,
     )
 
+    @property
+    def oidc_rp_scopes(self) -> str:
+        """
+        Scopes should be formatted as a string with spaces
+        """
+        return " ".join(self.oidc_rp_scopes_list)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return force_text(self._meta.verbose_name)
+
+
+class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
+    """
+    Configuration for authentication/authorization via OpenID connect
+    """
+
     username_claim = models.CharField(
         _("username claim"),
         max_length=50,
@@ -217,9 +237,6 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
     class Meta:
         verbose_name = _("OpenID Connect configuration")
 
-    def __str__(self):
-        return force_text(self._meta.verbose_name)
-
     def clean(self):
         super().clean()
 
@@ -246,15 +263,8 @@ class OpenIDConnectConfig(CachingMixin, SingletonModel):
                 }
             )
 
-    @property
-    def oidc_rp_scopes(self):
-        """
-        Scopes should be formatted as a string with spaces
-        """
-        return " ".join(self.oidc_rp_scopes_list)
-
     @classproperty
-    def custom_oidc_db_prefix(cls):
+    def custom_oidc_db_prefix(cls) -> str:
         """
         Cache prefix that can be overridden
         """
