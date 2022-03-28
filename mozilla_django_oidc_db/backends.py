@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ObjectDoesNotExist
 
+from glom import glom
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
@@ -48,14 +49,14 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         Map the names and values of the claims to the fields of the User model
         """
         return {
-            model_field: claims.get(claims_field, "")
+            model_field: glom(claims, claims_field, default="")
             for model_field, claims_field in self.config.claim_mapping.items()
         }
 
     def create_user(self, claims):
         """Return object for a newly created user account."""
         username_claim = self.config.username_claim
-        unique_id = claims.get(username_claim)
+        unique_id = glom(claims, username_claim, default="")
 
         logger.debug("Creating OIDC user: %s", unique_id)
 
@@ -69,7 +70,7 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
     def filter_users_by_claims(self, claims):
         """Return all users matching the specified subject."""
         username_claim = self.config.username_claim
-        unique_id = claims.get(username_claim)
+        unique_id = glom(claims, username_claim, default="")
 
         if not unique_id:
             return self.UserModel.objects.none()
@@ -79,13 +80,11 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def verify_claims(self, claims) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
-        scopes = self.get_settings("OIDC_RP_SCOPES", "openid email")
-
         logger.debug("OIDC claims received: %s", claims)
 
         username_claim = self.config.username_claim
 
-        if username_claim not in claims:
+        if not glom(claims, username_claim, default=""):
             logger.error(
                 "%s not in OIDC claims, cannot proceed with authentication",
                 username_claim,
@@ -122,9 +121,8 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         if groups_claim:
             # Update the user's group memberships
             django_groups = [group.name for group in user.groups.all()]
-
-            if groups_claim in claims:
-                claim_groups = claims[groups_claim]
+            claim_groups = glom(claims, groups_claim, default=[])
+            if claim_groups:
                 if not isinstance(claim_groups, list):
                     claim_groups = [
                         claim_groups,
