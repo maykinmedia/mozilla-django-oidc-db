@@ -47,6 +47,36 @@ def test_backend_get_user_instance_values(mock_get_solo):
     }
 
 
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_get_user_instance_values_nested_claims(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        claim_mapping={
+            "email": "user_info.email",
+            "first_name": "user_info.given_name",
+            "last_name": "user_info.family_name",
+        }
+    )
+
+    claims = {
+        "sub": "123456",
+        "user_info": {
+            "email": "admin@localhost",
+            "given_name": "John",
+            "family_name": "Doe",
+        },
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user_values = backend.get_user_instance_values(claims)
+
+    assert user_values == {
+        "email": "admin@localhost",
+        "first_name": "John",
+        "last_name": "Doe",
+    }
+
+
 @pytest.mark.django_db
 @patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
 def test_backend_create_user(mock_get_solo):
@@ -329,6 +359,44 @@ def test_backend_create_user_sync_groups_according_to_pattern(mock_get_solo):
     # Verify that a user is created with the correct values
     assert user.username == "123456"
     assert list(user.groups.values_list("name", flat=True)) == ["groupadmin"]
+
+
+@pytest.mark.django_db
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_sync_all_groups_nested_groups_claim(mock_get_solo):
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        groups_claim="nested_object.roles",
+        sync_groups=True,
+        sync_groups_glob_pattern="*",
+    )
+
+    claims = {
+        "sub": "123456",
+        "nested_object": {"roles": ["useradmin", "groupadmin"]},
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify that the groups were created
+    assert Group.objects.count() == 2
+
+    # Verify that a user is created with the correct values
+    assert user.username == "123456"
+    assert list(user.groups.values_list("name", flat=True)) == [
+        "useradmin",
+        "groupadmin",
+    ]
 
 
 @pytest.mark.django_db
