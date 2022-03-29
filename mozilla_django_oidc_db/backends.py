@@ -22,6 +22,8 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
     as unique identifier (default `sub`).
     """
 
+    config_identifier_field = "username_claim"
+
     def __getattribute__(self, attr):
         if attr.startswith("OIDC"):
             return self.get_settings(attr, None)
@@ -37,6 +39,11 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         # The retrieval of these settings has been moved to runtime (`__getattribute__`)
         # to avoid a large number of `OpenIDConnectConfig.get_solo` calls when
         # `OIDCAuthenticationBackend.__init__` is called for permission checks
+
+    def retrieve_identifier_claim(self, claims: dict) -> str:
+        identifier_claim_name = getattr(self.config, self.config_identifier_field)
+        unique_id = glom(claims, identifier_claim_name, default="")
+        return unique_id
 
     def authenticate(self, *args, **kwargs):
         if not self.config.enabled:
@@ -55,8 +62,7 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def create_user(self, claims):
         """Return object for a newly created user account."""
-        username_claim = self.config.username_claim
-        unique_id = glom(claims, username_claim, default="")
+        unique_id = self.retrieve_identifier_claim(claims)
 
         logger.debug("Creating OIDC user: %s", unique_id)
 
@@ -69,8 +75,7 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def filter_users_by_claims(self, claims):
         """Return all users matching the specified subject."""
-        username_claim = self.config.username_claim
-        unique_id = glom(claims, username_claim, default="")
+        unique_id = self.retrieve_identifier_claim(claims)
 
         if not unique_id:
             return self.UserModel.objects.none()
@@ -82,12 +87,12 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         """Verify the provided claims to decide if authentication should be allowed."""
         logger.debug("OIDC claims received: %s", claims)
 
-        username_claim = self.config.username_claim
+        identifier_claim_name = getattr(self.config, self.config_identifier_field)
 
-        if not glom(claims, username_claim, default=""):
+        if not glom(claims, identifier_claim_name, default=""):
             logger.error(
                 "%s not in OIDC claims, cannot proceed with authentication",
-                username_claim,
+                identifier_claim_name,
             )
             return False
         return True
