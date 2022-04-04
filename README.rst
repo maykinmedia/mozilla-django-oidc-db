@@ -217,6 +217,28 @@ The name of the claim that is used for the ``User.username`` property
 can be configured via the admin. By default, the username is derived from the ``sub`` claim that
 is returned by the OIDC provider.
 
+If the desired claim is nested in one or more objects, its path can be specified with dots, e.g.:
+
+.. code-block:: json
+
+    {
+        "some": {
+            "nested": {
+                "claim": "foo"
+            }
+        }
+    }
+
+Can be retrieved by setting the username claim to ``some.nested.claim``
+
+**NOTE**: the username claim does not support claims that have dots in their name, it cannot be configured to retrieve the following claim for instance:
+
+.. code-block:: json
+
+    {
+        "some.dotted.claim": "foo"
+    }
+
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
 
