@@ -41,6 +41,8 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
         # `OIDCAuthenticationBackend.__init__` is called for permission checks
 
     def retrieve_identifier_claim(self, claims: dict) -> str:
+        # NOTE: this does not support the extraction of claims that contain dots "." in
+        # their name (e.g. {"foo.bar": "baz"})
         identifier_claim_name = getattr(self.config, self.config_identifier_field)
         unique_id = glom(claims, identifier_claim_name, default="")
         return unique_id
