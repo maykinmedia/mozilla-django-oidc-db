@@ -12,7 +12,7 @@ from mozilla_django_oidc.auth import (
 )
 
 from .mixins import SoloConfigMixin
-from .utils import obfuscate_claim
+from .utils import obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,15 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def get_sensitive_claims_names(self) -> list:
         """
-        Defines the claims that should be obfuscated before logging claims
+        Defines the claims that should be obfuscated before logging claims.
+        Nested claims can be specified by using a dotted path (e.g. "foo.bar.baz")
+
+        NOTE: this does not support claim names that have dots in them, so the following
+        claim cannot be marked as a sensitive claim
+
+            {
+                "foo.bar": "baz"
+            }
         """
         identifier_claim_name = getattr(self.config, self.config_identifier_field)
         return [identifier_claim_name] + self.sensitive_claim_names
@@ -96,14 +104,12 @@ class OIDCAuthenticationBackend(SoloConfigMixin, _OIDCAuthenticationBackend):
 
     def verify_claims(self, claims) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
-        identifier_claim_name = getattr(self.config, self.config_identifier_field)
-        obfuscated_claims = {
-            k: obfuscate_claim(v) if k in self.get_sensitive_claims_names() else v
-            for k, v in claims.items()
-        }
+        claims_to_obfuscate = self.get_sensitive_claims_names()
+        obfuscated_claims = obfuscate_claims(claims, claims_to_obfuscate)
 
         logger.debug("OIDC claims received: %s", obfuscated_claims)
 
+        identifier_claim_name = getattr(self.config, self.config_identifier_field)
         if not glom(claims, identifier_claim_name, default=""):
             logger.error(
                 "%s not in OIDC claims, cannot proceed with authentication",
