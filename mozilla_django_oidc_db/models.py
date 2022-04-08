@@ -1,6 +1,5 @@
 from typing import Dict, List
 
-import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import JSONField
@@ -103,30 +102,6 @@ class OpenIDConnectConfigBase(SingletonModel):
         ),
     )
 
-    oidc_rp_client_id = models.CharField(
-        _("OpenID Connect client ID"),
-        max_length=1000,
-        help_text=_("OpenID Connect client ID provided by the OIDC Provider"),
-    )
-    oidc_rp_client_secret = models.CharField(
-        _("OpenID Connect secret"),
-        max_length=1000,
-        help_text=_("OpenID Connect secret provided by the OIDC Provider"),
-    )
-    oidc_rp_sign_algo = models.CharField(
-        _("OpenID sign algorithm"),
-        max_length=50,
-        help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
-        default="HS256",
-    )
-    oidc_rp_scopes_list = ArrayField(
-        verbose_name=_("OpenID Connect scopes"),
-        base_field=models.CharField(_("OpenID Connect scope"), max_length=50),
-        default=get_default_scopes,
-        blank=True,
-        help_text=_("OpenID Connect scopes that are requested during login"),
-    )
-
     oidc_op_discovery_endpoint = models.URLField(
         _("Discovery endpoint"),
         max_length=1000,
@@ -170,6 +145,38 @@ class OpenIDConnectConfigBase(SingletonModel):
         blank=True,
     )
 
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return force_text(self._meta.verbose_name)
+
+
+class OpenIDConnectClientBaseConfig(models.Model):
+    oidc_rp_client_id = models.CharField(
+        _("OpenID Connect client ID"),
+        max_length=1000,
+        help_text=_("OpenID Connect client ID provided by the OIDC Provider"),
+    )
+    oidc_rp_client_secret = models.CharField(
+        _("OpenID Connect secret"),
+        max_length=1000,
+        help_text=_("OpenID Connect secret provided by the OIDC Provider"),
+    )
+    oidc_rp_sign_algo = models.CharField(
+        _("OpenID sign algorithm"),
+        max_length=50,
+        help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
+        default="HS256",
+    )
+    oidc_rp_scopes_list = ArrayField(
+        verbose_name=_("OpenID Connect scopes"),
+        base_field=models.CharField(_("OpenID Connect scope"), max_length=50),
+        default=get_default_scopes,
+        blank=True,
+        help_text=_("OpenID Connect scopes that are requested during login"),
+    )
+
     @property
     def oidc_rp_scopes(self) -> str:
         """
@@ -184,7 +191,9 @@ class OpenIDConnectConfigBase(SingletonModel):
         return force_text(self._meta.verbose_name)
 
 
-class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
+class OpenIDConnectConfig(
+    CachingMixin, OpenIDConnectClientBaseConfig, OpenIDConnectConfigBase
+):
     """
     Configuration for authentication/authorization via OpenID connect
     """
