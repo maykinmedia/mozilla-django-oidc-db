@@ -9,17 +9,9 @@ from .constants import OIDC_MAPPING, OPEN_ID_CONFIG_PATH
 from .models import OpenIDConnectConfig
 
 
-class OpenIDConnectConfigForm(forms.ModelForm):
-    required_endpoints = [
-        "oidc_op_authorization_endpoint",
-        "oidc_op_token_endpoint",
-        "oidc_op_user_endpoint",
-    ]
+class CleanUrlsFormMixin:
+    required_endpoints = []
     oidc_mapping = OIDC_MAPPING
-
-    class Meta:
-        model = OpenIDConnectConfig
-        fields = "__all__"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,3 +57,16 @@ class OpenIDConnectConfigForm(forms.ModelForm):
                     self.add_error(field, _("This field is required."))
 
         return cleaned_data
+
+
+class OpenIDConnectConfigForm(CleanUrlsFormMixin, forms.ModelForm):
+    required_endpoints = [
+        "oidc_op_authorization_endpoint",
+        "oidc_op_token_endpoint",
+        "oidc_op_user_endpoint",
+    ]
+    oidc_mapping = OIDC_MAPPING
+
+    class Meta:
+        model = OpenIDConnectConfig
+        fields = "__all__"
