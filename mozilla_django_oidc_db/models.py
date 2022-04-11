@@ -90,6 +90,47 @@ class CachingMixin:
         return obj
 
 
+class OpenIDConnectEndpointsConfig(models.Model):
+    oidc_op_discovery_endpoint = models.URLField(
+        _("Discovery endpoint"),
+        max_length=1000,
+        help_text=_(
+            "URL of your OpenID Connect provider discovery endpoint ending with a slash "
+            "(`.well-known/...` will be added automatically). "
+            "If this is provided, the remaining endpoints can be omitted, as "
+            "they will be derived from this endpoint."
+        ),
+        blank=True,
+    )
+    oidc_op_jwks_endpoint = models.URLField(
+        _("JSON Web Key Set endpoint"),
+        max_length=1000,
+        help_text=_(
+            "URL of your OpenID Connect provider JSON Web Key Set endpoint. Required if `RS256` is used as signing algorithm"
+        ),
+        blank=True,
+    )
+    oidc_op_authorization_endpoint = models.URLField(
+        _("Authorization endpoint"),
+        max_length=1000,
+        help_text=_("URL of your OpenID Connect provider authorization endpoint"),
+    )
+    oidc_op_token_endpoint = models.URLField(
+        _("Token endpoint"),
+        max_length=1000,
+        help_text=_("URL of your OpenID Connect provider token endpoint"),
+    )
+    oidc_op_user_endpoint = models.URLField(
+        _("User endpoint"),
+        max_length=1000,
+        help_text=_("URL of your OpenID Connect provider userinfo endpoint"),
+    )
+
+    class Meta:
+        verbose_name = _("OpenID Connect endpoint configuration")
+        verbose_name_plural = _("OpenID Connect endpoint configurations")
+
+
 class OpenIDConnectConfigBase(SingletonModel):
     """
     Defines the required fields for a config to establish an OIDC connection
@@ -125,6 +166,16 @@ class OpenIDConnectConfigBase(SingletonModel):
         default=get_default_scopes,
         blank=True,
         help_text=_("OpenID Connect scopes that are requested during login"),
+    )
+
+    endpoints_config = models.ForeignKey(
+        OpenIDConnectEndpointsConfig,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        help_text=_(
+            "Model containing the endpoint configuration for the OpenID Connect provider"
+        ),
     )
 
     oidc_op_discovery_endpoint = models.URLField(
