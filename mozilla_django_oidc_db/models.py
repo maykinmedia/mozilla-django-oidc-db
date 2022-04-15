@@ -170,6 +170,40 @@ class OpenIDConnectConfigBase(SingletonModel):
         blank=True,
     )
 
+    # Advanced settings
+    oidc_use_nonce = models.BooleanField(
+        _("Use nonce"),
+        help_text=_(
+            "Controls whether the OpenID Connect client uses nonce verification"
+        ),
+        default=True,
+    )
+    oidc_nonce_size = models.PositiveIntegerField(
+        _("Nonce size"),
+        help_text=_(
+            "Sets the length of the random string used for OpenID Connect nonce verification"
+        ),
+        default=32,
+    )
+    oidc_state_size = models.PositiveIntegerField(
+        _("State size"),
+        help_text=_(
+            "Sets the length of the random string used for OpenID Connect state verification"
+        ),
+        default=32,
+    )
+    oidc_exempt_urls = ArrayField(
+        verbose_name=_("URLs exempt from session renewal"),
+        base_field=models.CharField(_("Exempt URL"), max_length=1000),
+        default=list,
+        blank=True,
+        help_text=_(
+            "This is a list of absolute url paths, regular expressions for url paths, "
+            "or Django view names. This plus the mozilla-django-oidc urls are exempted "
+            "from the session renewal by the SessionRefresh middleware."
+        ),
+    )
+
     @property
     def oidc_rp_scopes(self) -> str:
         """

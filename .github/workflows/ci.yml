@@ -17,8 +17,9 @@ jobs:
       matrix:
         python: ['3.6', '3.7', '3.8', '3.9']
         django: ['2.2', '3.1']
+        mozilla_django_oidc: ['1.2', '2.0']
 
-    name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }})
+    name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }}, mozilla-django-oidc ${{ matrix.mozilla_django_oidc }})
 
     services:
       postgres:
@@ -47,6 +48,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python }}
           DJANGO: ${{ matrix.django }}
+          MOZILLA_DJANGO_OIDC: ${{ matrix.mozilla_django_oidc }}
           PGUSER: postgres
           PGHOST: localhost
 

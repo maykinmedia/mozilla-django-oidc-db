@@ -13,7 +13,17 @@ from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 @patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
 def test_sessionrefresh_oidc_not_enabled(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(enabled=False)
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=False,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+    )
 
     request = RequestFactory().get("/")
 
