@@ -122,6 +122,7 @@ Furthermore, ensure the following settings are configured:
 In order to properly catch admin login errors, add the following to urlpatterns:
 
 .. code-block:: python
+
     from mozilla_django_oidc_db.views import AdminLoginFailure
 
     urlpatterns = [
