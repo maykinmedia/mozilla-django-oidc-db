@@ -1,9 +1,7 @@
 from typing import Dict, List
 
-import django
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import force_text
@@ -142,7 +140,8 @@ class OpenIDConnectConfigBase(SingletonModel):
         _("JSON Web Key Set endpoint"),
         max_length=1000,
         help_text=_(
-            "URL of your OpenID Connect provider JSON Web Key Set endpoint. Required if `RS256` is used as signing algorithm"
+            "URL of your OpenID Connect provider JSON Web Key Set endpoint. "
+            "Required if `RS256` is used as signing algorithm."
         ),
         blank=True,
     )
@@ -165,7 +164,8 @@ class OpenIDConnectConfigBase(SingletonModel):
         _("Sign key"),
         max_length=1000,
         help_text=_(
-            "Key the Identity Provider uses to sign ID tokens in the case of an RSA sign algorithm. Should be the signing key in PEM or DER format"
+            "Key the Identity Provider uses to sign ID tokens in the case of an RSA sign algorithm. "
+            "Should be the signing key in PEM or DER format."
         ),
         blank=True,
     )
@@ -229,7 +229,7 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         default="sub",
         help_text=_("The name of the OIDC claim that is used as the username"),
     )
-    claim_mapping = JSONField(
+    claim_mapping = models.JSONField(
         _("claim mapping"),
         default=get_claim_mapping,
         help_text=("Mapping from user-model fields to OIDC claims"),
@@ -264,7 +264,8 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         _("make users staff"),
         default=False,
         help_text=_(
-            "Users will be flagged as being a staff user automatically. This allows users to login to the admin interface. By default they have no permissions, even if they are staff."
+            "Users will be flagged as being a staff user automatically. This allows "
+            "users to login to the admin interface. By default they have no permissions, even if they are staff."
         ),
     )
 
