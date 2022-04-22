@@ -9,6 +9,10 @@ from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 
+def get_response(*args, **kwargs):
+    pass
+
+
 @patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
 def test_sessionrefresh_oidc_not_enabled(mock_get_solo):
     mock_get_solo.return_value = OpenIDConnectConfig(
@@ -26,7 +30,7 @@ def test_sessionrefresh_oidc_not_enabled(mock_get_solo):
     request = RequestFactory().get("/")
 
     # Running the middleware should return None, since OIDC is disabled
-    result = SessionRefresh(get_response=lambda: None).process_request(request)
+    result = SessionRefresh(get_response).process_request(request)
 
     assert result is None
 
@@ -48,9 +52,9 @@ def test_sessionrefresh_config_always_refreshed(mock_get_solo):
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
     )
 
-    middleware = SessionRefresh(get_response=lambda: None)
+    middleware = SessionRefresh(get_response)
     request = RequestFactory().get("/")
-    SessionMiddleware().process_request(request)
+    SessionMiddleware(get_response).process_request(request)
 
     with patch(
         "mozilla_django_oidc_db.middleware.SessionRefresh.is_refreshable_url",
