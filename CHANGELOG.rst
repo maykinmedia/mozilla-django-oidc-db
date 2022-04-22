@@ -2,6 +2,19 @@
 Changelog
 =========
 
+0.10.0 (2022-05-??)
+==================
+
+**Breaking changes**
+
+* Dropped support for Django < 3.2
+* Dropped support for Python 3.6
+
+**New features**
+
+* Migrated from ``django.contrib.postgres.fields.JSONField`` to ``models.JSONField``, so
+  you can use databases other than PostgreSQL.
+
 0.9.0 (2022-04-21)
 ==================
 
