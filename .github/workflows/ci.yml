@@ -21,6 +21,8 @@ jobs:
         exclude:
           - python: '3.7'
             django: '4.0'
+          - django: '4.0'
+            mozilla_django_oidc: '1.2'
 
     name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }}, mozilla-django-oidc ${{ matrix.mozilla_django_oidc }})
 
