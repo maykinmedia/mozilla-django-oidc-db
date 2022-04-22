@@ -46,8 +46,8 @@ Requirements
 
 * Python 3.7 or above
 * setuptools 30.4.0 or above
-* Django 2.2 or newer
-* PostgreSQL
+* Django 3.2 or newer
+* A database supporting ``models.JSONField``
 
 
 Install
@@ -61,7 +61,6 @@ This will also install the following packages:
 
 - ``mozilla-django-oidc``
 - ``django-solo``
-- ``psycopg2``
 - ``django-better-admin-arrayfield``
 
 Django settings
