@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 
 from django_better_admin_arrayfield.models.fields import ArrayField
@@ -215,7 +215,7 @@ class OpenIDConnectConfigBase(SingletonModel):
         abstract = True
 
     def __str__(self) -> str:
-        return force_text(self._meta.verbose_name)
+        return force_str(self._meta.verbose_name)
 
 
 class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
