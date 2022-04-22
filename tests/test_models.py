@@ -1,5 +1,6 @@
-import pytest
 from django.test.utils import isolate_apps
+
+import pytest
 
 from mozilla_django_oidc_db.models import OpenIDConnectConfig, classproperty
 
@@ -10,7 +11,6 @@ def test_default_cache_key():
 
 @isolate_apps("testapp")
 def test_override_cache_key_with_class():
-
     class CustomConfig(OpenIDConnectConfig):
         class Meta:
             app_label = "custom"
@@ -24,7 +24,6 @@ def test_override_cache_key_with_class():
 
 @isolate_apps("testapp")
 def test_custom_config_override_cache_key_with_settings():
-
     class CustomConfig(OpenIDConnectConfig):
         class Meta:
             app_label = "custom"
@@ -44,7 +43,6 @@ def unset_oidc_cache_prefix(settings):
 
 @isolate_apps("testapp")
 def test_custom_config_cache_key_fallback(unset_oidc_cache_prefix):
-
     class CustomConfig(OpenIDConnectConfig):
         class Meta:
             app_label = "custom"
