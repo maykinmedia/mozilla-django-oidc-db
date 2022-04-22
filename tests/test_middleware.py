@@ -5,8 +5,6 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.http.response import HttpResponseRedirect
 from django.test import RequestFactory
 
-import pytest
-
 from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
