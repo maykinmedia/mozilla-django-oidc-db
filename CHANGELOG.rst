@@ -2,7 +2,7 @@
 Changelog
 =========
 
-0.10.0 (2022-05-??)
+0.10.0 (2022-04-25)
 ==================
 
 **Breaking changes**
@@ -14,6 +14,12 @@ Changelog
 
 * Migrated from ``django.contrib.postgres.fields.JSONField`` to ``models.JSONField``, so
   you can use databases other than PostgreSQL.
+* Added support for Django 4.0
+
+**Project maintenance/refactors**
+
+* Cleaned up test suite and solved deprecation warnings/runtime warnings
+* Updated support python/django versions in CI configuration
 
 0.9.0 (2022-04-21)
 ==================
