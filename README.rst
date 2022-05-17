@@ -239,6 +239,22 @@ Can be retrieved by setting the username claim to ``some.nested.claim``
         "some.dotted.claim": "foo"
     }
 
+Claim obfuscation
+-----------------
+
+By default, the received claims will be logged when verifying them during the authentication process.
+In order to not log information from sensitive claims (identifiers, etc.),
+claims can be obfuscated by setting ``OIDCAuthenticationBackend.sensitive_claim_names``
+or overriding ``OIDCAuthenticationBackend.get_sensitive_claim_names``.
+By default, the configured ``OIDCAuthenticationBackend.config_identifier_field`` will be obfuscated.
+
+Customizing the configuration
+-----------------------------
+
+The database-stored configuration class can easily be extended by inheriting from the
+``OpenIDConnectConfigBase`` class and then setting the ``OIDCAuthenticationRequestView.config_class``
+and ``OIDCAuthenticationBackend.config_class`` to be this new class.
+
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
 
