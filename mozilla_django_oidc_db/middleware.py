@@ -12,6 +12,9 @@ class SessionRefresh(GetAttributeMixin, SoloConfigMixin, _SessionRefresh):
         super(_SessionRefresh, self).__init__(get_response=get_response)
 
     def process_request(self, request):
+        # Initialize to retrieve the settings from config model
+        super().__init__(self.get_response)
+
         self.refresh_config()
         if not self.config.enabled:
             return
