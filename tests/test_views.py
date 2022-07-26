@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -74,6 +75,66 @@ class OIDCFlowTests(TestCase):
             )
             self.assertContains(
                 error_page, "duplicate key value violates unique constraint"
+            )
+
+    @patch(
+        "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_or_create_user"
+    )
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.verify_token")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_token")
+    @patch(
+        "mozilla_django_oidc_db.mixins.OpenIDConnectConfig.get_solo",
+        return_value=OpenIDConnectConfig(enabled=True),
+    )
+    def test_validation_error_during_authentication(
+        self,
+        mock_get_solo,
+        mock_get_token,
+        mock_verify_token,
+        mock_store_tokens,
+        mock_get_userinfo,
+        mock_get_or_create_user,
+    ):
+        """
+        Assert that ValidationErrors raised during the auth process
+        result in usable user feedback.
+        """
+        mock_get_or_create_user.side_effect = ValidationError(
+            "Waarde van %(value)s moet True of False zijn."
+        )
+        # set up a user with a colliding email address
+        mock_get_userinfo.return_value = {
+            "email": "admin@example.com",
+            "sub": "some_username",
+        }
+        StaffUserFactory.create(username="some_username", email="admin@example.com")
+        session = self.client.session
+        session["oidc_states"] = {"mock": {"nonce": "nonce"}}
+        session.save()
+        callback_url = reverse("oidc_authentication_callback")
+
+        # enter the login flow
+        callback_response = self.client.get(
+            callback_url, {"code": "mock", "state": "mock"}
+        )
+
+        error_url = reverse("admin-oidc-error")
+
+        with self.subTest("error redirects"):
+            self.assertRedirects(callback_response, error_url)
+
+        with self.subTest("exception info on error page"):
+            error_page = self.client.get(error_url)
+
+            self.assertEqual(error_page.status_code, 200)
+            self.assertEqual(
+                error_page.context["oidc_error"],
+                "Waarde van %(value)s moet True of False zijn.",
+            )
+            self.assertContains(
+                error_page, "Waarde van %(value)s moet True of False zijn."
             )
 
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
