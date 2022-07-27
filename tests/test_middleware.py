@@ -5,6 +5,8 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.http.response import HttpResponseRedirect
 from django.test import RequestFactory
 
+import pytest
+
 from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
@@ -141,3 +143,14 @@ def test_sessionrefresh_config_use_defaults(mock_get_solo):
     parsed2 = parse_qs(urlparse(result2.url).query)
     assert parsed2["client_id"] == ["some-other-id"]
     assert parsed2["scope"] == ["openid email other_scope"]
+
+
+@pytest.mark.django_db
+def test_attributeerror_for_non_oidc_attribute():
+    middleware = SessionRefresh(get_response)
+
+    with pytest.raises(AttributeError):
+        middleware.__name__
+
+    # OIDC attributes should never raise AttributeErrors
+    middleware.OIDC_AUTHENTICATION_CALLBACK_URL
