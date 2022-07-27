@@ -2,6 +2,24 @@
 Changelog
 =========
 
+0.10.1 (2022-07-27)
+==================
+
+**Bugfixes**
+
+* [`#51`_] Use defaults from SessionRefresh if variable not provided (`830945`_)
+
+**Project maintenance/refactors**
+
+* [`#48`_] Document claim obfuscation in README (`a753c7`_)
+
+
+.. _830945: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/830945f64393d867cad61dbd4d130848d9dc2e0a
+.. _a753c7: https://github.com/maykinmedia/mozilla-django-oidc-db/commit/a753c765fb6732edd12e8fd87ae54597a2b40a84
+.. _#51: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/51
+.. _#48: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/48
+
+
 0.10.0 (2022-04-25)
 ==================
 
