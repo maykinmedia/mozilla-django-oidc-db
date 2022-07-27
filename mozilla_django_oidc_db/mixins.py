@@ -8,11 +8,7 @@ class SoloConfigMixin:
 
     @property
     def config(self):
-        # See https://github.com/maykinmedia/mozilla-django-oidc-db/issues/51
-        # Using getattr here, because `GetAttributeMixin` causes any get operation to
-        # always return `None` as a default, causing `hasattr(self, "_solo_config")` to
-        # evaluate to True
-        if not getattr(self, "_solo_config", None):
+        if not hasattr(self, "_solo_config"):
             self._solo_config = self.config_class.get_solo()
         return self._solo_config
 
@@ -21,7 +17,7 @@ class SoloConfigMixin:
         Refreshes the cached config on the instance, required for middleware
         since middleware is only instantiated once (during the Django startup phase)
         """
-        if getattr(self, "_solo_config", None):
+        if hasattr(self, "_solo_config"):
             del self._solo_config
 
     def get_settings(self, attr, *args):
@@ -43,11 +39,11 @@ class GetAttributeMixin:
         Mixin used to avoid calls to the config model on __init__ and instead
         do these calls runtime
         """
+        if not attr.startswith("OIDC"):
+            return super().__getattribute__(attr)
+
         try:
             default = super().__getattribute__(attr)
         except AttributeError:
             default = None
-
-        if attr.startswith("OIDC"):
-            return self.get_settings(attr, default)
-        return default
+        return self.get_settings(attr, default)
