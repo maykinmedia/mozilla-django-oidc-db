@@ -49,6 +49,7 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
                     "claim_mapping",
                     "sync_groups",
                     "sync_groups_glob_pattern",
+                    "default_groups",
                     "make_users_staff",
                 )
             },

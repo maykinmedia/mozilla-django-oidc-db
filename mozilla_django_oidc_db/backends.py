@@ -130,6 +130,7 @@ class OIDCAuthenticationBackend(
         user.save(update_fields=values.keys())
 
         self.update_user_groups(user, claims)
+        self.update_user_default_groups(user)
 
         return user
 
@@ -183,3 +184,10 @@ class OIDCAuthenticationBackend(
                             except ObjectDoesNotExist:
                                 pass
                 user.groups.set(existing_groups + new_groups)
+
+    def update_user_default_groups(self, user):
+        """
+        Updates user group memberships based on the configured default groups.
+        """
+        default_groups = self.config.default_groups.all()
+        user.groups.set(user.groups.union(default_groups))

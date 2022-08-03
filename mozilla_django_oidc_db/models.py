@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import force_str
@@ -260,6 +261,15 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
             "the local database."
         ),
     )
+    default_groups = models.ManyToManyField(
+        Group,
+        verbose_name=_("default groups"),
+        blank=True,
+        help_text=_(
+            "The default groups to which every user logging in with OIDC will be assigned"
+        ),
+    )
+
     make_users_staff = models.BooleanField(
         _("make users staff"),
         default=False,
