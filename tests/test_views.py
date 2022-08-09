@@ -1,9 +1,11 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
@@ -75,6 +77,73 @@ class OIDCFlowTests(TestCase):
             self.assertContains(
                 error_page, "duplicate key value violates unique constraint"
             )
+
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.verify_token")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_token")
+    @patch(
+        "mozilla_django_oidc_db.mixins.OpenIDConnectConfig.get_solo",
+        return_value=OpenIDConnectConfig(enabled=True),
+    )
+    def test_validation_error_during_authentication(
+        self,
+        mock_get_solo,
+        mock_get_token,
+        mock_verify_token,
+        mock_store_tokens,
+        mock_get_userinfo,
+    ):
+        """
+        Assert that ValidationErrors raised during the auth process
+        result in usable user feedback.
+        """
+        mock_get_solo.return_value = OpenIDConnectConfig(
+            enabled=True,
+            claim_mapping={
+                "is_superuser": "missing_is_superuser",
+                "email": "email",
+                "first_name": "given_name",
+                "last_name": "family_name",
+            },
+        )
+        mock_get_token.return_value = {
+            "id_token": "mock-id-token",
+            "access_token": "mock-access-token",
+        }
+        # set up a user with the missing ``missing_is_superuser`` claim
+        mock_get_userinfo.return_value = {
+            "sub": "some_username",
+            "email": "admin@example.com",
+            "given_name": "John",
+            "family_name": "Doe",
+        }
+
+        StaffUserFactory.create(username="some_username", email="admin@example.com")
+        session = self.client.session
+        session["oidc_states"] = {"mock": {"nonce": "nonce"}}
+        session.save()
+        callback_url = reverse("oidc_authentication_callback")
+
+        # enter the login flow
+        callback_response = self.client.get(
+            callback_url, {"code": "mock", "state": "mock"}
+        )
+
+        error_url = reverse("admin-oidc-error")
+
+        with self.subTest("error redirects"):
+            self.assertRedirects(callback_response, error_url)
+
+        with self.subTest("exception info on error page"):
+            error_page = self.client.get(error_url)
+
+            self.assertEqual(error_page.status_code, 200)
+            err_msg = _("“%(value)s” value must be either True or False.") % {
+                "value": ""
+            }
+            self.assertEqual(error_page.context["oidc_error"], err_msg)
+            self.assertContains(error_page, err_msg)
 
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
