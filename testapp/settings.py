@@ -2,6 +2,8 @@ import os
 
 from django.urls import reverse_lazy
 
+DEBUG = True
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
