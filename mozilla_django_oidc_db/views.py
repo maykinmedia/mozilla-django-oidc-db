@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 OIDC_ERROR_SESSION_KEY = "oidc-error"
 
 
+def get_exception_message(exc: Exception) -> str:
+    if isinstance(exc, ValidationError):
+        # ValidationError can be raised as part of django.db.models.fields.Field.to_python,
+        # and unfortunately we don't have any context about the exact field that raised
+        # the exception.
+        return exc.messages[0]
+    return exc.args[0]
+
+
 class OIDCCallbackView(OIDCAuthenticationCallbackView):
     """
     Intercept errors raised by the authentication backend and display them.
@@ -31,14 +40,11 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
                 response = super().get(request)
         except (IntegrityError, ValidationError) as exc:
             logger.exception(
-                "Something went wrong while attempting to authenticate via OIDC"
+                "Something went wrong while attempting to authenticate via OIDC",
+                exc_info=exc,
             )
-
-            # Remove unicode characters, because these give issues when storing session
-            # data apparently
-            request.session[OIDC_ERROR_SESSION_KEY] = (
-                exc.args[0].encode("ascii", "ignore").decode()
-            )
+            exc_message = get_exception_message(exc)
+            request.session[OIDC_ERROR_SESSION_KEY] = exc_message
             return self.login_failure()
         else:
             if OIDC_ERROR_SESSION_KEY in request.session:

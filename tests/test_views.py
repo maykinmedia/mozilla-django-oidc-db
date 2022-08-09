@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
@@ -77,9 +78,6 @@ class OIDCFlowTests(TestCase):
                 error_page, "duplicate key value violates unique constraint"
             )
 
-    @patch(
-        "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_or_create_user"
-    )
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.verify_token")
@@ -95,20 +93,32 @@ class OIDCFlowTests(TestCase):
         mock_verify_token,
         mock_store_tokens,
         mock_get_userinfo,
-        mock_get_or_create_user,
     ):
         """
         Assert that ValidationErrors raised during the auth process
         result in usable user feedback.
         """
-        mock_get_or_create_user.side_effect = ValidationError(
-            "Waarde van %(value)s moet True of False zijn."
+        mock_get_solo.return_value = OpenIDConnectConfig(
+            enabled=True,
+            claim_mapping={
+                "is_superuser": "missing_is_superuser",
+                "email": "email",
+                "first_name": "given_name",
+                "last_name": "family_name",
+            },
         )
-        # set up a user with a colliding email address
-        mock_get_userinfo.return_value = {
-            "email": "admin@example.com",
-            "sub": "some_username",
+        mock_get_token.return_value = {
+            "id_token": "mock-id-token",
+            "access_token": "mock-access-token",
         }
+        # set up a user with the missing ``missing_is_superuser`` claim
+        mock_get_userinfo.return_value = {
+            "sub": "some_username",
+            "email": "admin@example.com",
+            "given_name": "John",
+            "family_name": "Doe",
+        }
+
         StaffUserFactory.create(username="some_username", email="admin@example.com")
         session = self.client.session
         session["oidc_states"] = {"mock": {"nonce": "nonce"}}
@@ -129,13 +139,11 @@ class OIDCFlowTests(TestCase):
             error_page = self.client.get(error_url)
 
             self.assertEqual(error_page.status_code, 200)
-            self.assertEqual(
-                error_page.context["oidc_error"],
-                "Waarde van %(value)s moet True of False zijn.",
-            )
-            self.assertContains(
-                error_page, "Waarde van %(value)s moet True of False zijn."
-            )
+            err_msg = _("“%(value)s” value must be either True or False.") % {
+                "value": ""
+            }
+            self.assertEqual(error_page.context["oidc_error"], err_msg)
+            self.assertContains(error_page, err_msg)
 
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
     @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
