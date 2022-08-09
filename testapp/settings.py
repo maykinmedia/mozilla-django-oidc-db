@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.admin",
+    "solo",
+    "django_better_admin_arrayfield",
     "mozilla_django_oidc",
     "mozilla_django_oidc_db",
     "testapp",
@@ -69,3 +71,5 @@ AUTHENTICATION_BACKENDS = [
 MOZILLA_DJANGO_OIDC_DB_PREFIX = "default"
 OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
 LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
+
+STATIC_URL = "/static/"
