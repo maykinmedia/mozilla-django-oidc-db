@@ -2,8 +2,17 @@
 Changelog
 =========
 
+0.11.0 (2022-08-09)
+===================
+
+* [`#56`_] Add default_groups option to OIDC config
+* Catch validation errors during auth process and display the message on error page
+
+.. _#56: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/56
+
+
 0.10.1 (2022-07-27)
-==================
+===================
 
 **Bugfixes**
 
@@ -21,7 +30,7 @@ Changelog
 
 
 0.10.0 (2022-04-25)
-==================
+===================
 
 **Breaking changes**
 
