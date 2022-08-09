@@ -69,3 +69,4 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
             },
         ),
     )
+    filter_horizontal = ("default_groups",)
