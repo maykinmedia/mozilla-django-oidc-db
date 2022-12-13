@@ -12,6 +12,7 @@ from mozilla_django_oidc.auth import (
 )
 
 from .mixins import GetAttributeMixin, SoloConfigMixin
+from .models import UserInformationClaimsSources
 from .utils import obfuscate_claims
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,18 @@ class OIDCAuthenticationBackend(
         identifier_claim_name = getattr(self.config, self.config_identifier_field)
         return [identifier_claim_name] + self.sensitive_claim_names
 
+    def get_userinfo(self, access_token, id_token, payload):
+        """
+        Extract the user information, configurable whether to use the ID token or
+        the userinfo endpoint for this
+        """
+        if self.config.userinfo_claims_source == UserInformationClaimsSources.id_token:
+            logger.debug("Extracting user information from ID token")
+            return payload
+
+        logger.debug("Retrieving user information from userinfo endpoint")
+        return super().get_userinfo(access_token, id_token, payload)
+
     def authenticate(self, *args, **kwargs):
         if not self.config.enabled:
             return None
@@ -101,6 +114,9 @@ class OIDCAuthenticationBackend(
 
     def verify_claims(self, claims) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
+        if not claims:
+            return False
+
         claims_to_obfuscate = self.get_sensitive_claims_names()
         obfuscated_claims = obfuscate_claims(claims, claims_to_obfuscate)
 
