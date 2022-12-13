@@ -9,7 +9,11 @@ from requests import Response
 from requests.exceptions import RequestException
 
 from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-from mozilla_django_oidc_db.models import OpenIDConnectConfig, get_claim_mapping
+from mozilla_django_oidc_db.models import (
+    OpenIDConnectConfig,
+    UserInformationClaimsSources,
+    get_claim_mapping,
+)
 
 
 @pytest.mark.django_db
@@ -25,6 +29,7 @@ def test_derive_endpoints_success():
         "username_claim": "sub",
         "oidc_nonce_size": 32,
         "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -73,6 +78,7 @@ def test_derive_endpoints_extra_field():
         "username_claim": "sub",
         "oidc_nonce_size": 32,
         "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
 
     class ExtendedOpenIDConnectConfigForm(OpenIDConnectConfigForm):
@@ -120,6 +126,7 @@ def test_derive_endpoints_request_error(*m):
         "username_claim": "sub",
         "oidc_nonce_size": 32,
         "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -145,6 +152,7 @@ def test_derive_endpoints_json_error(*m):
         "username_claim": "sub",
         "oidc_nonce_size": 32,
         "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
     form = OpenIDConnectConfigForm(data=form_data)
 
@@ -168,6 +176,7 @@ def test_no_discovery_endpoint_other_fields_required():
         "username_claim": "sub",
         "oidc_nonce_size": 32,
         "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
     form = OpenIDConnectConfigForm(data=form_data)
 

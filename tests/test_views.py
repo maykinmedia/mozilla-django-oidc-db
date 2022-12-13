@@ -187,6 +187,49 @@ class OIDCFlowTests(TestCase):
         )
         self.assertTrue(User.objects.filter(email="nocollision@example.com").exists())
 
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_userinfo")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.store_tokens")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.verify_token")
+    @patch("mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_token")
+    @patch(
+        "mozilla_django_oidc_db.mixins.OpenIDConnectConfig.get_solo",
+        return_value=OpenIDConnectConfig(id=1, enabled=True),
+    )
+    def test_no_userinfo_defined(
+        self,
+        mock_get_solo,
+        mock_get_token,
+        mock_verify_token,
+        mock_store_tokens,
+        mock_get_userinfo,
+    ):
+        """
+        Assert that the login procedure fails gracefully when no user claims are returned
+        """
+        # Testing with empty dict, because mozilla-django-oidc==1.2.x cannot deal with
+        # `None` here: https://github.com/mozilla/mozilla-django-oidc/blob/1.2.4/mozilla_django_oidc/auth.py#L309
+        mock_get_userinfo.return_value = {}
+        StaffUserFactory.create(
+            username="nonmatchingusername", email="collision@example.com"
+        )
+        session = self.client.session
+        session["oidc_states"] = {"mock": {"nonce": "nonce"}}
+        session.save()
+        callback_url = reverse("oidc_authentication_callback")
+
+        # enter the login flow
+        callback_response = self.client.get(
+            callback_url, {"code": "mock", "state": "mock"}
+        )
+        self.assertEqual(callback_response.status_code, 302)
+
+        self.assertRedirects(
+            callback_response,
+            reverse("admin-oidc-error"),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(User.objects.filter(email="nocollision@example.com").exists())
+
     def test_error_page_direct_access_forbidden(self):
         error_url = reverse("admin-oidc-error")
 
