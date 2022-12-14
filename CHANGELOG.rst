@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.12.0 (2022-12-14)
+===================
+
+* [`#59`_]  Config option to get user info from ID token
+
+.. _#59: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/59
+
+
 0.11.0 (2022-08-09)
 ===================
 
