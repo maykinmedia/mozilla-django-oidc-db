@@ -239,6 +239,16 @@ Can be retrieved by setting the username claim to ``some.nested.claim``
         "some.dotted.claim": "foo"
     }
 
+User information claims source
+------------------------------
+There are currently two methods to extract information about the authenticated user, controlled by the `User information claims extracted from` option.
+
+- `Userinfo endpoint`, this is the default method (this is also the default behavior in `mozilla-django-oidc`)
+- `ID token`, to extract the claims from the ID token. This could be preferable in the case where
+  the authentication server passes sensitive claims (that should not be stored in the authentication server itself)
+  via the ID token
+
+
 Claim obfuscation
 -----------------
 

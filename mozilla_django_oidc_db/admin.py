@@ -62,6 +62,7 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
                     "oidc_nonce_size",
                     "oidc_state_size",
                     "oidc_exempt_urls",
+                    "userinfo_claims_source",
                 ),
                 "classes": [
                     "collapse in",

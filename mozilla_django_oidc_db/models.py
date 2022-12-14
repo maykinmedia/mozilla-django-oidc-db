@@ -16,6 +16,11 @@ import mozilla_django_oidc_db.settings as oidc_settings
 from .compat import classproperty
 
 
+class UserInformationClaimsSources(models.TextChoices):
+    userinfo_endpoint = "userinfo_endpoint", _("Userinfo endpoint")
+    id_token = "id_token", _("ID token")
+
+
 def get_default_scopes() -> List[str]:
     """
     Returns the default scopes to request for OpenID Connect logins
@@ -202,6 +207,16 @@ class OpenIDConnectConfigBase(SingletonModel):
             "This is a list of absolute url paths, regular expressions for url paths, "
             "or Django view names. This plus the mozilla-django-oidc urls are exempted "
             "from the session renewal by the SessionRefresh middleware."
+        ),
+    )
+
+    userinfo_claims_source = models.CharField(
+        verbose_name=_("user information claims extracted from"),
+        choices=UserInformationClaimsSources.choices,
+        max_length=100,
+        default=UserInformationClaimsSources.userinfo_endpoint,
+        help_text=_(
+            "Indicates the source from which the user information claims should be extracted."
         ),
     )
 
