@@ -6,7 +6,6 @@ import django_better_admin_arrayfield.models.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0006_openidconnectconfig_unique_id_claim"),
     ]

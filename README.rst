@@ -48,6 +48,8 @@ Requirements
 * setuptools 30.4.0 or above
 * Django 3.2 or newer
 * A database supporting ``models.JSONField``
+* If you're using Django 4.1 or newer, you need at least mozilla-django-oidc 3.0.
+  2.0 is still supported with Django 3.2.
 
 
 Install

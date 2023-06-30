@@ -6,7 +6,6 @@ import mozilla_django_oidc_db.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0007_auto_20220307_1128"),
     ]
