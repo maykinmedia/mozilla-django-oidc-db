@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("auth", "0001_initial"),
         ("mozilla_django_oidc_db", "0008_auto_20220422_0849"),
