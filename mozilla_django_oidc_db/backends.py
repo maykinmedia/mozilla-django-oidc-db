@@ -173,6 +173,14 @@ class OIDCAuthenticationBackend(
                     groups_claim,
                 )
                 claim_groups = []
+
+            if self.config.group_mapping:
+                new_claim_groups = set()
+                for group_name, map_to in self.config.group_mapping:
+                    if group_name in claim_groups:
+                        new_claim_groups.add(map_to)
+                claim_groups = list(new_claim_groups)
+
             if sorted(claim_groups) != sorted(django_groups):
                 existing_groups = list(
                     Group.objects.filter(name__in=claim_groups).iterator()

@@ -284,6 +284,11 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
             "The default groups to which every user logging in with OIDC will be assigned"
         ),
     )
+    group_mapping = models.JSONField(
+        _("group mapping"),
+        default=list,
+        help_text=("Mapping from group names to local groups in the application"),
+    )
 
     make_users_staff = models.BooleanField(
         _("make users staff"),
