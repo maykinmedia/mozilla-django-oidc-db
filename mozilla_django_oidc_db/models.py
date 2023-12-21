@@ -293,6 +293,17 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
             "users to login to the admin interface. By default they have no permissions, even if they are staff."
         ),
     )
+    superuser_group_names = ArrayField(
+        verbose_name=_("Superuser group names"),
+        base_field=models.CharField(_("Superuser group name"), max_length=50),
+        default=list,
+        blank=True,
+        help_text=_(
+            "If any of these group names are present in the claims upon login, "
+            "the user will be marked as a superuser. If none of these groups are present "
+            "the user will lose superuser permissions."
+        ),
+    )
 
     class Meta:
         verbose_name = _("OpenID Connect configuration")
