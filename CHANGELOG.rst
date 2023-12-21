@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.13.0 (2023-12-21)
+===================
+
+* [`#65`_] Add functionality to make users superuser based on groups
+* [`#68`_] More clear label/helptext for sync_groups
+
+.. _#65: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/65
+.. _#68: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/68
+
 0.12.0 (2022-12-14)
 ===================
 
