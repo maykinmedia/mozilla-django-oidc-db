@@ -145,10 +145,29 @@ class OIDCAuthenticationBackend(
 
         user.save(update_fields=values.keys())
 
+        self.update_user_superuser_status(user, claims)
+
         self.update_user_groups(user, claims)
         self.update_user_default_groups(user)
 
         return user
+
+    def update_user_superuser_status(self, user, claims):
+        """
+        Assigns superuser status to the user if the user is a member of at least one
+        specific group. Superuser status is explicitly removed if the user is not or
+        no longer member of at least one of these groups.
+        """
+        groups_claim = self.config.groups_claim
+        superuser_group_names = self.config.superuser_group_names
+
+        if superuser_group_names:
+            claim_groups = glom(claims, groups_claim, default=[])
+            if set(superuser_group_names) & set(claim_groups):
+                user.is_superuser = True
+            else:
+                user.is_superuser = False
+            user.save()
 
     def update_user_groups(self, user, claims):
         """

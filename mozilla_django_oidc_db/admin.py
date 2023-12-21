@@ -51,6 +51,7 @@ class OpenIDConnectConfigAdmin(DynamicArrayMixin, SingletonModelAdmin):
                     "sync_groups_glob_pattern",
                     "default_groups",
                     "make_users_staff",
+                    "superuser_group_names",
                 )
             },
         ),
