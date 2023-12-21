@@ -259,12 +259,11 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         ),
     )
     sync_groups = models.BooleanField(
-        _("synchronize groups"),
+        _("Create local user groups if they do not exist yet"),
         default=True,
         help_text=_(
-            "Synchronize the local user groups with the provided groups. Note that this "
-            "means a user is removed from all groups if there is no group claim. "
-            "Uncheck to manage groups manually."
+            "If checked, local user groups will be created for group names present in "
+            "the groups claim, if they do not exist yet locally."
         ),
     )
     sync_groups_glob_pattern = models.CharField(
