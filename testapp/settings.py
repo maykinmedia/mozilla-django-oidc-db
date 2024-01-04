@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.admin",
     "solo",
-    "django_better_admin_arrayfield",
+    "django_jsonform",
     "mozilla_django_oidc",
     "mozilla_django_oidc_db",
     "testapp",

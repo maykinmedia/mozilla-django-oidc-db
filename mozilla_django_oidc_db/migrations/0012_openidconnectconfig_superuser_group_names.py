@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-import django_better_admin_arrayfield.models.fields
+import django_jsonform.models.fields
 
 
 class Migration(migrations.Migration):
@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="openidconnectconfig",
             name="superuser_group_names",
-            field=django_better_admin_arrayfield.models.fields.ArrayField(
+            field=django_jsonform.models.fields.ArrayField(
                 base_field=models.CharField(
                     max_length=50, verbose_name="Superuser group name"
                 ),
