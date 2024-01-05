@@ -8,7 +8,7 @@ from django.db import models
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 
-from django_better_admin_arrayfield.models.fields import ArrayField
+from django_jsonform.models.fields import ArrayField
 from solo.models import SingletonModel, get_cache
 
 import mozilla_django_oidc_db.settings as oidc_settings

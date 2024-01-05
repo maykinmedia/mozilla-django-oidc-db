@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-import django_better_admin_arrayfield.models.fields
+import django_jsonform.models.fields
 
 import mozilla_django_oidc_db.models
 
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "oidc_rp_scopes_list",
-                    django_better_admin_arrayfield.models.fields.ArrayField(
+                    django_jsonform.models.fields.ArrayField(
                         base_field=models.CharField(
                             max_length=50, verbose_name="OpenID Connect scope"
                         ),
