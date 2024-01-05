@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.14.0 (2024-01-05)
+===================
+
+Django 4.2+ compatibility update
+
+* Replaced django-better-admin-arrayfield with django-jsonform, the former does not work
+  on modern Django versions.
+
 0.13.0 (2023-12-21)
 ===================
 
