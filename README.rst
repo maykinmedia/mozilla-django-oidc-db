@@ -63,7 +63,7 @@ This will also install the following packages:
 
 - ``mozilla-django-oidc``
 - ``django-solo``
-- ``django-better-admin-arrayfield``
+- ``django-jsonform``
 
 Django settings
 ---------------
@@ -74,7 +74,7 @@ Make sure the following libraries are added to your ``INSTALLED_APPS``:
 
     INSTALLED_APPS = [
         ...
-        "django_better_admin_arrayfield",
+        "django_jsonform",
         "solo",
         "mozilla_django_oidc",
         "mozilla_django_oidc_db",
