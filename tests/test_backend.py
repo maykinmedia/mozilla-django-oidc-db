@@ -359,6 +359,48 @@ def test_backend_create_user_sync_all_groups(mock_get_solo):
 
 @pytest.mark.django_db
 @patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_create_user_no_groups_sync_without_groups_claim(mock_get_solo):
+    Group.objects.create(name="group1")
+    Group.objects.create(name="group2")
+
+    oidc_config = OpenIDConnectConfig(
+        id=1,
+        enabled=True,
+        oidc_rp_client_id="testid",
+        oidc_rp_client_secret="secret",
+        oidc_rp_sign_algo="HS256",
+        oidc_rp_scopes_list=["openid", "email"],
+        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
+        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
+        oidc_op_token_endpoint="http://some.endpoint/v1/token",
+        oidc_op_user_endpoint="http://some.endpoint/v1/user",
+        groups_claim="",
+        sync_groups=True,
+        sync_groups_glob_pattern="*",
+    )
+    # Explicitly set to none
+    oidc_config.default_groups.set(Group.objects.none())
+    mock_get_solo.return_value = oidc_config
+
+    claims = {
+        "sub": "123456",
+        "roles": ["group1", "newgroup"],
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.create_user(claims)
+
+    # Verify that no groups were created
+    assert Group.objects.count() == 2
+
+    # Verify that a user is created with the correct values
+    assert user.username == "123456"
+    assert list(user.groups.values_list("name", flat=True)) == []
+
+
+@pytest.mark.django_db
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
 def test_backend_create_user_sync_groups_according_to_pattern(mock_get_solo):
     Group.objects.all().delete()
 

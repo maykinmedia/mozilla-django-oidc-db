@@ -257,6 +257,7 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         help_text=_(
             "The name of the OIDC claim that holds the values to map to local user groups."
         ),
+        blank=True,
     )
     sync_groups = models.BooleanField(
         _("Create local user groups if they do not exist yet"),
