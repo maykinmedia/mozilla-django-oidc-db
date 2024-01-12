@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.14.1 (2024-01-12)
+===================
+
+* [`#76`_] Make groups_claim optional (to allow disabling of group assignment)
+
+.. _#76: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/76
+
 0.14.0 (2024-01-05)
 ===================
 
