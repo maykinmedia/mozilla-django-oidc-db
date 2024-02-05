@@ -5,12 +5,10 @@ from django.utils.translation import gettext as _
 
 import pytest
 import requests_mock
-from requests import Response
 from requests.exceptions import RequestException
 
 from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
     UserInformationClaimsSources,
     get_claim_mapping,
 )

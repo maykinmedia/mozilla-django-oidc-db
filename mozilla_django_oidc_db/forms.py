@@ -31,6 +31,18 @@ class OpenIDConnectConfigForm(forms.ModelForm):
             for endpoint in self.required_endpoints:
                 self.fields[endpoint].required = False
 
+    @classmethod
+    def get_endpoints_from_discovery(cls, base_url: str):
+        response = requests.get(f"{base_url}{OPEN_ID_CONFIG_PATH}", timeout=10)
+        response.raise_for_status()
+        configuration = response.json()
+
+        endpoints = {
+            model_attr: configuration.get(oidc_attr)
+            for model_attr, oidc_attr in cls.oidc_mapping.items()
+        }
+        return endpoints
+
     def clean(self):
         cleaned_data = super().clean()
 
@@ -39,13 +51,8 @@ class OpenIDConnectConfigForm(forms.ModelForm):
         # Derive the endpoints from the discovery endpoint
         if discovery_endpoint:
             try:
-                response = requests.get(
-                    f"{discovery_endpoint}{OPEN_ID_CONFIG_PATH}", timeout=10
-                )
-                configuration = response.json()
-
-                for model_attr, oidc_attr in self.oidc_mapping.items():
-                    cleaned_data[model_attr] = configuration.get(oidc_attr)
+                endpoints = self.get_endpoints_from_discovery(discovery_endpoint)
+                cleaned_data.update(**endpoints)
             except (
                 requests.exceptions.RequestException,
                 json.decoder.JSONDecodeError,
