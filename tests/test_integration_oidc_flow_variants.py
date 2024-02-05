@@ -2,6 +2,8 @@ from django.urls import reverse
 
 import pytest
 
+from mozilla_django_oidc_db.models import OpenIDConnectConfig
+
 from .utils import keycloak_login
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
@@ -38,3 +40,41 @@ def test_client_id_secret_full_flow(
     assert b"client_id=testid" in token_request.body
     assert b"secret=7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I" in token_request.body
     assert "Authorization" not in token_request.headers
+
+
+@pytest.mark.vcr
+def test_credentials_in_basic_auth_header(
+    keycloak_config: OpenIDConnectConfig,
+    mock_state_and_nonce,
+    client,
+    django_user_model,
+    vcr,
+):
+    keycloak_config.oidc_token_use_basic_auth = True
+    keycloak_config.save()
+
+    django_login_response = client.get(reverse("login"))
+    # simulate login to Keycloak
+    redirect_uri = keycloak_login(django_login_response["Location"])
+
+    # complete the login flow on our end
+    callback_response = client.get(redirect_uri)
+    assert callback_response.status_code == 302
+    assert callback_response["Location"] == "/admin/"
+
+    # check that the token request was performed as expected
+    token_request = next(
+        req
+        for req in vcr.requests
+        if req.uri == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
+        and req.method == "POST"
+    )
+    assert token_request is not None
+
+    assert "Authorization" in token_request.headers
+    bits = token_request.headers["Authorization"].split(" ")
+    assert len(bits) == 2
+    assert bits[0] == "Basic"
+
+    assert b"client_id=testid" in token_request.body
+    assert b"secret=" not in token_request.body
