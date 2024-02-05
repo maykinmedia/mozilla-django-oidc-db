@@ -1,11 +1,16 @@
 from django.urls import reverse
 
+import pytest
+
 from .utils import keycloak_login
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
 
-def test_client_id_secret_full_flow(keycloak_config, client, django_user_model):
+@pytest.mark.vcr
+def test_client_id_secret_full_flow(
+    keycloak_config, mock_state_and_nonce, client, django_user_model
+):
     login_url = reverse("login")
     django_login_response = client.get(login_url)
     assert django_login_response.status_code, 302

@@ -7,6 +7,14 @@ KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
 
 @pytest.fixture
+def mock_state_and_nonce(mocker):
+    mocker.patch(
+        "mozilla_django_oidc.views.get_random_string",
+        return_value="not-a-random-string",
+    )
+
+
+@pytest.fixture
 def keycloak_config(db):
     """
     Keycloak configuration for the provided docker-compose.yml setup.
