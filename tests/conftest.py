@@ -1,3 +1,5 @@
+from typing import Iterator
+
 import pytest
 
 from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
@@ -15,7 +17,7 @@ def mock_state_and_nonce(mocker):
 
 
 @pytest.fixture
-def keycloak_config(db):
+def keycloak_config(db) -> Iterator[OpenIDConnectConfig]:
     """
     Keycloak configuration for the provided docker-compose.yml setup.
 
@@ -46,6 +48,6 @@ def keycloak_config(db):
     # in case caching is setup, ensure that it is invalidated
     config.save()
 
-    yield
+    yield config
 
     OpenIDConnectConfig.clear_cache()

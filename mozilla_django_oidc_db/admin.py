@@ -35,6 +35,7 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                     "oidc_op_jwks_endpoint",
                     "oidc_op_authorization_endpoint",
                     "oidc_op_token_endpoint",
+                    "oidc_token_use_basic_auth",
                     "oidc_op_user_endpoint",
                 )
             },

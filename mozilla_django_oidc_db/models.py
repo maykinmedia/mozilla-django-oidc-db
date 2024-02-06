@@ -161,6 +161,15 @@ class OpenIDConnectConfigBase(SingletonModel):
         max_length=1000,
         help_text=_("URL of your OpenID Connect provider token endpoint"),
     )
+    oidc_token_use_basic_auth = models.BooleanField(
+        _("Use Basic auth for token endpoint"),
+        default=False,
+        help_text=_(
+            "If enabled, the client ID and secret are sent in the HTTP Basic auth "
+            "header when obtaining the access token. Otherwise, they are sent in the "
+            "request body.",
+        ),
+    )
     oidc_op_user_endpoint = models.URLField(
         _("User endpoint"),
         max_length=1000,
