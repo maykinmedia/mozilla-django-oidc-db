@@ -25,9 +25,10 @@ chmod o+rwx ./docker/import/
 
 Then open another terminal and run:
 
-   ```bash
-   docker-compose exec keycloak ./bin/kc.sh \
-    export \
-    --file /opt/keycloak/data/import/test-realm.json \
-    --realm test
-   ```
+```bash
+docker-compose exec keycloak \
+   /opt/keycloak/bin/kc.sh \
+   export \
+   --file /opt/keycloak/data/import/test-realm.json \
+   --realm test
+```

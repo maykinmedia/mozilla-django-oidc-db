@@ -3,17 +3,19 @@ import logging
 from typing import Any, TypeVar, cast
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import AbstractUser, Group
 from django.core.exceptions import ObjectDoesNotExist
 
+import requests
 from glom import glom
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
 
+from .jwt import verify_and_decode_token
 from .mixins import GetAttributeMixin, SoloConfigMixin
 from .models import OpenIDConnectConfig, UserInformationClaimsSources
-from .utils import obfuscate_claims
+from .utils import extract_content_type, obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,9 @@ class OIDCAuthenticationBackend(
     sensitive_claim_names = []
 
     def __init__(self, *args, **kwargs):
-        self.UserModel = get_user_model()
+        # django-stubs returns AbstractBaseUser, but we depend on properties of
+        # AbstractUser.
+        self.UserModel = cast(AbstractUser, get_user_model())
 
         # See: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/30
         # `super().__init__` is not called here, because this attempts to initialize
@@ -74,7 +78,48 @@ class OIDCAuthenticationBackend(
             return payload
 
         logger.debug("Retrieving user information from userinfo endpoint")
-        return super().get_userinfo(access_token, id_token, payload)
+
+        # copy of upstream get_userinfo which doesn't support application/jwt yet.
+        # Overridden to handle application/jwt responses.
+        # See https://github.com/mozilla/mozilla-django-oidc/issues/517
+        #
+        # Specifying the preferred format in the ``Accept`` header does not work with
+        # Keycloak, as it depends on the client settings.
+        user_response = requests.get(
+            self.OIDC_OP_USER_ENDPOINT,
+            headers={
+                "Authorization": "Bearer {0}".format(access_token),
+            },
+            verify=self.get_settings("OIDC_VERIFY_SSL", True),
+            timeout=self.get_settings("OIDC_TIMEOUT", None),
+            proxies=self.get_settings("OIDC_PROXY", None),
+        )
+        user_response.raise_for_status()
+
+        # From https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
+        #
+        # > The UserInfo Endpoint MUST return a content-type header to indicate which
+        # > format is being returned.
+        content_type = extract_content_type(user_response.headers["Content-Type"])
+        match content_type:
+            case "application/json":
+                # the default case of upstream library
+                return user_response.json()
+            case "application/jwt":
+                token = user_response.content
+                # get the key from the configured keys endpoint
+                # XXX: tested with asymmetric encryption. algorithms like HS256 rely on
+                # out-of-band key exchange and are currently not supported until such a
+                # case arrives.
+                key = self.retrieve_matching_jwk(token)
+                payload = verify_and_decode_token(token, key)
+                return payload
+            case _:
+                raise ValueError(
+                    f"Got an invalid Content-Type header value ({content_type}) "
+                    "according to OpenID Connect Core 1.0 standard. Contact your "
+                    "vendor."
+                )
 
     def authenticate(self, *args, **kwargs):
         if not self.config.enabled:
