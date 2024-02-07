@@ -1,18 +1,26 @@
+from typing import ClassVar, Generic, TypeVar, cast
+
 from mozilla_django_oidc.utils import import_from_settings
 
-from .models import OpenIDConnectConfig
+from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
+
+T = TypeVar("T", bound=OpenIDConnectConfigBase)
 
 
-class SoloConfigMixin:
-    config_class = OpenIDConnectConfig
+class SoloConfigMixin(Generic[T]):
+    config_class: ClassVar[type[OpenIDConnectConfigBase]] = OpenIDConnectConfig
+    _solo_config: T
 
     @property
-    def config(self):
+    def config(self) -> T:
         if not hasattr(self, "_solo_config"):
-            self._solo_config = self.config_class.get_solo()
+            # django-solo and type checking is challenging, but a new release is on the
+            # way and should fix that :fingers_crossed:
+            config = self.config_class.get_solo()
+            self._solo_config = cast(T, config)
         return self._solo_config
 
-    def refresh_config(self):
+    def refresh_config(self) -> None:
         """
         Refreshes the cached config on the instance, required for middleware
         since middleware is only instantiated once (during the Django startup phase)
@@ -34,7 +42,7 @@ class SoloConfigMixin:
 
 
 class GetAttributeMixin:
-    def __getattribute__(self, attr):
+    def __getattribute__(self, attr: str):
         """
         Mixin used to avoid calls to the config model on __init__ and instead
         do these calls runtime

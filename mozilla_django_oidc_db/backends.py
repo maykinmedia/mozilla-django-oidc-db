@@ -1,6 +1,6 @@
 import fnmatch
 import logging
-from typing import Any, Dict
+from typing import Any, TypeVar, cast
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -12,14 +12,16 @@ from mozilla_django_oidc.auth import (
 )
 
 from .mixins import GetAttributeMixin, SoloConfigMixin
-from .models import UserInformationClaimsSources
+from .models import OpenIDConnectConfig, UserInformationClaimsSources
 from .utils import obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", bound=OpenIDConnectConfig)
+
 
 class OIDCAuthenticationBackend(
-    GetAttributeMixin, SoloConfigMixin, _OIDCAuthenticationBackend
+    GetAttributeMixin, SoloConfigMixin[T], _OIDCAuthenticationBackend
 ):
     """
     Modifies the default OIDCAuthenticationBackend to use a configurable claim
@@ -80,7 +82,7 @@ class OIDCAuthenticationBackend(
 
         return super().authenticate(*args, **kwargs)
 
-    def get_user_instance_values(self, claims) -> Dict[str, Any]:
+    def get_user_instance_values(self, claims) -> dict[str, Any]:
         """
         Map the names and values of the claims to the fields of the User model
         """
@@ -152,22 +154,25 @@ class OIDCAuthenticationBackend(
 
         return user
 
-    def update_user_superuser_status(self, user, claims):
+    def update_user_superuser_status(self, user, claims) -> None:
         """
         Assigns superuser status to the user if the user is a member of at least one
         specific group. Superuser status is explicitly removed if the user is not or
         no longer member of at least one of these groups.
         """
         groups_claim = self.config.groups_claim
-        superuser_group_names = self.config.superuser_group_names
+        # can't do an isinstance check here
+        superuser_group_names = cast(list[str], self.config.superuser_group_names)
 
-        if superuser_group_names:
-            claim_groups = glom(claims, groups_claim, default=[])
-            if set(superuser_group_names) & set(claim_groups):
-                user.is_superuser = True
-            else:
-                user.is_superuser = False
-            user.save()
+        if not superuser_group_names:
+            return
+
+        claim_groups = glom(claims, groups_claim, default=[])
+        if set(superuser_group_names) & set(claim_groups):
+            user.is_superuser = True
+        else:
+            user.is_superuser = False
+        user.save()
 
     def update_user_groups(self, user, claims):
         """

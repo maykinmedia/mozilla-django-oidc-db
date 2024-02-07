@@ -10,7 +10,6 @@ Welcome to mozilla_django_oidc_db's documentation!
 :Version: 0.14.1
 :Source: https://github.com/maykinmedia/mozilla-django-oidc-db
 :Keywords: OIDC, django, database, authentication
-:PythonVersion: 3.7
 
 |build-status| |coverage| |black|
 
@@ -44,13 +43,8 @@ Installation
 Requirements
 ------------
 
-* Python 3.7 or above
-* setuptools 30.4.0 or above
-* Django 3.2 or newer
-* A database supporting ``models.JSONField``
-* If you're using Django 4.1 or newer, you need at least mozilla-django-oidc 3.0.
-  2.0 is still supported with Django 3.2.
-
+* See the badges for the supported Python and Django versions
+* A PostgreSQL database (we use ``django.contrib.postgres.fields.ArrayField``)
 
 Install
 -------

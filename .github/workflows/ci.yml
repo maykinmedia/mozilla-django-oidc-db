@@ -15,14 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ['3.8', '3.9', '3.10', '3.11']
-        django: ['3.2', '4.1', '4.2']
-        mozilla_django_oidc: ['2.0', '3.0']
+        python: ['3.10', '3.11', '3.12']
+        django: ['3.2', '4.2']
+        mozilla_django_oidc: ['3.0', '4.0']
         exclude:
-          - django: ['4.1', '4.2']
-            mozilla_django_oidc: '2.0'
           - python: '3.11'
             django: '3.2'
+          - python: '3.12'
+            django: '3.2'
+          # support for django 4.2 was added in 4.0
+          - django: '4.2'
+            mozilla_django_oidc: '3.0'
 
     name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }}, mozilla-django-oidc ${{ matrix.mozilla_django_oidc }})
 
@@ -37,8 +40,8 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
@@ -65,10 +68,10 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.10'
 
       - name: Build sdist and wheel
         run: |

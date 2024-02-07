@@ -1,5 +1,6 @@
 include *.rst
 include LICENSE
+include mozilla_django_oidc_db/py.typed
 recursive-include mozilla_django_oidc_db *.html
 recursive-include mozilla_django_oidc_db *.txt
 recursive-include mozilla_django_oidc_db *.po
