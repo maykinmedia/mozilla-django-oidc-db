@@ -2,6 +2,22 @@
 Changelog
 =========
 
+0.15.0 (unreleased)
+===================
+
+**Breaking changes**
+
+* Dropped support for Django 4.1
+* Dropped support for Python 3.8 and 3.9
+* Dropped support for mozilla-django-oidc 2.0
+
+**New features**
+
+* Confirmed support for mozilla-django-oidc 4.0
+* Confirmed support for Python 3.12
+* Added more typehints
+* ...
+
 0.14.1 (2024-01-12)
 ===================
 
