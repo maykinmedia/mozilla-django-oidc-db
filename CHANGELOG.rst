@@ -2,7 +2,7 @@
 Changelog
 =========
 
-0.15.0 (unreleased)
+0.15.0 (2024-02-07)
 ===================
 
 **Breaking changes**
@@ -15,8 +15,17 @@ Changelog
 
 * Confirmed support for mozilla-django-oidc 4.0
 * Confirmed support for Python 3.12
+* [`#80`_] Added configuration to call token endpoint with HTTP Basic Auth
+* [`#83`_] Support ``application/jwt`` responses from userinfo endpoint
+
+**Project maintenance/refactors**
+
 * Added more typehints
-* ...
+* Added docker-compose setup for Keycloak OIDC Provider
+* Added VCR for testing against real OIDC provider(s)
+
+.. _#80: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/80
+.. _#83: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/83
 
 0.14.1 (2024-01-12)
 ===================
