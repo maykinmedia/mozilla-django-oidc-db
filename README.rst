@@ -162,55 +162,39 @@ Usage
 =====
 
 Now OpenID Connect can be enabled/disabled via the admin (disabled by default)
-and the following settings for OpenID Connect can be configured in the admin:
+and the following settings from ``mozilla-django-oidc`` for OpenID Connect can be configured in the admin:
 
-- ``oidc_rp_client_id``
-- ``oidc_rp_client_secret``
-- ``oidc_rp_sign_algo``
-- ``oidc_rp_scopes_list``
-- ``oidc_op_discovery_endpoint``
-- ``oidc_op_jwks_endpoint``
-- ``oidc_op_authorization_endpoint``
-- ``oidc_op_token_endpoint``
-- ``oidc_op_user_endpoint``
-- ``oidc_rp_idp_sign_key``
-
-If the ``oidc_op_discovery_endpoint`` is supplied, the other endpoints will be derived
-from this discovery endpoint.
+- ``OIDC_RP_CLIENT_ID``
+- ``OIDC_RP_CLIENT_SECRET``
+- ``OIDC_RP_SIGN_ALGO``
+- ``OIDC_RP_SCOPES`` (via ``oidc_rp_scopes_list``)
+- ``OIDC_OP_JWKS_ENDPOINT``
+- ``OIDC_OP_AUTHORIZATION_ENDPOINT``
+- ``OIDC_OP_TOKEN_ENDPOINT``
+- ``OIDC_OP_USER_ENDPOINT``
+- ``OIDC_TOKEN_USE_BASIC_AUTH``
+- ``OIDC_RP_IDP_SIGN_KEY``
+- ``OIDC_USE_NONCE``
+- ``OIDC_STATE_SIZE``
+- ``OIDC_EXEMPT_URLS``
 
 In case no value is provided for one of these variables, the default from ``mozilla-django-oidc``
-will be used (if there is one). A detailed description of all settings can be found in the `mozilla-django-oidc settings documentation`_
+will be used (if there is one). A detailed description of all settings can be found in the `mozilla-django-oidc settings documentation`_.
 
-For more detailed documentation, refer to the `mozilla-django-oidc documentation`_. In this documentation
-the origin of the admin configurable settings is also explained.
+OIDC discovery endpoint
+-----------------------
 
-User profile
-------------
+Instead of setting each OIDC endpoint as shown above manually, these endpoints can be
+derived by setting the **Discovery endpoint** (ending with a slash).
+The path ``.well-known/openid-configuration`` will be added to this URL automatically.
 
-In order to set certain attributes on the ``User`` object, a ``claim_mapping``
-can be specified via the admin. This maps the names of claims returned by the OIDC provider to
-fields on the ``User`` model, and whenever a ``User`` is created/updated, these
-fields will be set to the values of these claims.
-
-Assigning users to groups
--------------------------
-
-When users are created/updated, they can be automatically assigned to ``Groups``
-by checking the ``Synchronize groups`` option in the admin and setting the
-appropriate value for ``Groups claim``, which is the name of the claim that
-contains the groups the user is assigned to by the OIDC provider.
-
-Additionally, a ``groups glob pattern`` can be supplied to only sync groups with
-specific names (default ``*``, to match all groups).
-
-**NOTE**: The names of the groups in the environment of the OIDC provider must match **exactly**
-with the names of the ``Groups`` in Django for this to work.
+For more information about the discovery endpoint, refer to the the `OIDC spec`_.
 
 Custom username claim
 ---------------------
 
 The name of the claim that is used for the ``User.username`` property
-can be configured via the admin. By default, the username is derived from the ``sub`` claim that
+can be configured via the admin (**Username claim**). By default, the username is derived from the ``sub`` claim that
 is returned by the OIDC provider.
 
 If the desired claim is nested in one or more objects, its path can be specified with dots, e.g.:
@@ -235,15 +219,53 @@ Can be retrieved by setting the username claim to ``some.nested.claim``
         "some.dotted.claim": "foo"
     }
 
+User profile
+------------
+
+In order to set other attributes on the ``User`` object, a **Claim mapping**
+can be specified via the admin. This maps the names of claims returned by the OIDC provider to
+fields on the ``User`` model, and whenever a ``User`` is created/updated, these
+fields will be set to the values of these claims.
+
 User information claims source
 ------------------------------
-There are currently two methods to extract information about the authenticated user, controlled by the `User information claims extracted from` option.
+
+There are currently two methods to extract information about the authenticated user, controlled by the **User information claims extracted from** (``userinfo_claims_source``) option.
 
 - `Userinfo endpoint`, this is the default method (this is also the default behavior in `mozilla-django-oidc`)
 - `ID token`, to extract the claims from the ID token. This could be preferable in the case where
   the authentication server passes sensitive claims (that should not be stored in the authentication server itself)
   via the ID token
 
+Assigning users to groups
+-------------------------
+
+When users are created/updated, they can be automatically assigned to ``Groups``
+by setting the appropriate value for **Groups claim**, which is the name of the claim that
+contains the groups the user is assigned to by the OIDC provider. If **Synchronize groups** is
+enabled, local Django user groups will be created for group names present in the groups claim, if they do not exist yet locally.
+
+Additionally, a **Groups glob pattern** can be supplied to only sync groups with
+specific names (default ``*``, to match all groups).
+
+**NOTE**: The names of the groups in the environment of the OIDC provider must match *exactly*
+with the names of the ``Groups`` in Django for this to work.
+
+In order to assign specific Django groups to *every* OIDC authenticated user, the **Default groups** option can be used.
+
+User permissions
+----------------
+
+If the **Make users staff** is enabled, *every* OIDC authenticated user will automatically be made a staff user,
+allowing them to login to the admin interface.
+
+In order to promote OIDC authenticated users to superusers, the **Superuser group names** option can be used. This
+takes a list of group names and will set ``is_superuser`` to ``True`` if an authenticated user
+has at least one of these groups in their **Groups claim**. If a user does not have any of these
+groups in their **Groups claim**, ``is_superuser`` will be set to ``False`` for that user.
+
+**NOTE**: if **Superuser group names** is left empty, the superuser status of users will never be altered upon login,
+allowing for manual management of superusers.
 
 Claim obfuscation
 -----------------
@@ -285,3 +307,5 @@ and ``OIDCAuthenticationBackend.config_class`` to be this new class.
 .. _mozilla-django-oidc documentation: https://mozilla-django-oidc.readthedocs.io/en/stable/installation.html
 
 .. _OpenID Connect specification: https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability
+
+.. _OIDC spec: https://openid.net/specs/openid-connect-discovery-1_0.html#WellKnownRegistry
