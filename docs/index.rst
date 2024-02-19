@@ -2,14 +2,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to mozilla_django_oidc_db's documentation!
-=================================================
+Welcome to mozilla-django-oidc-db's documentation!
+==================================================
 
 |build-status| |black| |coverage|
 
 |python-versions| |django-versions| |pypi-version|
 
-<One liner describing the project>
+Database-backed settings for mozilla-django-oidc, with modified unique identifiers for users
 
 Features
 ========
