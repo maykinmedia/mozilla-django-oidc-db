@@ -14,14 +14,26 @@ Database-backed settings for mozilla-django-oidc, with modified unique identifie
 Features
 ========
 
-* ...
-* ...
+* Thin layer on top of `mozilla-django-oidc`_
+* Allows configuration of OpenID Connect variables via django-solo
+* Overrides `mozilla-django-oidc`_ default behaviour, using the ``sub`` claim
+  instead of the ``email`` claim as unique identifier for users
+
+``mozilla-django-oidc-db`` provides a database singleton for several configuration
+variables required for ``mozilla-django-oidc``, moving them from deploy-time to run-time.
+This enables modification of the configuration, without having to restart the application.
+
+Additionally, ``mozilla-django-oidc-db`` by default uses the ``sub`` (subject) claim
+instead of the ``email`` claim as the unique identifier for users in the RP (Relying Party) application.
+Using ``email`` as the unique identifier is not recommended, as mentioned in the `OpenID Connect specification`_.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    quickstart
+   reference
+   changelog
 
 
 
@@ -32,8 +44,8 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. |build-status| image:: https://travis-ci.org/maykinmedia/mozilla_django_oidc_db.svg?branch=master
-    :target: https://travis-ci.org/maykinmedia/mozilla_django_oidc_db
+.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg
+    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -48,3 +60,7 @@ Indices and tables
 
 .. |pypi-version| image:: https://img.shields.io/pypi/v/mozilla_django_oidc_db.svg
     :target: https://pypi.org/project/mozilla_django_oidc_db/
+
+.. _mozilla-django-oidc: https://github.com/mozilla/mozilla-django-oidc
+
+.. _OpenID Connect specification: https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability

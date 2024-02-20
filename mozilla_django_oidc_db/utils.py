@@ -22,6 +22,9 @@ def obfuscate_claim_value(value: Any) -> str:
 
 
 def obfuscate_claims(claims: dict, claims_to_obfuscate: List[str]) -> dict:
+    """
+    Obfuscates the specified claims in the specified claims dict
+    """
     copied_claims = deepcopy(claims)
     for claim_name in claims_to_obfuscate:
         # NOTE: this does not support claim names that have dots in them
