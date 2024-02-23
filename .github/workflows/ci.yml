@@ -19,9 +19,7 @@ jobs:
         django: ['3.2', '4.2']
         mozilla_django_oidc: ['3.0', '4.0']
         exclude:
-          - python: '3.11'
-            django: '3.2'
-          - python: '3.12'
+          - python: ['3.11', '3.12']
             django: '3.2'
           # support for django 4.2 was added in 4.0
           - django: '4.2'
@@ -75,10 +73,11 @@ jobs:
 
       - name: Build sdist and wheel
         run: |
-          pip install pip setuptools wheel --upgrade
-          python setup.py sdist bdist_wheel
+          pip install build --upgrade
+          python -m build
+
       - name: Publish a Python distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.1
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
