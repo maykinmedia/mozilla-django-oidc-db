@@ -22,7 +22,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "testapp.settings")
 # -- Project information -----------------------------------------------------
 
 project = "mozilla_django_oidc_db"
-copyright = "2024, Maykin Media"
+copyright = "2021, Maykin Media"
 author = "Maykin Media"
 
 # The full version, including alpha/beta/rc tags
