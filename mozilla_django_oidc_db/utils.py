@@ -1,7 +1,7 @@
 from copy import deepcopy
-from typing import Any, List
+from typing import Any
 
-from glom import assign, glom
+from glom import Path, assign, glom
 from requests.utils import _parse_content_type_header  # type: ignore
 
 
@@ -21,15 +21,16 @@ def obfuscate_claim_value(value: Any) -> str:
         return "".join([x if i > threshold else "*" for i, x in enumerate(value)])
 
 
-def obfuscate_claims(claims: dict, claims_to_obfuscate: List[str]) -> dict:
+def obfuscate_claims(claims: dict, claims_to_obfuscate: list[list[str]]) -> dict:
     """
     Obfuscates the specified claims in the specified claims dict
     """
     copied_claims = deepcopy(claims)
-    for claim_name in claims_to_obfuscate:
+    for claim_bits in claims_to_obfuscate:
+        claim_path = Path(*claim_bits)
         # NOTE: this does not support claim names that have dots in them
-        claim_value = glom(copied_claims, claim_name)
-        assign(copied_claims, claim_name, obfuscate_claim_value(claim_value))
+        claim_value = glom(copied_claims, claim_path)
+        assign(copied_claims, claim_path, obfuscate_claim_value(claim_value))
     return copied_claims
 
 

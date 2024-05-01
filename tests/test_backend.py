@@ -25,7 +25,9 @@ def test_backend_authenticate_oidc_not_enabled(mock_get_solo):
 
 @patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
 def test_backend_get_sensitive_claims(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(enabled=True, username_claim="sub")
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        enabled=True, username_claim=["sub"]
+    )
 
     class CustomOIDCBackend(OIDCAuthenticationBackend):
         sensitive_claim_names = [["sensitive_claim1"], ["sensitive_claim2"]]
