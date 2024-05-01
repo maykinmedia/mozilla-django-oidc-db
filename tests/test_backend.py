@@ -28,15 +28,15 @@ def test_backend_get_sensitive_claims(mock_get_solo):
     mock_get_solo.return_value = OpenIDConnectConfig(enabled=True, username_claim="sub")
 
     class CustomOIDCBackend(OIDCAuthenticationBackend):
-        sensitive_claim_names = ["sensitive_claim1", "sensitive_claim2"]
+        sensitive_claim_names = [["sensitive_claim1"], ["sensitive_claim2"]]
 
     backend = CustomOIDCBackend()
 
     # Only the sensitive claims + the identifier claim should be obfuscated
     assert backend.get_sensitive_claims_names() == [
-        "sub",
-        "sensitive_claim1",
-        "sensitive_claim2",
+        ["sub"],
+        ["sensitive_claim1"],
+        ["sensitive_claim2"],
     ]
 
 
@@ -68,9 +68,9 @@ def test_backend_get_user_instance_values(mock_get_solo):
 def test_backend_get_user_instance_values_nested_claims(mock_get_solo):
     mock_get_solo.return_value = OpenIDConnectConfig(
         claim_mapping={
-            "email": "user_info.email",
-            "first_name": "user_info.given_name",
-            "last_name": "user_info.family_name",
+            "email": ["user_info", "email"],
+            "first_name": ["user_info", "given_name"],
+            "last_name": ["user_info", "family_name"],
         }
     )
 
@@ -92,6 +92,41 @@ def test_backend_get_user_instance_values_nested_claims(mock_get_solo):
         "first_name": "John",
         "last_name": "Doe",
     }
+
+
+@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
+def test_backend_supports_dots_in_claim_names(mock_get_solo, django_user_model):
+    user = django_user_model.objects.create_user(username="dummy", password="dummy")
+    mock_get_solo.return_value = OpenIDConnectConfig(
+        username_claim=["ns1.sub"],
+        groups_claim=["ns1.groups"],
+        claim_mapping={
+            "email": ["user_info.email"],
+            "first_name": ["user_info.given_name"],
+            "last_name": ["user_info.family_name"],
+        },
+    )
+
+    claims = {
+        "ns1.sub": "123456",
+        "ns1.groups": ["aaaa"],
+        "user_info.email": "admin@localhost",
+        "user_info.given_name": "John",
+        "user_info.family_name": "Doe",
+    }
+
+    backend = OIDCAuthenticationBackend()
+
+    assert backend.retrieve_identifier_claim(claims) == "123456"
+    assert backend.get_user_instance_values(claims) == {
+        "email": "admin@localhost",
+        "first_name": "John",
+        "last_name": "Doe",
+    }
+
+    backend.update_user_groups(user, claims)
+    group_names = user.groups.values_list("name", flat=True)
+    assert list(group_names) == ["aaaa"]
 
 
 @pytest.mark.django_db
@@ -144,10 +179,8 @@ def test_backend_create_user_different_username_claim(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim="upn",
+        username_claim=["upn"],
     )
-
-    User = get_user_model()
 
     claims = {
         "sub": "123456",
@@ -181,7 +214,7 @@ def test_backend_filter_users(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim="sub",
+        username_claim=["sub"],
     )
 
     User = get_user_model()
@@ -229,7 +262,7 @@ def test_backend_filter_users_different_username_claim(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim="upn",
+        username_claim=["upn"],
     )
 
     User = get_user_model()
@@ -278,7 +311,7 @@ def test_backend_update_user(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim="sub",
+        username_claim=["sub"],
     )
 
     User = get_user_model()
@@ -329,7 +362,7 @@ def test_backend_create_user_sync_all_groups(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=True,
         sync_groups_glob_pattern="*",
     )
@@ -374,7 +407,7 @@ def test_backend_create_user_no_groups_sync_without_groups_claim(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="",
+        groups_claim=[],
         sync_groups=True,
         sync_groups_glob_pattern="*",
     )
@@ -415,7 +448,7 @@ def test_backend_create_user_sync_groups_according_to_pattern(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=True,
         sync_groups_glob_pattern="group*",
     )
@@ -451,7 +484,7 @@ def test_backend_create_user_sync_all_groups_nested_groups_claim(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="nested_object.roles",
+        groups_claim=["nested_object", "roles"],
         sync_groups=True,
         sync_groups_glob_pattern="*",
     )
@@ -496,7 +529,7 @@ def test_backend_create_user_sync_all_groups_and_default_groups(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=True,
         sync_groups_glob_pattern="*",
     )
@@ -545,7 +578,7 @@ def test_backend_create_user_sync_groups_according_to_pattern_and_default_groups
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=True,
         sync_groups_glob_pattern="group*",
     )
@@ -587,13 +620,13 @@ def test_backend_create_user_with_profile_settings(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=True,
         claim_mapping={
-            "first_name": "given_name",
-            "last_name": "family_name",
-            "email": "email",
-            "is_superuser": "is_god",
+            "first_name": ["given_name"],
+            "last_name": ["family_name"],
+            "email": ["email"],
+            "is_superuser": ["is_god"],
         },
         sync_groups_glob_pattern="*",
         make_users_staff=True,
@@ -668,7 +701,7 @@ def test_backend_update_user_superuser(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=False,
         superuser_group_names=["superuser"],
     )
@@ -705,7 +738,7 @@ def test_backend_update_user_remove_superuser(mock_get_solo):
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=False,
         superuser_group_names=["superuser"],
     )
@@ -753,7 +786,7 @@ def test_backend_update_user_no_superuser_group_names(
         oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
         oidc_op_token_endpoint="http://some.endpoint/v1/token",
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim="roles",
+        groups_claim=["roles"],
         sync_groups=False,
         superuser_group_names=[],
     )
