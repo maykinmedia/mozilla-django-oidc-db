@@ -88,4 +88,22 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(copy_forward, copy_reverse),
+        migrations.RemoveField(
+            model_name="openidconnectconfig",
+            name="groups_claim",
+        ),
+        migrations.RemoveField(
+            model_name="openidconnectconfig",
+            name="username_claim",
+        ),
+        migrations.RenameField(
+            model_name="openidconnectconfig",
+            old_name="new_groups_claim",
+            new_name="groups_claim",
+        ),
+        migrations.RenameField(
+            model_name="openidconnectconfig",
+            old_name="new_username_claim",
+            new_name="username_claim",
+        ),
     ]

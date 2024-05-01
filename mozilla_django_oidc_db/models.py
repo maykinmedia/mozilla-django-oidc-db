@@ -255,13 +255,7 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
     Configuration for authentication/authorization via OpenID connect
     """
 
-    username_claim = models.CharField(
-        _("username claim"),
-        max_length=50,
-        default="sub",
-        help_text=_("The name of the OIDC claim that is used as the username"),
-    )
-    new_username_claim = ClaimField(
+    username_claim = ClaimField(
         verbose_name=_("username claim"),
         default=get_default_username_claim,
         help_text=_("The name of the OIDC claim that is used as the username"),
@@ -272,16 +266,7 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         default=get_claim_mapping,
         help_text=("Mapping from user-model fields to OIDC claims"),
     )
-    groups_claim = models.CharField(
-        _("groups claim"),
-        max_length=50,
-        default="roles",
-        help_text=_(
-            "The name of the OIDC claim that holds the values to map to local user groups."
-        ),
-        blank=True,
-    )
-    new_groups_claim = ClaimField(
+    groups_claim = ClaimField(
         verbose_name=_("groups claim"),
         default=get_default_groups_claim,
         help_text=_(
