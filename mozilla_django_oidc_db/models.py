@@ -3,7 +3,7 @@ from typing import Dict, List
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
@@ -325,14 +325,14 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         for field in self.claim_mapping.keys():
             try:
                 User._meta.get_field(field)
-            except models.FieldDoesNotExist:
+            except FieldDoesNotExist as exc:
                 raise ValidationError(
                     {
                         "claim_mapping": _(
-                            "Field {field} does not exist on the user model"
+                            "Field '{field}' does not exist on the user model"
                         ).format(field=field)
                     }
-                )
+                ) from exc
 
         if User.USERNAME_FIELD in self.claim_mapping:
             raise ValidationError(
