@@ -147,8 +147,6 @@ def test_backend_create_user(mock_get_solo):
         oidc_op_user_endpoint="http://some.endpoint/v1/user",
     )
 
-    User = get_user_model()
-
     claims = {
         "sub": "123456",
         "email": "admin@localhost",
