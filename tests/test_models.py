@@ -1,4 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.test.utils import isolate_apps
+from django.utils.translation import gettext as _
 
 import pytest
 
@@ -53,3 +55,37 @@ def test_custom_config_cache_key_fallback(unset_oidc_cache_prefix):
 
     # Prefix taken from `mozilla_django_oidc_dv/settings.py`
     assert CustomConfig.get_cache_key() == "oidc:customconfig"
+
+
+def test_validate_claim_mapping_fields():
+    instance = OpenIDConnectConfig(
+        claim_mapping={
+            "bad_field_no_cookie": ["har"],
+        }
+    )
+
+    with pytest.raises(ValidationError) as exc_context:
+        instance.clean()
+
+    err_dict = exc_context.value.message_dict
+    assert "claim_mapping" in err_dict
+    error = _("Field '{field}' does not exist on the user model").format(
+        field="bad_field_no_cookie"
+    )
+    assert error in err_dict["claim_mapping"]
+
+
+def test_validate_username_field_not_in_claim_mapping():
+    instance = OpenIDConnectConfig(
+        claim_mapping={
+            "username": ["nope"],
+        }
+    )
+
+    with pytest.raises(ValidationError) as exc_context:
+        instance.clean()
+
+    err_dict = exc_context.value.message_dict
+    assert "claim_mapping" in err_dict
+    error = _("The username field may not be in the claim mapping")
+    assert error in err_dict["claim_mapping"]
