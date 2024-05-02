@@ -163,7 +163,8 @@ The name of the claim that is used for the ``User.username`` property
 can be configured via the admin (**Username claim**). By default, the username is derived from the ``sub`` claim that
 is returned by the OIDC provider.
 
-If the desired claim is nested in one or more objects, its path can be specified with dots, e.g.:
+If the desired claim is nested in one or more objects, you can specify the segments
+of the path:
 
 .. code-block:: json
 
@@ -175,16 +176,23 @@ If the desired claim is nested in one or more objects, its path can be specified
         }
     }
 
-Can be retrieved by setting the username claim to ``some.nested.claim``
+Can be retrieved by setting the username claim (array field) to:
 
-.. note::
-    The username claim does not support claims that have dots in their name, it cannot be configured to retrieve the following claim for instance:
+- some
+- nested
+- claim
+
+If the claim has dots in it, you can specify those in a segment:
 
 .. code-block:: json
 
     {
         "some.dotted.claim": "foo"
     }
+
+can be retrieved with:
+
+- some.dotted.claim
 
 User profile
 ------------

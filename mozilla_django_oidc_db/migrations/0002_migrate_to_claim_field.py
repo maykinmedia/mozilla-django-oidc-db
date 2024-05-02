@@ -6,10 +6,16 @@ from django.db import migrations, models, transaction
 
 import mozilla_django_oidc_db.fields
 import mozilla_django_oidc_db.models
+import mozilla_django_oidc_db.settings as oidc_settings
 
 
 def flush_cache():
-    if not (cache_name := getattr(settings, "SOLO_CACHE", "")):
+    cache_name = getattr(
+        settings,
+        "MOZILLA_DJANGO_OIDC_DB_CACHE",
+        oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
+    )
+    if not cache_name:
         return
     caches[cache_name].clear()
 

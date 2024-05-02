@@ -28,7 +28,6 @@ def obfuscate_claims(claims: dict, claims_to_obfuscate: list[list[str]]) -> dict
     copied_claims = deepcopy(claims)
     for claim_bits in claims_to_obfuscate:
         claim_path = Path(*claim_bits)
-        # NOTE: this does not support claim names that have dots in them
         claim_value = glom(copied_claims, claim_path)
         assign(copied_claims, claim_path, obfuscate_claim_value(claim_value))
     return copied_claims
