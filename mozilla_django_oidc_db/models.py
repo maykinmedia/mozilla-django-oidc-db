@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -14,6 +12,7 @@ from solo.models import SingletonModel, get_cache
 import mozilla_django_oidc_db.settings as oidc_settings
 
 from .compat import classproperty
+from .fields import ClaimField
 
 
 class UserInformationClaimsSources(models.TextChoices):
@@ -21,21 +20,29 @@ class UserInformationClaimsSources(models.TextChoices):
     id_token = "id_token", _("ID token")
 
 
-def get_default_scopes() -> List[str]:
+def get_default_scopes() -> list[str]:
     """
     Returns the default scopes to request for OpenID Connect logins
     """
     return ["openid", "email", "profile"]
 
 
-def get_claim_mapping() -> Dict[str, str]:
+def get_claim_mapping() -> dict[str, list[str]]:
     # Map (some) claim names from https://openid.net/specs/openid-connect-core-1_0.html#Claims
     # to corresponding field names on the User model
     return {
-        "email": "email",
-        "first_name": "given_name",
-        "last_name": "family_name",
+        "email": ["email"],
+        "first_name": ["given_name"],
+        "last_name": ["family_name"],
     }
+
+
+def get_default_username_claim() -> list[str]:
+    return ["sub"]
+
+
+def get_default_groups_claim() -> list[str]:
+    return ["roles"]
 
 
 class CachingMixin:
@@ -248,26 +255,26 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
     Configuration for authentication/authorization via OpenID connect
     """
 
-    username_claim = models.CharField(
-        _("username claim"),
-        max_length=50,
-        default="sub",
+    username_claim = ClaimField(
+        verbose_name=_("username claim"),
+        default=get_default_username_claim,
         help_text=_("The name of the OIDC claim that is used as the username"),
     )
+
     claim_mapping = models.JSONField(
         _("claim mapping"),
         default=get_claim_mapping,
         help_text=("Mapping from user-model fields to OIDC claims"),
     )
-    groups_claim = models.CharField(
-        _("groups claim"),
-        max_length=50,
-        default="roles",
+    groups_claim = ClaimField(
+        verbose_name=_("groups claim"),
+        default=get_default_groups_claim,
         help_text=_(
             "The name of the OIDC claim that holds the values to map to local user groups."
         ),
         blank=True,
     )
+
     sync_groups = models.BooleanField(
         _("Create local user groups if they do not exist yet"),
         default=True,

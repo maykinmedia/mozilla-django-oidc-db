@@ -7,7 +7,7 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.core.exceptions import ObjectDoesNotExist
 
 import requests
-from glom import glom
+from glom import Path, glom
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as _OIDCAuthenticationBackend,
 )
@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=OpenIDConnectConfig)
 
 
+class MissingIdentifierClaim(Exception):
+    def __init__(self, claim_bits: list[str], *args, **kwargs):
+        self.claim_bits = claim_bits
+        super().__init__(*args, **kwargs)
+
+
 class OIDCAuthenticationBackend(
     GetAttributeMixin, SoloConfigMixin[T], _OIDCAuthenticationBackend
 ):
@@ -31,7 +37,7 @@ class OIDCAuthenticationBackend(
     """
 
     config_identifier_field = "username_claim"
-    sensitive_claim_names = []
+    sensitive_claim_names: list[list[str]] = []
 
     def __init__(self, *args, **kwargs):
         # django-stubs returns AbstractBaseUser, but we depend on properties of
@@ -46,27 +52,26 @@ class OIDCAuthenticationBackend(
         # to avoid a large number of `OpenIDConnectConfig.get_solo` calls when
         # `OIDCAuthenticationBackend.__init__` is called for permission checks
 
-    def retrieve_identifier_claim(self, claims: dict) -> str:
-        # NOTE: this does not support the extraction of claims that contain dots "." in
-        # their name (e.g. {"foo.bar": "baz"})
-        identifier_claim_name = getattr(self.config, self.config_identifier_field)
-        unique_id = glom(claims, identifier_claim_name, default="")
+    def retrieve_identifier_claim(
+        self, claims: dict, raise_on_empty: bool = False
+    ) -> str:
+        claim_bits = getattr(self.config, self.config_identifier_field)
+        unique_id = glom(claims, Path(*claim_bits), default="")
+        if raise_on_empty and not unique_id:
+            raise MissingIdentifierClaim(claim_bits=claim_bits)
         return unique_id
 
-    def get_sensitive_claims_names(self) -> list:
+    def get_sensitive_claims_names(self) -> list[list[str]]:
         """
         Defines the claims that should be obfuscated before logging claims.
-        Nested claims can be specified by using a dotted path (e.g. "foo.bar.baz")
 
-        NOTE: this does not support claim names that have dots in them, so the following
-        claim cannot be marked as a sensitive claim
-
-            {
-                "foo.bar": "baz"
-            }
+        Nested claims are represented with a path of bits (e.g. ["foo", "bar", "baz"]).
+        Claims with dots in them are supported, e.g. ["foo.bar"].
         """
-        identifier_claim_name = getattr(self.config, self.config_identifier_field)
-        return [identifier_claim_name] + self.sensitive_claim_names
+        identifier_claim_bits: list[str] = getattr(
+            self.config, self.config_identifier_field
+        )
+        return [identifier_claim_bits] + self.sensitive_claim_names
 
     def get_userinfo(self, access_token, id_token, payload):
         """
@@ -132,8 +137,8 @@ class OIDCAuthenticationBackend(
         Map the names and values of the claims to the fields of the User model
         """
         return {
-            model_field: glom(claims, claims_field, default="")
-            for model_field, claims_field in self.config.claim_mapping.items()
+            model_field: glom(claims, Path(*claim_bits), default="")
+            for model_field, claim_bits in self.config.claim_mapping.items()
         }
 
     def create_user(self, claims):
@@ -169,11 +174,14 @@ class OIDCAuthenticationBackend(
 
         logger.debug("OIDC claims received: %s", obfuscated_claims)
 
-        identifier_claim_name = getattr(self.config, self.config_identifier_field)
-        if not glom(claims, identifier_claim_name, default=""):
+        # check if we have an identifier
+        try:
+            self.retrieve_identifier_claim(claims, raise_on_empty=True)
+        except MissingIdentifierClaim as exc:
             logger.error(
-                "%s not in OIDC claims, cannot proceed with authentication",
-                identifier_claim_name,
+                "'%s' not in OIDC claims, cannot proceed with authentication",
+                " > ".join(exc.claim_bits),
+                exc_info=exc,
             )
             return False
         return True
@@ -199,76 +207,79 @@ class OIDCAuthenticationBackend(
 
         return user
 
+    def _retrieve_groups_claim(self, claims: dict[str, Any]) -> list[str]:
+        groups_claim_bits = self.config.groups_claim
+        return glom(claims, Path(*groups_claim_bits), default=[])
+
     def update_user_superuser_status(self, user, claims) -> None:
         """
         Assigns superuser status to the user if the user is a member of at least one
         specific group. Superuser status is explicitly removed if the user is not or
         no longer member of at least one of these groups.
         """
-        groups_claim = self.config.groups_claim
         # can't do an isinstance check here
         superuser_group_names = cast(list[str], self.config.superuser_group_names)
 
         if not superuser_group_names:
             return
 
-        claim_groups = glom(claims, groups_claim, default=[])
+        claim_groups = self._retrieve_groups_claim(claims)
         if set(superuser_group_names) & set(claim_groups):
             user.is_superuser = True
         else:
             user.is_superuser = False
         user.save()
 
-    def update_user_groups(self, user, claims):
+    def update_user_groups(self, user, claims) -> None:
         """
         Updates user group memberships based on the group_claim setting.
 
         Copied and modified from: https://github.com/snok/django-auth-adfs/blob/master/django_auth_adfs/backend.py
         """
-        groups_claim = self.config.groups_claim
+        group_claim_bits: list[str] = self.config.groups_claim
+        if not group_claim_bits:
+            return
 
-        if groups_claim:
-            # Update the user's group memberships
-            django_groups = [group.name for group in user.groups.all()]
-            claim_groups = glom(claims, groups_claim, default=[])
-            if claim_groups:
-                if not isinstance(claim_groups, list):
-                    claim_groups = [
+        claim_groups = self._retrieve_groups_claim(claims)
+
+        # Update the user's group memberships
+        django_groups = [group.name for group in user.groups.all()]
+        if claim_groups:
+            if not isinstance(claim_groups, list):
+                claim_groups = [
+                    claim_groups,
+                ]
+        else:
+            logger.debug(
+                "The configured groups claim '%s' was not found in the access token",
+                " > ".join(group_claim_bits),
+            )
+            claim_groups = []
+        if sorted(claim_groups) != sorted(django_groups):
+            existing_groups = list(
+                Group.objects.filter(name__in=claim_groups).iterator()
+            )
+            existing_group_names = frozenset(group.name for group in existing_groups)
+            new_groups = []
+            if self.config.sync_groups:
+                # Only sync groups that match the supplied glob pattern
+                new_groups = [
+                    Group.objects.get_or_create(name=name)[0]
+                    for name in fnmatch.filter(
                         claim_groups,
-                    ]
+                        self.config.sync_groups_glob_pattern,
+                    )
+                    if name not in existing_group_names
+                ]
             else:
-                logger.debug(
-                    "The configured groups claim '%s' was not found in the access token",
-                    groups_claim,
-                )
-                claim_groups = []
-            if sorted(claim_groups) != sorted(django_groups):
-                existing_groups = list(
-                    Group.objects.filter(name__in=claim_groups).iterator()
-                )
-                existing_group_names = frozenset(
-                    group.name for group in existing_groups
-                )
-                new_groups = []
-                if self.config.sync_groups:
-                    # Only sync groups that match the supplied glob pattern
-                    new_groups = [
-                        Group.objects.get_or_create(name=name)[0]
-                        for name in fnmatch.filter(
-                            claim_groups,
-                            self.config.sync_groups_glob_pattern,
-                        )
-                        if name not in existing_group_names
-                    ]
-                else:
-                    for name in claim_groups:
-                        if name not in existing_group_names:
-                            try:
-                                group = Group.objects.get(name=name)
-                                new_groups.append(group)
-                            except ObjectDoesNotExist:
-                                pass
-                user.groups.set(existing_groups + new_groups)
+                for name in claim_groups:
+                    if name not in existing_group_names:
+                        try:
+                            group = Group.objects.get(name=name)
+                            new_groups.append(group)
+                        except ObjectDoesNotExist:
+                            pass
+            user.groups.set(existing_groups + new_groups)
 
     def update_user_default_groups(self, user):
         """

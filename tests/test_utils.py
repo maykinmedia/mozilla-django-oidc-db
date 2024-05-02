@@ -18,6 +18,7 @@ def test_obfuscate_non_string():
 def test_obfuscate_nested():
     claims = {
         "foo": "not_obfuscated",
+        "foo.bar": "obfuscated",
         "some": {
             "nested": {
                 "claim": "obfuscated",
@@ -29,9 +30,14 @@ def test_obfuscate_nested():
             "bar": "obfuscated",
         },
     }
-    claims_to_obfuscate = ["some.nested.claim", "object"]
+    claims_to_obfuscate = [
+        ["foo.bar"],
+        ["some", "nested", "claim"],
+        ["object"],
+    ]
     expected_result = {
         "foo": "not_obfuscated",
+        "foo.bar": "********ed",
         "some": {"nested": {"claim": "********ed", "claim2": "not_obfuscated"}},
         "object": {"foo": "********ed", "bar": "********ed"},
     }
