@@ -2,6 +2,19 @@
 Changelog
 =========
 
+0.16.0 (2024-05-02)
+===================
+
+* [`#84`_] Updated usage section in README
+* [`#88`_] Set up Sphinx documentation on readthedocs
+* [`#94`_] Claims with "." characters in them are now supported
+* [`#92`_] Fixed a crash when validating the user claim mapping
+
+.. _#84: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/84
+.. _#88: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/88
+.. _#94: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/94
+.. _#92: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/92
+
 0.15.0 (2024-02-07)
 ===================
 
