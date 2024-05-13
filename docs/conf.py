@@ -14,10 +14,13 @@ import os
 import sys
 from pathlib import Path
 
+import django
+
 _root_dir = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(_root_dir))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "testapp.settings")
 
+django.setup()
 
 # -- Project information -----------------------------------------------------
 

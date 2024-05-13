@@ -20,7 +20,7 @@ from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
 logger = logging.getLogger(__name__)
 
-OIDC_ERROR_SESSION_KEY = "oidc-error"
+_OIDC_ERROR_SESSION_KEY = "oidc-error"
 """
 Session key where to store authentication error messages.
 
@@ -29,7 +29,7 @@ under this key so that :class:`AdminLoginFailure` can read and display them to t
 end-user.
 """
 
-RETURN_URL_SESSION_KEY = "oidc-db_redirect_next"
+_RETURN_URL_SESSION_KEY = "oidc-db_redirect_next"
 """
 Session key for the "next" URL to redirect the user to.
 
@@ -68,11 +68,11 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
                 exc_info=exc,
             )
             exc_message = get_exception_message(exc)
-            request.session[OIDC_ERROR_SESSION_KEY] = exc_message
+            request.session[_OIDC_ERROR_SESSION_KEY] = exc_message
             return self.login_failure()
         else:
-            if OIDC_ERROR_SESSION_KEY in request.session:
-                del request.session[OIDC_ERROR_SESSION_KEY]
+            if _OIDC_ERROR_SESSION_KEY in request.session:
+                del request.session[_OIDC_ERROR_SESSION_KEY]
         return response
 
 
@@ -84,14 +84,14 @@ class AdminLoginFailure(TemplateView):
     template_name = "admin/oidc_failure.html"
 
     def dispatch(self, request, *args, **kwargs):
-        if OIDC_ERROR_SESSION_KEY not in request.session:
+        if _OIDC_ERROR_SESSION_KEY not in request.session:
             raise PermissionDenied()
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(admin.site.each_context(self.request))
-        context["oidc_error"] = self.request.session[OIDC_ERROR_SESSION_KEY]
+        context["oidc_error"] = self.request.session[_OIDC_ERROR_SESSION_KEY]
         return context
 
 
@@ -159,7 +159,7 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
             return digid_init(request, return_url="/some-fixed-url")
     """
 
-    def get_settings(self, attr: str, *args: Any):  # type: ignore
+    def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
         """
         Look up the request setting from the database config.
 
@@ -192,7 +192,7 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
         # authentication failure (or canceled logins), the session is cleared by the
         # upstream library, so in the callback view we store this URL so that we know
         # where to redirect with the error information.
-        request.session[RETURN_URL_SESSION_KEY] = return_url
+        request.session[_RETURN_URL_SESSION_KEY] = return_url
 
         # mozilla-django-oidc grabs this from request.GET and since that is not mutable,
         # it's easiest to just override the session key with the correct value.
@@ -254,5 +254,18 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
 
 
 class OIDCAuthenticationRequestView(OIDCInit[OpenIDConnectConfig]):
+    """
+    Start an OIDC authentication flow.
+
+    This view is pre-configured to use the OIDC configuration included in this library,
+    intended for admin authentication. Enable it in your Django settings with:
+
+    .. code-block:: python
+
+        OIDC_AUTHENTICATE_CLASS = (
+            "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
+        )
+    """
+
     config_class = OpenIDConnectConfig
     allow_next_from_query = True
