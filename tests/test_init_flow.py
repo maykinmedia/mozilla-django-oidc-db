@@ -6,7 +6,10 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.urls import reverse
 
+import pytest
 
+
+@pytest.mark.vcr
 def test_default_config_flow(keycloak_config, settings, client):
     settings.OIDC_AUTHENTICATE_CLASS = (
         "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
@@ -33,6 +36,7 @@ def test_default_config_flow(keycloak_config, settings, client):
     assert client.session["oidc-db_redirect_next"] == "/admin/"
 
 
+@pytest.mark.vcr
 def test_keycloak_idp_hint_via_settings(keycloak_config, settings, client):
     settings.OIDC_AUTHENTICATE_CLASS = (
         "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
