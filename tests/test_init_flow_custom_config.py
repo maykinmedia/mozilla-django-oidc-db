@@ -10,6 +10,7 @@ from django.test import RequestFactory
 
 import pytest
 
+from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 from mozilla_django_oidc_db.views import OIDCInit
 
@@ -88,3 +89,18 @@ def test_suspicious_return_url(auth_request):
 def test_forgotten_return_url(auth_request, get_kwargs):
     with pytest.raises(ValueError):
         oidc_init(auth_request, **get_kwargs)
+
+
+class IDPCheckInitView(OIDCInit):
+    def check_idp_availability(self) -> None:
+        raise OIDCProviderOutage("The internet is bwoken.")
+
+
+oidc_init_with_idp_check = IDPCheckInitView.as_view(
+    config_class=CustomConfig, allow_next_from_query=True
+)
+
+
+def test_idp_check_mechanism(auth_request):
+    with pytest.raises(OIDCProviderOutage):
+        oidc_init_with_idp_check(auth_request)
