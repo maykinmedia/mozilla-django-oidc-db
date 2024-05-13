@@ -4,6 +4,7 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.utils.encoding import force_str
+from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField
@@ -11,7 +12,6 @@ from solo.models import SingletonModel, get_cache
 
 import mozilla_django_oidc_db.settings as oidc_settings
 
-from .compat import classproperty
 from .fields import ClaimField
 
 
