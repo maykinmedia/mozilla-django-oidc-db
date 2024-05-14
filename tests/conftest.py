@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterator
 
+from django.contrib.sessions.backends.db import SessionStore
+from django.test import RequestFactory
+
 import pytest
 
 if TYPE_CHECKING:
@@ -57,3 +60,12 @@ def keycloak_config(db) -> Iterator[OpenIDConnectConfig]:
     yield config
 
     OpenIDConnectConfig.clear_cache()
+
+
+@pytest.fixture
+def auth_request(rf: RequestFactory):
+    request = rf.get("/some-auth", {"next": "/ignored"})
+    session = SessionStore()
+    session.save()
+    request.session = session
+    return request

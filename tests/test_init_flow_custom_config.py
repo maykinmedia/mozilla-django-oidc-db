@@ -4,9 +4,7 @@ Test the init flow through a custom view and config.
 
 from urllib.parse import parse_qs, urlsplit
 
-from django.contrib.sessions.backends.db import SessionStore
 from django.core.exceptions import DisallowedRedirect
-from django.test import RequestFactory
 
 import pytest
 
@@ -15,18 +13,6 @@ from mozilla_django_oidc_db.models import OpenIDConnectConfig
 from mozilla_django_oidc_db.views import OIDCInit
 
 pytestmark = [pytest.mark.django_db]
-
-
-@pytest.fixture
-def auth_request(rf: RequestFactory):
-    request = rf.get("/some-auth", {"next": "/ignored"})
-    session = SessionStore()
-    session.save()
-    request.session = session
-    return request
-
-
-# Use a proxy model to modify behaviour without needing migrations/models machinery.
 
 
 class static_setting:
@@ -41,6 +27,7 @@ class static_setting:
 
 
 class CustomConfig(OpenIDConnectConfig):
+    # Use a proxy model to modify behaviour without needing migrations/models machinery.
     class Meta:
         proxy = True
         app_label = "mozilla_django_oidc_db"
