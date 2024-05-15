@@ -15,7 +15,7 @@ from mozilla_django_oidc.views import (
     OIDCAuthenticationRequestView as _OIDCAuthenticationRequestView,
 )
 
-from .config import get_setting_from_config
+from .config import get_setting_from_config, store_config
 from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,9 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
 
     failure_url = reverse_lazy("admin-oidc-error")
 
-    def get(self, request):
+    def get(self, request: HttpRequest):
+        store_config(request)
+
         try:
             # ensure errors don't lead to half-created users
             with transaction.atomic():
