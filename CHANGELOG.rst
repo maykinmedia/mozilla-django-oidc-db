@@ -2,6 +2,27 @@
 Changelog
 =========
 
+0.17.0 (2024-05-??)
+===================
+
+Refactor/rewrite release.
+
+The custom views and backend have been rewritten to be more configurable out of the box,
+without needing to write much code in your own project. We've incorporated our
+experiences from the Open Forms and Open Inwoner projects in this rewrite.
+
+**💥 Breaking changes**
+
+While we were able to perform most of the changes without breaking public API, some
+aspects could not be avoided.
+
+* The attributes ``OIDCAuthenticationBackend.sensitive_claim_names`` and
+  ``OIDCAuthenticationBackend.config_identifier_field`` are removed. This affects you
+  if you were subclassing this backend to override these attributes.
+
+  You can provide these in your custom configuration model(s) as the
+  ``oidcdb_sensitive_claims`` and ``oidcdb_username_claim`` model fields or properties. See the implementation of the ``OpenIDConnectConfigBase`` model for more details.
+
 0.16.0 (2024-05-02)
 ===================
 

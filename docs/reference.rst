@@ -11,6 +11,12 @@ Views
     :members:
 
 
+Authentication backends
+=======================
+
+.. automodule:: mozilla_django_oidc_db.backends
+    :members:
+
 Utils
 =====
 
