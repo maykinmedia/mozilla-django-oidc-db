@@ -9,7 +9,6 @@ server and can change on a whim.
 """
 
 import json
-from typing import Any
 
 from django.core.exceptions import SuspiciousOperation
 from django.utils.encoding import smart_bytes
@@ -17,8 +16,10 @@ from django.utils.encoding import smart_bytes
 from josepy.jwk import JWK
 from josepy.jws import JWS
 
+from .typing import JSONObject
 
-def verify_and_decode_token(token: bytes, key) -> dict[str, Any]:
+
+def verify_and_decode_token(token: bytes, key) -> JSONObject:
     """
     Verify that the token was not tampered with and if okay, return the payload.
 

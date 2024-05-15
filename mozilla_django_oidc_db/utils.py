@@ -1,11 +1,13 @@
+from collections.abc import Collection
 from copy import deepcopy
-from typing import Any
 
 from glom import Path, assign, glom
 from requests.utils import _parse_content_type_header  # type: ignore
 
+from .typing import ClaimPath, JSONObject, JSONValue
 
-def obfuscate_claim_value(value: Any) -> str:
+
+def obfuscate_claim_value(value: JSONValue) -> JSONValue:
     """
     Obfuscates the value of a claim, so it can be logged safely
 
@@ -21,7 +23,9 @@ def obfuscate_claim_value(value: Any) -> str:
         return "".join([x if i > threshold else "*" for i, x in enumerate(value)])
 
 
-def obfuscate_claims(claims: dict, claims_to_obfuscate: list[list[str]]) -> dict:
+def obfuscate_claims(
+    claims: JSONObject, claims_to_obfuscate: Collection[ClaimPath]
+) -> JSONObject:
     """
     Obfuscates the specified claims in the specified claims dict
     """
