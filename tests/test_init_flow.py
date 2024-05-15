@@ -8,6 +8,8 @@ from django.urls import reverse
 
 import pytest
 
+from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
+
 
 @pytest.mark.oidcconfig(
     oidc_op_authorization_endpoint="http://localhost:8080/openid-connect/auth"
@@ -46,3 +48,26 @@ def test_keycloak_idp_hint_via_settings(dummy_config, settings, client):
 
     query = parse_qs(parsed_url.query)
     assert query["kc_idp_hint"] == ["keycloak-idp1"]
+
+
+def test_check_idp_availability_not_available(
+    dummy_config, settings, client, requests_mock
+):
+    settings.OIDCDB_CHECK_IDP_AVAILABILITY = True
+    requests_mock.get("https://mock-oidc-provider:9999/oidc/auth", status_code=503)
+    start_url = reverse("oidc_authentication_init")
+
+    with pytest.raises(OIDCProviderOutage):
+        client.get(start_url)
+
+
+def test_check_idp_availability_available(
+    dummy_config, settings, client, requests_mock
+):
+    settings.OIDCDB_CHECK_IDP_AVAILABILITY = True
+    requests_mock.get("https://mock-oidc-provider:9999/oidc/auth", status_code=400)
+    start_url = reverse("oidc_authentication_init")
+
+    response = client.get(start_url)
+
+    assert response.status_code == 302
