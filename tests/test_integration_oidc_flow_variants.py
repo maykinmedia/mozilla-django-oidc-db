@@ -18,7 +18,7 @@ def test_client_id_secret_full_flow(
 ):
     login_url = reverse("login")
     django_login_response = client.get(login_url)
-    assert django_login_response.status_code, 302
+    assert django_login_response.status_code == 302
 
     # simulate login to Keycloak
     redirect_uri = keycloak_login(django_login_response["Location"])

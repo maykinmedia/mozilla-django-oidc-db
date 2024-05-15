@@ -9,36 +9,11 @@ from django.core.exceptions import DisallowedRedirect
 import pytest
 
 from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
 from mozilla_django_oidc_db.views import OIDCInit
 
+from .custom_config import CustomConfig, oidc_init
+
 pytestmark = [pytest.mark.django_db]
-
-
-class static_setting:
-    def __init__(self, val):
-        self.val = val
-
-    def __get__(self, obj, objtype):
-        return self.val
-
-    def __set__(self, obj, val):
-        pass
-
-
-class CustomConfig(OpenIDConnectConfig):
-    # Use a proxy model to modify behaviour without needing migrations/models machinery.
-    class Meta:
-        proxy = True
-        app_label = "mozilla_django_oidc_db"
-
-    enabled = static_setting(True)
-    oidc_rp_client_id = static_setting("fixed_client_id")
-    oidc_rp_client_secret = static_setting("supersecret")
-    oidc_op_authorization_endpoint = static_setting("https://example.com/oidc/auth")
-
-
-oidc_init = OIDCInit.as_view(config_class=CustomConfig)
 
 
 def test_redirects_to_oidc_provider(auth_request):

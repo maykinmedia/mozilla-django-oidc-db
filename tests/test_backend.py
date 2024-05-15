@@ -1,818 +1,512 @@
-from unittest.mock import patch
+import logging
 
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.test import RequestFactory
+from django.contrib.auth.models import Group, User
+from django.http import HttpRequest
 
 import pytest
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.config import lookup_config
+from mozilla_django_oidc_db.models import (
+    OpenIDConnectConfig,
+    UserInformationClaimsSources,
+)
+from mozilla_django_oidc_db.views import OIDCAuthenticationRequestView
+from testapp.backends import MockBackend
+from testapp.models import EmptyConfig
+
+from .custom_config import oidc_init_disabled
+
+#
+# DYNAMIC CONFIGURATION TESTS
+#
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_authenticate_oidc_not_enabled(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(enabled=False)
-
+@pytest.mark.oidcconfig(enabled=False)
+def test_authenticate_oidc_not_enabled(dummy_config, callback_request: HttpRequest):
     backend = OIDCAuthenticationBackend()
 
-    request = RequestFactory().get("/")
+    user = backend.authenticate(callback_request)
 
     # Authentication with the backend should not return a result,
     # because OIDC is not enabled
-    assert backend.authenticate(request) is None
+    assert user is None
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_get_sensitive_claims(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=True, username_claim=["sub"]
-    )
-
-    class CustomOIDCBackend(OIDCAuthenticationBackend):
-        sensitive_claim_names = [["sensitive_claim1"], ["sensitive_claim2"]]
-
-    backend = CustomOIDCBackend()
-
-    # Only the sensitive claims + the identifier claim should be obfuscated
-    assert backend.get_sensitive_claims_names() == [
-        ["sub"],
-        ["sensitive_claim1"],
-        ["sensitive_claim2"],
-    ]
-
-
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_get_user_instance_values(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        claim_mapping=OpenIDConnectConfig._meta.get_field("claim_mapping").get_default()
-    )
-
-    claims = {
-        "sub": "123456",
-        "email": "admin@localhost",
-        "given_name": "John",
-        "family_name": "Doe",
-    }
-
+@pytest.mark.callback_request(init_view=oidc_init_disabled)
+def test_authentication_loads_config_from_init_state(
+    dummy_config, callback_request: HttpRequest
+):
+    assert dummy_config.enabled is True
     backend = OIDCAuthenticationBackend()
+    # check that we correctly initialized our OIDC state
+    state_key = callback_request.GET["state"]
+    state = callback_request.session["oidc_states"][state_key]
+    assert state["config_class"] == "mozilla_django_oidc_db.DisabledConfig"
 
-    user_values = backend.get_user_instance_values(claims)
+    user = backend.authenticate(callback_request)
 
-    assert user_values == {
-        "email": "admin@localhost",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
+    # Authentication with the backend should not return a result,
+    # because OIDC is not enabled
+    assert user is None
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_get_user_instance_values_nested_claims(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        claim_mapping={
-            "email": ["user_info", "email"],
-            "first_name": ["user_info", "given_name"],
-            "last_name": ["user_info", "family_name"],
+@pytest.mark.parametrize(
+    "setting,expected",
+    (
+        ("OIDCDB_USERINFO_CLAIMS_SOURCE", UserInformationClaimsSources.id_token),
+        ("OIDCDB_USERNAME_CASE_SENSITIVE", False),
+        ("OIDCDB_CLAIM_MAPPING", {"foo": "bar"}),
+        ("OIDCDB_GROUPS_CLAIM", ["roles"]),
+        ("OIDCDB_DEFAULT_GROUPS", ["one", "two"]),
+        ("OIDCDB_SYNC_MISSING_GROUPS", False),
+        ("OIDCDB_SYNC_GROUPS_GLOB_PATTERN", "in:*:tricate"),
+        ("OIDCDB_MAKE_USERS_STAFF", True),
+        ("OIDCDB_SUPERUSER_GROUP_NAMES", ["we are gods", "bow for us"]),
+    ),
+)
+@pytest.mark.django_db
+def test_grabs_config_from_django_settings_if_missing_on_model(
+    settings, setting, expected
+):
+    setattr(settings, setting, expected)
+    backend = OIDCAuthenticationBackend()
+    backend.config_class = EmptyConfig
+
+    value = getattr(backend, setting)
+
+    assert value == expected
+
+
+#
+# LOGGING AND OBFUSCATION TESTS
+#
+
+
+class SensitiveClaimsConfig(OpenIDConnectConfig):
+    class Meta:
+        proxy = True
+        app_label = "mozilla_django_oidc_db"
+
+    sensitive_claims = (
+        ["sensitive_claim1"],
+        ["parent", "sensitive_claim2"],
+    )
+
+
+@pytest.mark.callback_request(
+    init_view=OIDCAuthenticationRequestView.as_view(config_class=SensitiveClaimsConfig)
+)
+@pytest.mark.oidcconfig(enabled=True, username_claim=["sub"])
+def test_obfuscates_sensitive_claims(
+    dummy_config, callback_request: HttpRequest, caplog
+):
+    caplog.set_level(logging.DEBUG, logger="mozilla_django_oidc_db.backends")
+    backend = OIDCAuthenticationBackend()
+    backend.request = callback_request
+    backend.config_class = lookup_config(callback_request)
+
+    claims_ok = backend.verify_claims(
+        {
+            "sub": "some-unique-id",
+            "sensitive_claim1": "obfuscate-me!",
+            "parent": {
+                "sensitive_claim2": "obfuscate-me!",
+                "other": "not-sensitive",
+            },
         }
     )
 
-    claims = {
-        "sub": "123456",
-        "user_info": {
+    assert claims_ok
+
+    # check that the emitted log records have the sensitive claims obfuscated
+    log_message: str = next(
+        message
+        for rec in caplog.records
+        if (message := rec.message).startswith("OIDC claims received")
+    )
+
+    assert "some-unique-id" not in log_message
+    assert "obfuscate-me!" not in log_message
+    assert "not-sensitive" in log_message
+
+
+#
+# USER CREATION & UPDATING TESTS
+#
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+)
+def test_create_user_with_default_config(dummy_config, callback_request: HttpRequest):
+    assert not User.objects.exists()
+    backend = MockBackend(
+        claims={
+            "sub": "123456",
             "email": "admin@localhost",
             "given_name": "John",
             "family_name": "Doe",
-        },
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user_values = backend.get_user_instance_values(claims)
-
-    assert user_values == {
-        "email": "admin@localhost",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-
-
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_supports_dots_in_claim_names(mock_get_solo, django_user_model):
-    user = django_user_model.objects.create_user(username="dummy", password="dummy")
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        username_claim=["ns1.sub"],
-        groups_claim=["ns1.groups"],
-        claim_mapping={
-            "email": ["user_info.email"],
-            "first_name": ["user_info.given_name"],
-            "last_name": ["user_info.family_name"],
-        },
+        }
     )
 
-    claims = {
-        "ns1.sub": "123456",
-        "ns1.groups": ["aaaa"],
-        "user_info.email": "admin@localhost",
-        "user_info.given_name": "John",
-        "user_info.family_name": "Doe",
-    }
+    user = backend.authenticate(request=callback_request)
 
-    backend = OIDCAuthenticationBackend()
-
-    assert backend.retrieve_identifier_claim(claims) == "123456"
-    assert backend.get_user_instance_values(claims) == {
-        "email": "admin@localhost",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-
-    backend.update_user_groups(user, claims)
-    group_names = user.groups.values_list("name", flat=True)
-    assert list(group_names) == ["aaaa"]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-    )
-
-    claims = {
-        "sub": "123456",
-        "email": "admin@localhost",
-        "given_name": "John",
-        "family_name": "Doe",
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
+    assert user is not None
+    assert isinstance(user, User)
 
     # Verify that a user is created with the correct values
+    assert user.pk is not None
     assert user.username == "123456"
     assert user.email == "admin@localhost"
     assert user.first_name == "John"
     assert user.last_name == "Doe"
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_different_username_claim(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim=["upn"],
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["user", "username"],
+    groups_claim=["user", "groups.names"],
+    claim_mapping={
+        "email": ["attributes.email"],
+        "first_name": ["profile", "given_name"],
+        "last_name": ["profile", "family_name"],
+    },
+)
+def test_create_user_with_custom_and_complex_config(
+    dummy_config, callback_request: HttpRequest
+):
+    assert not User.objects.exists()
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "user": {
+                "username": "admin",
+                "groups.names": ["supergroup"],
+            },
+            "profile": {
+                "given_name": "John",
+                "family_name": "Doe",
+            },
+            "attributes.email": "admin@localhost",
+        }
     )
 
-    claims = {
-        "sub": "123456",
-        "upn": "admin",
-        "email": "admin@localhost",
-        "given_name": "John",
-        "family_name": "Doe",
-    }
+    user = backend.authenticate(request=callback_request)
 
-    backend = OIDCAuthenticationBackend()
+    assert user is not None
+    assert isinstance(user, User)
 
-    user = backend.create_user(claims)
-
-    # Verify `upn` is used as username
+    # Verify that a user is created with the correct values
+    assert user.pk is not None
     assert user.username == "admin"
     assert user.email == "admin@localhost"
     assert user.first_name == "John"
     assert user.last_name == "Doe"
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_filter_users(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim=["sub"],
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["user", "username"],
+    groups_claim=["user", "groups.names"],
+    sync_groups=True,
+)
+def test_create_user_with_mapped_groups(dummy_config, callback_request: HttpRequest):
+    assert not User.objects.exists()
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "user": {
+                "username": "admin",
+                "groups.names": ["supergroup"],
+            },
+            "email": "admin@localhost",
+            "given_name": "John",
+            "family_name": "Doe",
+        }
     )
 
-    User = get_user_model()
-
-    # Create two users with the same email address, this shouldn't cause problems
-    user1 = User.objects.create(
-        username="123456", email="admin@localhost", first_name="John", last_name="Doe"
-    )
-    user2 = User.objects.create(
-        username="654321", email="admin@localhost", first_name="Jane", last_name="Doe"
-    )
-
-    claims = {
-        "sub": "123456",
-        "email": "admin@localhost",
-        "given_name": "John",
-        "family_name": "Doe",
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    users = backend.filter_users_by_claims(claims)
-
-    assert users.count() == 1
-
-    user = users.first()
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert user.email == "admin@localhost"
-    assert user.first_name == "John"
-    assert user.last_name == "Doe"
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_filter_users_different_username_claim(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim=["upn"],
-    )
-
-    User = get_user_model()
-
-    # Create two users with the same email address, this shouldn't cause problems
-    user1 = User.objects.create(
-        username="admin", email="admin@localhost", first_name="John", last_name="Doe"
-    )
-    user2 = User.objects.create(
-        username="admin2", email="admin@localhost", first_name="Jane", last_name="Doe"
-    )
-
-    claims = {
-        "upn": "admin2",
-        "email": "admin@localhost",
-        "given_name": "Jane",
-        "family_name": "Doe",
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    users = backend.filter_users_by_claims(claims)
-
-    assert users.count() == 1
-
-    user = users.first()
-
-    # Verify that a user is created with the correct values
-    assert user.username == "admin2"
-    assert user.email == "admin@localhost"
-    assert user.first_name == "Jane"
-    assert user.last_name == "Doe"
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_update_user(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        username_claim=["sub"],
-    )
-
-    User = get_user_model()
-
-    # Create two users with the same email address, this shouldn't cause problems
-    # is_superuser should not be affected if `superuser_group_names` is not set
-    user1 = User.objects.create(
-        username="123456",
-        email="admin@localhost",
-        first_name="John",
-        last_name="Doe",
-        is_superuser=True,
-    )
-    user2 = User.objects.create(
-        username="654321", email="admin@localhost", first_name="Jane", last_name="Doe"
-    )
-
-    claims = {
-        "sub": "123456",
-        "email": "modified@localhost",
-        "given_name": "Name",
-        "family_name": "Modified",
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.update_user(user1, claims)
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert user.email == "modified@localhost"
-    assert user.first_name == "Name"
-    assert user.last_name == "Modified"
-    assert user.is_superuser
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_sync_all_groups(mock_get_solo):
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=True,
-        sync_groups_glob_pattern="*",
-    )
-    # Explicitly set to none
-    oidc_config.default_groups.set(Group.objects.none())
-    mock_get_solo.return_value = oidc_config
-
-    claims = {
-        "sub": "123456",
-        "roles": ["useradmin", "groupadmin"],
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that the groups were created
-    assert Group.objects.count() == 2
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == [
-        "useradmin",
-        "groupadmin",
-    ]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_no_groups_sync_without_groups_claim(mock_get_solo):
-    Group.objects.create(name="group1")
-    Group.objects.create(name="group2")
-
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=[],
-        sync_groups=True,
-        sync_groups_glob_pattern="*",
-    )
-    # Explicitly set to none
-    oidc_config.default_groups.set(Group.objects.none())
-    mock_get_solo.return_value = oidc_config
-
-    claims = {
-        "sub": "123456",
-        "roles": ["group1", "newgroup"],
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that no groups were created
-    assert Group.objects.count() == 2
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == []
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_sync_groups_according_to_pattern(mock_get_solo):
-    Group.objects.all().delete()
-
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=True,
-        sync_groups_glob_pattern="group*",
-    )
-    # Explicitly set to none
-    oidc_config.default_groups.set(Group.objects.none())
-    mock_get_solo.return_value = oidc_config
-
-    claims = {
-        "sub": "123456",
-        "roles": ["useradmin", "groupadmin"],
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == ["groupadmin"]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_sync_all_groups_nested_groups_claim(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["nested_object", "roles"],
-        sync_groups=True,
-        sync_groups_glob_pattern="*",
-    )
-
-    claims = {
-        "sub": "123456",
-        "nested_object": {"roles": ["useradmin", "groupadmin"]},
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that the groups were created
-    assert Group.objects.count() == 2
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == [
-        "useradmin",
-        "groupadmin",
-    ]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_sync_all_groups_and_default_groups(mock_get_solo):
-    Group.objects.all().delete()
-
-    default1 = Group.objects.create(name="default1")
-    default2 = Group.objects.create(name="default2")
-    Group.objects.create(name="other")
-
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=True,
-        sync_groups_glob_pattern="*",
-    )
-    oidc_config.save()
-    oidc_config.default_groups.set([default1, default2])
-    mock_get_solo.return_value = oidc_config
-
-    claims = {
-        "sub": "123456",
-        "roles": ["useradmin", "groupadmin"],
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == [
-        "default1",
-        "default2",
-        "useradmin",
-        "groupadmin",
-    ]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_sync_groups_according_to_pattern_and_default_groups(
-    mock_get_solo,
+    user = backend.authenticate(request=callback_request)
+
+    assert user is not None
+    assert isinstance(user, User)
+
+    group_names = set(user.groups.values_list("name", flat=True))
+    assert group_names == {"supergroup"}
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["user", "username"],
+    groups_claim=["user", "groups.names"],
+    claim_mapping={
+        "email": ["attributes.email"],
+        "first_name": ["profile", "given_name"],
+        "last_name": ["profile", "family_name"],
+    },
+    sync_groups=True,
+    sync_groups_glob_pattern="*",
+)
+def test_update_user_with_custom_and_complex_config(
+    dummy_config, callback_request: HttpRequest
 ):
-    Group.objects.all().delete()
-
-    default1 = Group.objects.create(name="default1")
-    default2 = Group.objects.create(name="default2")
-    Group.objects.create(name="other")
-
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=True,
-        sync_groups_glob_pattern="group*",
+    # explicitly clear to wipe any possible implicit defaults
+    dummy_config.default_groups.clear()
+    existing_user = User.objects.create(
+        username="admin",
+        email="outdated@example.com",
+        first_name="O.",
+        last_name="Utdated",
+        is_superuser=True,
     )
-    oidc_config.save()
-    oidc_config.default_groups.set([default1, default2])
-    mock_get_solo.return_value = oidc_config
+    group = Group.objects.create(name="to-remove")
+    existing_user.groups.add(group)
 
-    claims = {
-        "sub": "123456",
-        "roles": ["useradmin", "groupadmin"],
-    }
-
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
-    assert list(user.groups.values_list("name", flat=True)) == [
-        "default1",
-        "default2",
-        "groupadmin",
-    ]
-
-
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_create_user_with_profile_settings(mock_get_solo):
-    Group.objects.all().delete()
-
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=True,
-        claim_mapping={
-            "first_name": ["given_name"],
-            "last_name": ["family_name"],
-            "email": ["email"],
-            "is_superuser": ["is_god"],
-        },
-        sync_groups_glob_pattern="*",
-        make_users_staff=True,
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "user": {
+                "username": "admin",
+                "groups.names": ["supergroup"],
+            },
+            "profile": {
+                "given_name": "John",
+                "family_name": "Doe",
+            },
+            "attributes.email": "admin@localhost",
+        }
     )
 
-    Group.objects.create(name="useradmin")
-    Group.objects.create(name="groupadmin")
+    user = backend.authenticate(request=callback_request)
 
-    claims = {
-        "sub": "123456",
-        "email": "admin@localhost",
-        "given_name": "John",
-        "family_name": "Doe",
-        "is_god": 1,
-        "roles": [
-            "useradmin",
-        ],
-    }
+    assert isinstance(user, User)
 
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.create_user(claims)
+    # check that the existing user was correctly found based on the username claim
+    assert user == existing_user
 
     # Verify that a user is created with the correct values
-    assert user.username == "123456"
+    assert user.username == "admin"
     assert user.email == "admin@localhost"
     assert user.first_name == "John"
     assert user.last_name == "Doe"
-    assert user.is_staff == True
-    assert user.is_superuser == True
-    assert list(user.groups.values_list("name", flat=True)) == ["useradmin"]
+    # is_superuser may not be affected if `superuser_group_names` is not set
+    assert user.is_superuser
+
+    # missing groups must be created because of sync_groups and sync_groups_glob_pattern
+    assert set(user.groups.values_list("name", flat=True)) == {"supergroup"}
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_init_cache_not_called(mock_get_solo):
-    """
-    Regression test for https://github.com/maykinmedia/mozilla-django-oidc-db/issues/30
-    """
-
-    mock_get_solo.return_value = OpenIDConnectConfig(enabled=False)
-
-    User = get_user_model()
-    user = User.objects.create(
-        username="123456", email="admin@localhost", first_name="John", last_name="Doe"
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    groups_claim=[],
+    sync_groups=True,
+    sync_groups_glob_pattern="*",
+)
+def test_authenticate_user_no_group_sync_without_claim(
+    dummy_config, callback_request: HttpRequest
+):
+    Group.objects.create(name="group1")
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["group1", "newgroup"],
+        }
     )
 
-    with patch(
-        "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
-        side_effect=OIDCAuthenticationBackend,
-    ) as mock_init:
-        # `User.has_perm` should cause all backends to be instantiated
-        user.has_perm("test")
+    user = backend.authenticate(request=callback_request)
 
-        assert mock_init.call_count == 1
-
-    # `OpenIDConnectConfig.get_solo` should not be called when initializing the backend
-    assert mock_get_solo.call_count == 0
+    assert isinstance(user, User)
+    # Verify that no groups were created or assigned
+    assert Group.objects.count() == 1
+    assert not user.groups.exists()
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_update_user_superuser(mock_get_solo):
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=False,
-        superuser_group_names=["superuser"],
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    groups_claim=["roles"],
+    sync_groups=True,
+    sync_groups_glob_pattern="myapp:*",
+)
+def test_authenticate_user_groups_glob_pattern(
+    dummy_config, callback_request: HttpRequest
+):
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["admin", "myapp:editor"],
+        }
     )
-    mock_get_solo.return_value = oidc_config
 
-    claims = {
-        "sub": "123456",
-        "roles": ["superuser", "groupadmin"],
+    user = backend.authenticate(request=callback_request)
+
+    assert isinstance(user, User)
+    # Verify that no groups were created or assigned
+    assert Group.objects.count() == 1
+    assert set(user.groups.values_list("name", flat=True)) == {"myapp:editor"}
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    groups_claim=["roles"],
+    sync_groups=True,
+    sync_groups_glob_pattern="myapp:*",
+)
+def test_authenticate_user_groups_and_default_groups(
+    dummy_config, callback_request: HttpRequest
+):
+    default_group = Group.objects.create(name="default1")
+    Group.objects.create(name="default2")
+    dummy_config.default_groups.set({default_group})
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["admin", "myapp:editor"],
+        }
+    )
+
+    user = backend.authenticate(request=callback_request)
+
+    assert isinstance(user, User)
+    # Verify that no groups were created or assigned
+    assert Group.objects.count() == 3
+    assert set(user.groups.values_list("name", flat=True)) == {
+        "myapp:editor",
+        "default1",
     }
 
-    backend = OIDCAuthenticationBackend()
 
-    user = backend.create_user(claims)
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    make_users_staff=True,
+    claim_mapping={
+        "is_superuser": ["is_god"],
+    },
+)
+def test_authenticate_user_make_staff(dummy_config, callback_request: HttpRequest):
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "is_god": 1,
+        }
+    )
 
-    # Verify that the groups were created
-    assert Group.objects.count() == 0
+    user = backend.authenticate(request=callback_request)
 
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
+    assert isinstance(user, User)
+    assert user.is_staff
     assert user.is_superuser
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_update_user_remove_superuser(mock_get_solo):
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=False,
-        superuser_group_names=["superuser"],
-    )
-    mock_get_solo.return_value = oidc_config
-
-    User = get_user_model()
-    user = User.objects.create(
-        username="123456",
-        email="admin@localhost",
-        first_name="John",
-        last_name="Doe",
-        is_superuser=True,
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    make_users_staff=True,
+    sync_groups=False,
+    groups_claim=["roles"],
+    superuser_group_names=["superuser"],
+)
+def test_authenticate_user_make_superuser_based_on_group(
+    dummy_config, callback_request: HttpRequest
+):
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["superuser", "groupadmin"],
+        }
     )
 
-    claims = {
-        "sub": "123456",
-        "roles": ["nosuperuser", "groupadmin"],
-    }
+    user = backend.authenticate(request=callback_request)
 
-    backend = OIDCAuthenticationBackend()
+    assert isinstance(user, User)
+    assert user.is_superuser
+    assert not Group.objects.exists()
 
-    user = backend.update_user(user, claims)
 
-    # Verify that the groups were created
-    assert Group.objects.count() == 0
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    make_users_staff=True,
+    sync_groups=False,
+    groups_claim=["roles"],
+    superuser_group_names=["superuser"],
+)
+def test_remove_superuser_based_on_group(dummy_config, callback_request: HttpRequest):
+    existing_user = User.objects.create_user(username="123456", is_superuser=True)
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["nosuperuser", "groupadmin"],
+        }
+    )
 
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
+    user = backend.authenticate(request=callback_request)
+
+    assert isinstance(user, User)
+    assert user == existing_user
     assert not user.is_superuser
 
 
-@pytest.mark.django_db
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_backend_update_user_no_superuser_group_names(
-    mock_get_solo,
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    make_users_staff=True,
+    sync_groups=False,
+    groups_claim=["roles"],
+    superuser_group_names=[],
+)
+def test_do_nothing_if_no_superuser_groups_configured(
+    dummy_config, callback_request: HttpRequest
 ):
-    oidc_config = OpenIDConnectConfig(
-        id=1,
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        groups_claim=["roles"],
-        sync_groups=False,
-        superuser_group_names=[],
-    )
-    mock_get_solo.return_value = oidc_config
-
-    User = get_user_model()
-    user = User.objects.create(
-        username="123456",
-        email="admin@localhost",
-        first_name="John",
-        last_name="Doe",
-        is_superuser=True,
+    existing_user = User.objects.create_user(username="123456", is_superuser=True)
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "123456",
+            "roles": ["nosuperuser", "groupadmin"],
+        }
     )
 
-    claims = {
-        "sub": "123456",
-        "roles": ["nosuperuser", "groupadmin"],
-    }
+    user = backend.authenticate(request=callback_request)
 
-    backend = OIDCAuthenticationBackend()
-
-    user = backend.update_user(user, claims)
-
-    # Verify that the groups were created
-    assert Group.objects.count() == 0
-
-    # Verify that a user is created with the correct values
-    assert user.username == "123456"
+    assert isinstance(user, User)
+    assert user == existing_user
     assert user.is_superuser
+
+
+#
+# CACHE/QUERYING FOR CONFIG DURING PERMISSON CHECK.
+#
+
+
+def test_init_does_not_perform_config_io(mocker):
+    """
+    Regression test for https://github.com/maykinmedia/mozilla-django-oidc-db/issues/30
+
+    This test will fail if IO is performed in one of two ways:
+
+    * assertion fails because get_solo was called
+    * pytest will complain about database access which is forbidden because there is
+      no pytest.mark.django_db present (deliberately)
+    """
+    m_get_solo = mocker.patch(
+        "mozilla_django_oidc_db.backends.OpenIDConnectConfig.get_solo"
+    )
+
+    # instantiate
+    OIDCAuthenticationBackend()
+
+    m_get_solo.assert_not_called()
