@@ -1,7 +1,7 @@
-from typing import ClassVar, Generic, TypeVar, cast
+import warnings
+from typing import Any, ClassVar, Generic, TypeVar, cast
 
-from mozilla_django_oidc.utils import import_from_settings
-
+from .config import get_setting_from_config
 from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
 T = TypeVar("T", bound=OpenIDConnectConfigBase)
@@ -28,17 +28,8 @@ class SoloConfigMixin(Generic[T]):
         if hasattr(self, "_solo_config"):
             del self._solo_config
 
-    def get_settings(self, attr, *args):
-        attr_lowercase = attr.lower()
-        if hasattr(self.config, attr_lowercase):
-            # Workaround for OIDC_RP_IDP_SIGN_KEY being an empty string by default.
-            # mozilla-django-oidc explicitly checks if `OIDC_RP_IDP_SIGN_KEY` is not `None`
-            # https://github.com/mozilla/mozilla-django-oidc/blob/master/mozilla_django_oidc/auth.py#L189
-            value_from_config = getattr(self.config, attr_lowercase)
-            if value_from_config == "":
-                return None
-            return value_from_config
-        return import_from_settings(attr, *args)
+    def get_settings(self, attr: str, *args: Any):
+        return get_setting_from_config(self.config, attr, *args)
 
 
 class GetAttributeMixin:
@@ -49,6 +40,12 @@ class GetAttributeMixin:
         """
         if not attr.startswith("OIDC"):
             return super().__getattribute__(attr)
+
+        warnings.warn(
+            "GetAttributeMixin will be deprecated, instead use an explicit descriptor",
+            category=PendingDeprecationWarning,
+            stacklevel=2,
+        )
 
         try:
             default = super().__getattribute__(attr)

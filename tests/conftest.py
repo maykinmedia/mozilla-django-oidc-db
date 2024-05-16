@@ -1,9 +1,14 @@
-from typing import Iterator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Iterator
+
+from django.contrib.sessions.backends.db import SessionStore
+from django.test import RequestFactory
 
 import pytest
 
-from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-from mozilla_django_oidc_db.models import OpenIDConnectConfig, get_default_scopes
+if TYPE_CHECKING:
+    from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
@@ -31,6 +36,10 @@ def keycloak_config(db) -> Iterator[OpenIDConnectConfig]:
         docker-compose up -d
 
     """
+    # local imports to so that `pytest --help` can load this file
+    from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
+    from mozilla_django_oidc_db.models import OpenIDConnectConfig, get_default_scopes
+
     endpoints = OpenIDConnectConfigForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
 
     config, _ = OpenIDConnectConfig.objects.update_or_create(
@@ -51,3 +60,12 @@ def keycloak_config(db) -> Iterator[OpenIDConnectConfig]:
     yield config
 
     OpenIDConnectConfig.clear_cache()
+
+
+@pytest.fixture
+def auth_request(rf: RequestFactory):
+    request = rf.get("/some-auth", {"next": "/ignored"})
+    session = SessionStore()
+    session.save()
+    request.session = session
+    return request
