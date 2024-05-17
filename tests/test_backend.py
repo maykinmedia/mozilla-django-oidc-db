@@ -1,9 +1,12 @@
 import logging
 
 from django.contrib.auth.models import Group, User
+from django.core.exceptions import BadRequest, ImproperlyConfigured
 from django.http import HttpRequest
+from django.test import RequestFactory
 
 import pytest
+from mozilla_django_oidc.auth import OIDCAuthenticationBackend as UpstreamBackend
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.config import lookup_config
@@ -76,6 +79,30 @@ def test_grabs_config_from_django_settings_if_missing_on_model(
     value = getattr(backend, setting)
 
     assert value == expected
+
+
+@pytest.mark.parametrize("sign_alg", ("RS**", "ES**"))
+@pytest.mark.oidcconfig()
+def test_settings_still_validated(dummy_config, settings, sign_alg: str):
+    """
+    Test that the upstream library settings checks are still performed.
+    """
+    dummy_config.oidc_rp_sign_algo = sign_alg
+    dummy_config.oidc_rp_idp_sign_key = ""
+    dummy_config.oidc_op_jwks_endpoint = ""
+    dummy_config.save()
+    backend = OIDCAuthenticationBackend()
+    backend.config_class = type(dummy_config)
+
+    with pytest.raises(ImproperlyConfigured):
+        backend.OIDC_RP_CLIENT_ID  # the exact setting doesn't matter
+
+    # check that the same error is raised by the upstream backend
+    settings.OIDC_RP_SIGN_ALGO = sign_alg
+    settings.OIDC_RP_IDP_SIGN_KEY = None
+    settings.OIDC_OP_JWKS_ENDPOINT = None
+    with pytest.raises(ImproperlyConfigured):
+        UpstreamBackend()
 
 
 #
@@ -167,6 +194,32 @@ def test_create_user_with_default_config(dummy_config, callback_request: HttpReq
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["sub"],
+)
+def test_case_insensitive_username_lookups(
+    settings, dummy_config, callback_request: HttpRequest
+):
+    settings.OIDCDB_USERNAME_CASE_SENSITIVE = False
+    existing_user = User.objects.create(username="ADMIN")
+
+    backend = MockBackend(
+        claims={
+            "sub": "admin",
+            "email": "admin@localhost",
+            "given_name": "John",
+            "family_name": "Doe",
+        }
+    )
+
+    user = backend.authenticate(request=callback_request)
+
+    assert user == existing_user
+    assert User.objects.count() == 1
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
     username_claim=["user", "username"],
     groups_claim=["user", "groups.names"],
     claim_mapping={
@@ -236,6 +289,35 @@ def test_create_user_with_mapped_groups(dummy_config, callback_request: HttpRequ
 
     group_names = set(user.groups.values_list("name", flat=True))
     assert group_names == {"supergroup"}
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["sub"],
+    groups_claim=["roles"],
+    sync_groups=True,
+)
+def test_groups_claim_string_instead_of_list(
+    dummy_config, callback_request: HttpRequest
+):
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "admin",
+            "email": "admin@localhost",
+            "given_name": "John",
+            "family_name": "Doe",
+            "roles": "admins",
+        }
+    )
+
+    user = backend.authenticate(request=callback_request)
+
+    assert user is not None
+    assert isinstance(user, User)
+
+    assert set(user.groups.values_list("name", flat=True)) == {"admins"}
 
 
 @pytest.mark.oidcconfig(
@@ -485,6 +567,80 @@ def test_do_nothing_if_no_superuser_groups_configured(
     assert isinstance(user, User)
     assert user == existing_user
     assert user.is_superuser
+
+
+#
+# AUTHENTICATE FLOW PROBLEMS
+#
+
+
+@pytest.mark.oidcconfig(enabled=True)
+def test_authenticate_called_without_args(dummy_config):
+    backend = OIDCAuthenticationBackend()
+
+    user = backend.authenticate(request=None)
+
+    assert user is None
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["sub"],
+)
+def test_username_claim_empty(dummy_config, callback_request: HttpRequest):
+    backend = MockBackend(claims={"sub": ""})
+
+    user = backend.authenticate(request=callback_request)
+
+    assert user is None
+
+
+@pytest.mark.oidcconfig(
+    enabled=True, userinfo_claims_source=UserInformationClaimsSources.id_token
+)
+def test_empty_claims(dummy_config, callback_request: HttpRequest):
+    backend = MockBackend(claims={})
+
+    user = backend.authenticate(request=callback_request)
+
+    assert user is None
+
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+    username_claim=["sub"],
+    groups_claim=["roles"],
+    sync_groups=True,
+)
+def test_groups_claim_wrong_type(dummy_config, callback_request: HttpRequest):
+    backend = MockBackend(
+        # a variation of nested paths, custom claims and dots in claim names
+        claims={
+            "sub": "admin",
+            "email": "admin@localhost",
+            "given_name": "John",
+            "family_name": "Doe",
+            "roles": ["group1", None, 123],
+        }
+    )
+
+    user = backend.authenticate(request=callback_request)
+
+    assert user is not None
+    assert isinstance(user, User)
+
+    # fails silently
+    assert not user.groups.exists()
+
+
+def test_authenticate_without_previous_state(rf: RequestFactory):
+    request = rf.get("/oidc/callback", {"state": "foo", "code": "bar"})
+    backend = OIDCAuthenticationBackend()
+
+    with pytest.raises(BadRequest):
+        backend.authenticate(request=request)
 
 
 #

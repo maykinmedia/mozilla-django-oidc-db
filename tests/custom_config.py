@@ -40,7 +40,5 @@ class DisabledConfig(OpenIDConnectConfig):
     enabled = static_setting(False)
 
 
-oidc_init = OIDCInit.as_view(config_class=CustomConfig)
-oidc_init_disabled = OIDCInit.as_view(
-    config_class=DisabledConfig, allow_next_from_query=True
-)
+oidc_init = OIDCInit.as_view(config_class=CustomConfig, allow_next_from_query=False)
+oidc_init_disabled = OIDCInit.as_view(config_class=DisabledConfig)

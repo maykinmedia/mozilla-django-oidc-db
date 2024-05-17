@@ -13,7 +13,9 @@ from mozilla_django_oidc_db.models import (
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.typing import JSONObject
+from mozilla_django_oidc_db.views import OIDCInit
 from testapp.backends import MockBackend
+from testapp.models import WrongConfigModel
 
 from .factories import UserFactory
 
@@ -170,6 +172,61 @@ def test_empty_claims_returned(
 
     assertRedirects(callback_response, error_url, fetch_redirect_response=False)
     assert not User.objects.exists()
+
+
+def test_tampering_with_parameters_invalid_state(
+    dummy_config: OpenIDConnectConfig,
+    callback_request: HttpRequest,
+    callback_client: Client,
+):
+    callback_url = reverse("oidc_authentication_callback")
+    valid_state_key = callback_request.GET["state"]
+    assert valid_state_key != "invalid-state"
+
+    callback_response = callback_client.get(callback_url, {"state": "invalid-state"})
+
+    assert callback_response.status_code == 400
+
+
+def test_invalid_reference_to_config_class(
+    dummy_config: OpenIDConnectConfig,
+    callback_request: HttpRequest,
+    callback_client: Client,
+):
+    # This only guards against programmer mistakes downstream that would lead to the
+    # end-user being able to manipulate the config_class being set in the state. It is
+    # a synthetic case.
+    callback_url = reverse("oidc_authentication_callback")
+    state_key = callback_request.GET["state"]
+    session = callback_client.session
+    del session["oidc_states"][state_key]["config_class"]
+    session.save()
+
+    callback_response = callback_client.get(callback_url, {"state": state_key})
+
+    assert callback_response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_wrong_config_model_used(
+    auth_request: HttpRequest,
+    client: Client,
+):
+    init_view = OIDCInit.as_view(config_class=WrongConfigModel)
+    init_view(auth_request)
+    # there is only one state expected
+    state_key = list(auth_request.session["oidc_states"].keys())[0]
+    callback_url = reverse("oidc_authentication_callback")
+    session = client.session
+    for key in auth_request.session.keys():
+        session[key] = auth_request.session[key]
+    session.save()
+
+    callback_response = client.get(
+        callback_url, {"state": state_key, "code": "irrelevant"}
+    )
+
+    assert callback_response.status_code == 400
 
 
 @pytest.mark.auth_request(next="/admin/")
