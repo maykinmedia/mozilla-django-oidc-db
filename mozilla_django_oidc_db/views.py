@@ -143,7 +143,7 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
     Specify this as a kwarg in the ``as_view(config_class=...)`` class method.
     """
 
-    allow_next_from_query: bool = False
+    allow_next_from_query: bool = True
     """
     Specify if the url-to-redirect-to may be provided as a query string parameter.
 
