@@ -15,7 +15,7 @@ from mozilla_django_oidc.views import (
     OIDCAuthenticationRequestView as _OIDCAuthenticationRequestView,
 )
 
-from .config import get_setting_from_config
+from .config import get_setting_from_config, store_config
 from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,9 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
 
     failure_url = reverse_lazy("admin-oidc-error")
 
-    def get(self, request):
+    def get(self, request: HttpRequest):
+        store_config(request)
+
         try:
             # ensure errors don't lead to half-created users
             with transaction.atomic():
@@ -141,7 +143,7 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
     Specify this as a kwarg in the ``as_view(config_class=...)`` class method.
     """
 
-    allow_next_from_query: bool = False
+    allow_next_from_query: bool = True
     """
     Specify if the url-to-redirect-to may be provided as a query string parameter.
 

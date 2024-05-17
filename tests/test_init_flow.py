@@ -9,11 +9,10 @@ from django.urls import reverse
 import pytest
 
 
-@pytest.mark.vcr
-def test_default_config_flow(keycloak_config, settings, client):
-    settings.OIDC_AUTHENTICATE_CLASS = (
-        "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
-    )
+@pytest.mark.oidcconfig(
+    oidc_op_authorization_endpoint="http://localhost:8080/openid-connect/auth"
+)
+def test_default_config_flow(dummy_config, client):
     start_url = reverse("oidc_authentication_init")
     assert start_url == "/oidc/authenticate/"
 
@@ -24,7 +23,7 @@ def test_default_config_flow(keycloak_config, settings, client):
     parsed_url = urlsplit(response.url)
     assert parsed_url.scheme == "http"
     assert parsed_url.netloc == "localhost:8080"
-    assert parsed_url.path == "/realms/test/protocol/openid-connect/auth"
+    assert parsed_url.path == "/openid-connect/auth"
 
     # introspect state
     state_key = parse_qs(parsed_url.query)["state"][0]
@@ -36,11 +35,7 @@ def test_default_config_flow(keycloak_config, settings, client):
     assert client.session["oidc-db_redirect_next"] == "/admin/"
 
 
-@pytest.mark.vcr
-def test_keycloak_idp_hint_via_settings(keycloak_config, settings, client):
-    settings.OIDC_AUTHENTICATE_CLASS = (
-        "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
-    )
+def test_keycloak_idp_hint_via_settings(dummy_config, settings, client):
     settings.OIDC_KEYCLOAK_IDP_HINT = "keycloak-idp1"
     start_url = reverse("oidc_authentication_init")
 

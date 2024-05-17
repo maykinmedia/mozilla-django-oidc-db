@@ -32,6 +32,7 @@ Using ``email`` as the unique identifier is not recommended, as mentioned in the
    :caption: Contents:
 
    quickstart
+   customizing
    reference
    changelog
 

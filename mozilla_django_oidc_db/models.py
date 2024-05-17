@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Collection
+from typing import ClassVar
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -13,6 +18,7 @@ from solo.models import SingletonModel, get_cache
 import mozilla_django_oidc_db.settings as oidc_settings
 
 from .fields import ClaimField
+from .typing import ClaimPath
 
 
 class UserInformationClaimsSources(models.TextChoices):
@@ -236,6 +242,15 @@ class OpenIDConnectConfigBase(SingletonModel):
         ),
     )
 
+    # extra (static) configuration
+    sensitive_claims: ClassVar[Collection[ClaimPath]] = []
+
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return force_str(self._meta.verbose_name)
+
     @property
     def oidc_rp_scopes(self) -> str:
         """
@@ -243,11 +258,19 @@ class OpenIDConnectConfigBase(SingletonModel):
         """
         return " ".join(self.oidc_rp_scopes_list)
 
-    class Meta:
-        abstract = True
+    @property
+    def oidcdb_sensitive_claims(self) -> Collection[ClaimPath]:
+        """
+        Determine the claims holding sensitive values.
+        """
+        return [self.oidcdb_username_claim] + list(self.sensitive_claims)
 
-    def __str__(self) -> str:
-        return force_str(self._meta.verbose_name)
+    @property
+    def oidcdb_username_claim(self) -> ClaimPath:
+        """
+        The claim to read to extract the value for the username field.
+        """
+        return get_default_username_claim()
 
 
 class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
@@ -356,3 +379,43 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         Cache prefix that can be overridden
         """
         return oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX
+
+    @property
+    def oidcdb_username_claim(self) -> ClaimPath:
+        """
+        The claim to read to extract the value for the username field.
+        """
+        username_claim: ClaimPath = self.username_claim  # type: ignore
+        return username_claim
+
+    @property
+    def oidcdb_userinfo_claims_source(self) -> UserInformationClaimsSources:
+        return self.userinfo_claims_source
+
+    @property
+    def oidcdb_claim_mapping(self) -> dict[str, ClaimPath]:
+        return self.claim_mapping
+
+    @property
+    def oidcdb_groups_claim(self) -> ClaimPath:
+        return self.groups_claim  # type: ignore
+
+    @property
+    def oidcdb_default_groups(self) -> Collection[str]:
+        return self.default_groups.values_list("name", flat=True)
+
+    @property
+    def oidcdb_sync_missing_groups(self) -> bool:
+        return self.sync_groups
+
+    @property
+    def oidcdb_sync_groups_glob_pattern(self) -> str:
+        return self.sync_groups_glob_pattern
+
+    @property
+    def oidcdb_make_users_staff(self) -> bool:
+        return self.make_users_staff
+
+    @property
+    def oidcdb_superuser_group_names(self) -> Collection[str]:
+        return self.superuser_group_names  # type: ignore
