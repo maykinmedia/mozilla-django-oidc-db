@@ -272,6 +272,10 @@ class OpenIDConnectConfigBase(SingletonModel):
         """
         return get_default_username_claim()
 
+    @property
+    def oidcdb_userinfo_claims_source(self) -> UserInformationClaimsSources:
+        return self.userinfo_claims_source
+
 
 class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
     """
@@ -387,10 +391,6 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
         """
         username_claim: ClaimPath = self.username_claim  # type: ignore
         return username_claim
-
-    @property
-    def oidcdb_userinfo_claims_source(self) -> UserInformationClaimsSources:
-        return self.userinfo_claims_source
 
     @property
     def oidcdb_claim_mapping(self) -> dict[str, ClaimPath]:

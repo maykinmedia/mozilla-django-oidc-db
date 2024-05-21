@@ -57,7 +57,6 @@ def test_authentication_loads_config_from_init_state(
 @pytest.mark.parametrize(
     "setting,expected",
     (
-        ("OIDCDB_USERINFO_CLAIMS_SOURCE", UserInformationClaimsSources.id_token),
         ("OIDCDB_USERNAME_CASE_SENSITIVE", False),
         ("OIDCDB_CLAIM_MAPPING", {"foo": "bar"}),
         ("OIDCDB_GROUPS_CLAIM", ["roles"]),
