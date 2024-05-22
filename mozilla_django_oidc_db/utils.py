@@ -1,7 +1,7 @@
 from collections.abc import Collection
 from copy import deepcopy
 
-from glom import Path, assign, glom
+from glom import Path, PathAccessError, assign, glom
 from requests.utils import _parse_content_type_header  # type: ignore
 
 from .typing import ClaimPath, JSONObject, JSONValue
@@ -32,7 +32,10 @@ def obfuscate_claims(
     copied_claims = deepcopy(claims)
     for claim_bits in claims_to_obfuscate:
         claim_path = Path(*claim_bits)
-        claim_value = glom(copied_claims, claim_path)
+        try:
+            claim_value = glom(copied_claims, claim_path)
+        except PathAccessError:
+            continue
         assign(copied_claims, claim_path, obfuscate_claim_value(claim_value))
     return copied_claims
 
