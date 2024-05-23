@@ -18,7 +18,7 @@ from solo.models import SingletonModel, get_cache
 import mozilla_django_oidc_db.settings as oidc_settings
 
 from .fields import ClaimField
-from .typing import ClaimPath
+from .typing import ClaimPath, DjangoView
 
 
 class UserInformationClaimsSources(models.TextChoices):
@@ -276,6 +276,16 @@ class OpenIDConnectConfigBase(SingletonModel):
     def oidcdb_userinfo_claims_source(self) -> UserInformationClaimsSources:
         return self.userinfo_claims_source
 
+    def get_callback_view(self) -> DjangoView:
+        """
+        Determine the view callable to use for the callback flow.
+
+        The view will only be called with a request argument.
+        """
+        from .views import default_callback_view
+
+        return default_callback_view
+
 
 class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
     """
@@ -419,3 +429,8 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
     @property
     def oidcdb_superuser_group_names(self) -> Collection[str]:
         return self.superuser_group_names  # type: ignore
+
+    def get_callback_view(self):
+        from .views import admin_callback_view
+
+        return admin_callback_view
