@@ -657,11 +657,11 @@ def test_init_does_not_perform_config_io(mocker):
     * pytest will complain about database access which is forbidden because there is
       no pytest.mark.django_db present (deliberately)
     """
-    m_get_solo = mocker.patch(
-        "mozilla_django_oidc_db.backends.OpenIDConnectConfig.get_solo"
+    m_get_setting = mocker.patch(
+        "mozilla_django_oidc_db.backends.get_setting_from_config"
     )
 
     # instantiate
     OIDCAuthenticationBackend()
 
-    m_get_solo.assert_not_called()
+    m_get_setting.assert_not_called()

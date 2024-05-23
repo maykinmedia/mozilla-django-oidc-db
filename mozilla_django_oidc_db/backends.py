@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 import logging
 from collections.abc import Collection
-from typing import Any, TypeAlias, TypeVar, cast
+from typing import Any, TypeAlias, cast
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
@@ -23,19 +23,13 @@ from typing_extensions import override
 from .config import dynamic_setting, get_setting_from_config, lookup_config
 from .exceptions import MissingIdentifierClaim
 from .jwt import verify_and_decode_token
-from .models import (
-    OpenIDConnectConfig,
-    OpenIDConnectConfigBase,
-    UserInformationClaimsSources,
-)
+from .models import OpenIDConnectConfigBase, UserInformationClaimsSources
 from .typing import ClaimPath, JSONObject
 from .utils import extract_content_type, obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
 AnyUser: TypeAlias = AnonymousUser | AbstractBaseUser
-
-T = TypeVar("T", bound=OpenIDConnectConfig)
 
 missing = object()
 

@@ -1,3 +1,4 @@
+from mozilla_django_oidc_db.typing import JSONObject
 from mozilla_django_oidc_db.utils import obfuscate_claim_value, obfuscate_claims
 
 
@@ -45,3 +46,11 @@ def test_obfuscate_nested():
     result = obfuscate_claims(claims, claims_to_obfuscate)
 
     assert result == expected_result
+
+
+def test_obfuscate_with_missing_claims():
+    claims: JSONObject = {"present": "12345"}
+
+    result = obfuscate_claims(claims, claims_to_obfuscate=(["missing"], ["present"]))
+
+    assert result == {"present": "****5"}
