@@ -63,6 +63,8 @@ oidc_init_with_idp_check = IDPCheckInitView.as_view(
 )
 
 
-def test_idp_check_mechanism(auth_request):
+def test_idp_check_mechanism(auth_request, settings):
+    settings.OIDCDB_CHECK_IDP_AVAILABILITY = True
+
     with pytest.raises(OIDCProviderOutage):
         oidc_init_with_idp_check(auth_request)

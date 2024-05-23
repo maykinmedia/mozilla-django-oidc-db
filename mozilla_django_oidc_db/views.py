@@ -10,12 +10,14 @@ from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import TemplateView
 
+import requests
 from mozilla_django_oidc.views import (
     OIDCAuthenticationCallbackView,
     OIDCAuthenticationRequestView as _OIDCAuthenticationRequestView,
 )
 
 from .config import get_setting_from_config, store_config
+from .exceptions import OIDCProviderOutage
 from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
 logger = logging.getLogger(__name__)
@@ -181,7 +183,8 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
         if not self.allow_next_from_query:
             self._validate_return_url(request, return_url=return_url)
 
-        self.check_idp_availability()
+        if self.get_settings("OIDCDB_CHECK_IDP_AVAILABILITY", False):
+            self.check_idp_availability()
 
         response = super().get(request, *args, **kwargs)
 
@@ -241,9 +244,30 @@ class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
         """
         Hook for subclasses.
 
-        Raise :class:`OIDCProviderOutage` if the Identity Provider is not available.
+        Raise :class:`OIDCProviderOutage` if the Identity Provider is not available,
+        which your application code needs to handle.
+
+        The default implementation checks if the endpoint has a status code < 401.
         """
-        pass
+        endpoint = self.OIDC_OP_AUTH_ENDPOINT
+        try:
+            # Verify that the identity provider endpoint can be reached. This is where
+            # the user ultimately gets redirected to.
+            #
+            # 5 seconds wait time is probably already too long for a good user
+            # experience, but we don't want to be *too* aggressive.
+            response = requests.get(endpoint, timeout=5.0)
+            # some IDPs have been observed to return HTTP 400 because of the missing
+            # query params
+            if response.status_code > 400:
+                response.raise_for_status()
+        except requests.RequestException as exc:
+            logger.info(
+                "OIDC provider endpoint '%s' could not be retrieved",
+                endpoint,
+                exc_info=exc,
+            )
+            raise OIDCProviderOutage("Identity provider appears to be down.") from exc
 
     def get_extra_params(self, request: HttpRequest) -> dict[str, str]:
         """
