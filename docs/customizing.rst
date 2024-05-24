@@ -137,7 +137,43 @@ Callback flow
 =============
 
 :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` takes care of preparing the
-request for the authentication backend(s). You can provide a different class to
-implement your own error handling, for example.
+request for the authentication backend(s). Then, it grabs the callback view to apply
+from the selected config model (by default this is
+:class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView`, making the
+settings dynamic).
 
-.. todo:: refactor to (abstract) base and concrete class
+You can provide your own callback view handler and override behaviour. We recommend
+you use :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView` as a
+base. You can override any of the methods in
+:class:`mozilla_django_oidc.views.OIDCAuthenticationCallbackView` of the upstream
+library.
+
+Finally, you must point to this view by overriding the :meth:`~mozilla_django_oidc_db.models.OpenIDConnectConfigBase.get_callback_view`
+model method.
+
+For example:
+
+.. code-block:: python
+
+    # views.py
+    from mozilla_django_oidc_db.views import OIDCAuthenticationCallbackView
+
+
+    class CustomCallbackView(OIDCAuthenticationCallbackView):
+        @property
+        def success_url(self):
+            return "/custom-success-url"
+
+
+    custom_callback_view = CustomCallbackView.as_view()
+
+
+    # models.py
+
+    class CustomCallbackViewConfig(OpenIDConnectConfigBase):
+        ...
+
+        def get_callback_view(self):
+            from .views import custom_callback_view
+
+            return custom_callback_view
