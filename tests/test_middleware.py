@@ -1,4 +1,3 @@
-from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -11,146 +10,105 @@ from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 
-def get_response(*args, **kwargs):
-    pass
+@pytest.fixture(scope="session")
+def dummy_view():
+    def get_response(*args, **kwargs):
+        pass
+
+    return get_response
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_sessionrefresh_oidc_not_enabled(mock_get_solo):
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=False,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-    )
+@pytest.fixture(scope="session")
+def session_middleware(dummy_view):
+    return SessionMiddleware(dummy_view)
 
-    request = RequestFactory().get("/")
+
+@pytest.fixture(scope="session")
+def session_refresh(dummy_view):
+    return SessionRefresh(dummy_view)
+
+
+@pytest.mark.oidcconfig(enabled=False)
+def test_sessionrefresh_oidc_not_enabled(
+    dummy_config: OpenIDConnectConfig,
+    rf: RequestFactory,
+    session_refresh: SessionRefresh,
+):
+    request = rf.get("/")
 
     # Running the middleware should return None, since OIDC is disabled
-    result = SessionRefresh(get_response).process_request(request)
+    result = session_refresh(request)
 
     assert result is None
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_sessionrefresh_config_always_refreshed(mock_get_solo):
+@pytest.mark.oidcconfig(
+    enabled=True,
+    oidc_rp_client_id="initial-client-id",
+    oidc_rp_scopes_list=["openid", "email"],
+)
+def test_sessionrefresh_config_always_refreshed(
+    dummy_config: OpenIDConnectConfig,
+    rf: RequestFactory,
+    session_middleware: SessionMiddleware,
+    session_refresh: SessionRefresh,
+    mocker,
+):
     """
-    Middleware should refresh the config on every call of `process_request`
+    Middleware should refresh the config on every call
     """
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-    )
+    mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
+    request = rf.get("/")
+    session_middleware(request)
 
-    middleware = SessionRefresh(get_response)
-    request = RequestFactory().get("/")
-    SessionMiddleware(get_response).process_request(request)
-
-    with patch(
-        "mozilla_django_oidc_db.middleware.SessionRefresh.is_refreshable_url",
-        return_value=True,
-    ):
-        with patch("mozilla_django_oidc.middleware.reverse", return_value="/callback"):
-            result1 = middleware.process_request(request)
-
-            # Update the config and call the middleware again (without reinstantiating)
-            mock_get_solo.return_value = OpenIDConnectConfig(
-                enabled=True,
-                oidc_rp_client_id="some-other-id",
-                oidc_rp_client_secret="secret",
-                oidc_rp_sign_algo="HS256",
-                oidc_rp_scopes_list=["openid", "email", "other_scope"],
-                oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-                oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-                oidc_op_token_endpoint="http://some.endpoint/v1/token",
-                oidc_op_user_endpoint="http://some.endpoint/v1/user",
-            )
-            result2 = middleware.process_request(request)
-
+    result1 = session_refresh(request)
     assert isinstance(result1, HttpResponseRedirect)
+    query1 = parse_qs(urlparse(result1.url).query)
+    assert query1["client_id"] == ["initial-client-id"]
+    assert query1["scope"] == ["openid email"]
+
+    dummy_config.oidc_rp_client_id = "some-other-id"
+    dummy_config.oidc_rp_scopes_list = ["openid", "email", "other_scope"]  # type: ignore
+    dummy_config.save()
+
+    result2 = session_refresh(request)
     assert isinstance(result2, HttpResponseRedirect)
-
-    parsed1 = parse_qs(urlparse(result1.url).query)
-    assert parsed1["client_id"] == ["testid"]
-    assert parsed1["scope"] == ["openid email"]
-
-    parsed2 = parse_qs(urlparse(result2.url).query)
-    assert parsed2["client_id"] == ["some-other-id"]
-    assert parsed2["scope"] == ["openid email other_scope"]
+    query2 = parse_qs(urlparse(result2.url).query)
+    assert query2["client_id"] == ["some-other-id"]
+    assert query2["scope"] == ["openid email other_scope"]
 
 
-@patch("mozilla_django_oidc_db.models.OpenIDConnectConfig.get_solo")
-def test_sessionrefresh_config_use_defaults(mock_get_solo):
+@pytest.mark.oidcconfig(enabled=True)
+def test_sessionrefresh_config_use_defaults(
+    dummy_config,
+    settings,
+    session_middleware: SessionMiddleware,
+    session_refresh: SessionRefresh,
+    rf: RequestFactory,
+    mocker,
+):
     """
-    Middleware should use defaults from `mozilla-django-oidc`, for instance if
-    `OIDC_AUTHENTICATION_CALLBACK_URL` is not explicity provided
+    Middleware should respect fallbacks to settings/defaults.
     """
-    mock_get_solo.return_value = OpenIDConnectConfig(
-        enabled=True,
-        oidc_rp_client_id="testid",
-        oidc_rp_client_secret="secret",
-        oidc_rp_sign_algo="HS256",
-        oidc_rp_scopes_list=["openid", "email"],
-        oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-        oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-        oidc_op_token_endpoint="http://some.endpoint/v1/token",
-        oidc_op_user_endpoint="http://some.endpoint/v1/user",
-    )
+    settings.OIDC_AUTHENTICATION_CALLBACK_URL = "admin:index"
+    mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
 
-    middleware = SessionRefresh(get_response)
-    request = RequestFactory().get("/")
-    SessionMiddleware(get_response).process_request(request)
+    request = rf.get("/")
+    session_middleware(request)
 
-    with patch(
-        "mozilla_django_oidc_db.middleware.SessionRefresh.is_refreshable_url",
-        return_value=True,
-    ):
-        result1 = middleware.process_request(request)
+    result = session_refresh(request)
 
-        # Update the config and call the middleware again (without reinstantiating)
-        mock_get_solo.return_value = OpenIDConnectConfig(
-            enabled=True,
-            oidc_rp_client_id="some-other-id",
-            oidc_rp_client_secret="secret",
-            oidc_rp_sign_algo="HS256",
-            oidc_rp_scopes_list=["openid", "email", "other_scope"],
-            oidc_op_jwks_endpoint="http://some.endpoint/v1/jwks",
-            oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
-            oidc_op_token_endpoint="http://some.endpoint/v1/token",
-            oidc_op_user_endpoint="http://some.endpoint/v1/user",
-        )
-        result2 = middleware.process_request(request)
-
-    assert isinstance(result1, HttpResponseRedirect)
-    assert isinstance(result2, HttpResponseRedirect)
-
-    parsed1 = parse_qs(urlparse(result1.url).query)
-    assert parsed1["client_id"] == ["testid"]
-    assert parsed1["scope"] == ["openid email"]
-
-    parsed2 = parse_qs(urlparse(result2.url).query)
-    assert parsed2["client_id"] == ["some-other-id"]
-    assert parsed2["scope"] == ["openid email other_scope"]
+    assert isinstance(result, HttpResponseRedirect)
+    query = parse_qs(urlparse(result.url).query)
+    assert query["redirect_uri"] == ["http://testserver/admin/"]
+    assert len(query["nonce"][0]) == 32  # default set on middleware dynamic_setting
 
 
-@pytest.mark.django_db
-def test_attributeerror_for_non_oidc_attribute():
-    middleware = SessionRefresh(get_response)
-
+def test_attributeerror_for_non_oidc_attribute(
+    dummy_config, session_refresh: SessionRefresh
+):
     with pytest.raises(AttributeError):
-        middleware.__name__
+        session_refresh.__name__  # type: ignore
 
     # OIDC attributes should never raise AttributeErrors
-    middleware.OIDC_AUTHENTICATION_CALLBACK_URL
+    assert session_refresh.OIDC_AUTHENTICATION_CALLBACK_URL
