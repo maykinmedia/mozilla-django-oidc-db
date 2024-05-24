@@ -16,6 +16,7 @@ from mozilla_django_oidc_db.typing import JSONObject
 from mozilla_django_oidc_db.views import OIDCInit
 from testapp.backends import MockBackend
 from testapp.models import WrongConfigModel
+from testapp.views import custom_callback_view_init
 
 from .factories import UserFactory
 
@@ -149,6 +150,32 @@ def test_happy_flow(
     assertRedirects(callback_response, "/admin/", fetch_redirect_response=False)
     user = User.objects.get(email="nocollision@example.com")
     assert user.username == "some_username"
+
+
+@pytest.mark.mock_backend_claims(
+    {
+        "email": "someone@example.com",
+        "sub": "some_username",
+    }
+)
+@pytest.mark.callback_request(init_view=custom_callback_view_init)
+@pytest.mark.oidcconfig(
+    enabled=True,
+    userinfo_claims_source=UserInformationClaimsSources.id_token,
+)
+def test_dynamically_routed_callback_view(
+    dummy_config: OpenIDConnectConfig,
+    callback_request: HttpRequest,
+    callback_client: Client,
+    mock_auth_backend: MockBackend,
+):
+    callback_url = reverse("oidc_authentication_callback")
+
+    callback_response = callback_client.get(callback_url, {**callback_request.GET})
+
+    assertRedirects(
+        callback_response, "/custom-success-url", fetch_redirect_response=False
+    )
 
 
 @pytest.mark.mock_backend_claims({})
