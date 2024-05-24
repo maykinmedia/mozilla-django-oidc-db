@@ -9,13 +9,11 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import models
 from django.utils.encoding import force_str
-from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField
-from solo.models import SingletonModel, get_cache
-
-import mozilla_django_oidc_db.settings as oidc_settings
+from solo import settings as solo_settings
+from solo.models import SingletonModel
 
 from .fields import ClaimField
 from .typing import ClaimPath, DjangoView
@@ -49,62 +47,6 @@ def get_default_username_claim() -> list[str]:
 
 def get_default_groups_claim() -> list[str]:
     return ["roles"]
-
-
-class CachingMixin:
-    @classmethod
-    def clear_cache(cls):
-        cache_name = getattr(
-            settings, "OIDC_CACHE", oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE
-        )
-        if cache_name:
-            cache = get_cache(cache_name)
-            cache_key = cls.get_cache_key()
-            cache.delete(cache_key)
-
-    def set_to_cache(self):
-        cache_name = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
-        )
-        if not cache_name:
-            return None
-        cache = get_cache(cache_name)
-        cache_key = self.get_cache_key()
-        timeout = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT,
-        )
-        cache.set(cache_key, self, timeout)
-
-    @classmethod
-    def get_cache_key(cls) -> str:
-        prefix = cls.custom_oidc_db_prefix or getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_PREFIX",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX,
-        )
-        return "%s:%s" % (prefix, cls.__name__.lower())
-
-    @classmethod
-    def get_solo(cls) -> SingletonModel:
-        cache_name = getattr(
-            settings,
-            "MOZILLA_DJANGO_OIDC_DB_CACHE",
-            oidc_settings.MOZILLA_DJANGO_OIDC_DB_CACHE,
-        )
-        if not cache_name:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
-            return obj
-        cache = get_cache(cache_name)
-        cache_key = cls.get_cache_key()
-        obj = cache.get(cache_key)
-        if not obj:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
-            obj.set_to_cache()
-        return obj
 
 
 class OpenIDConnectConfigBase(SingletonModel):
@@ -251,6 +193,17 @@ class OpenIDConnectConfigBase(SingletonModel):
     def __str__(self) -> str:
         return force_str(self._meta.verbose_name)
 
+    @classmethod
+    def get_cache_key(cls):
+        """
+        Overridden cache key to take into account the app label.
+        """
+        solo_prefix = getattr(
+            settings, "SOLO_CACHE_PREFIX", solo_settings.SOLO_CACHE_PREFIX
+        )
+        prefix: str = getattr(settings, "MOZILLA_DJANGO_OIDC_DB_PREFIX", solo_prefix)
+        return ":".join([prefix, cls._meta.app_label, str(cls._meta.model_name)])
+
     @property
     def oidc_rp_scopes(self) -> str:
         """
@@ -287,7 +240,7 @@ class OpenIDConnectConfigBase(SingletonModel):
         return default_callback_view
 
 
-class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
+class OpenIDConnectConfig(OpenIDConnectConfigBase):
     """
     Configuration for authentication/authorization via OpenID connect
     """
@@ -386,13 +339,6 @@ class OpenIDConnectConfig(CachingMixin, OpenIDConnectConfigBase):
                     ),
                 }
             )
-
-    @classproperty
-    def custom_oidc_db_prefix(cls) -> str:
-        """
-        Cache prefix that can be overridden
-        """
-        return oidc_settings.MOZILLA_DJANGO_OIDC_DB_PREFIX
 
     @property
     def oidcdb_username_claim(self) -> ClaimPath:
