@@ -34,6 +34,7 @@ Using ``email`` as the unique identifier is not recommended, as mentioned in the
    quickstart
    customizing
    reference
+   architecture
    changelog
 
 

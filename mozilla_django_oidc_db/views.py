@@ -5,18 +5,19 @@ from urllib.parse import parse_qs, urlsplit
 from django.contrib import admin
 from django.core.exceptions import DisallowedRedirect, PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views import View
 from django.views.generic import TemplateView
 
 import requests
 from mozilla_django_oidc.views import (
-    OIDCAuthenticationCallbackView,
-    OIDCAuthenticationRequestView as _OIDCAuthenticationRequestView,
+    OIDCAuthenticationCallbackView as BaseOIDCCallbackView,
+    OIDCAuthenticationRequestView as BaseOIDCInitView,
 )
 
-from .config import get_setting_from_config, store_config
+from .config import get_setting_from_config, lookup_config, store_config
 from .exceptions import OIDCProviderOutage
 from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
 
@@ -52,7 +53,53 @@ def get_exception_message(exc: Exception) -> str:
     return exc.args[0]
 
 
-class OIDCCallbackView(OIDCAuthenticationCallbackView):
+class OIDCCallbackView(View):
+    """
+    Route to the appropriate callback request handler.
+
+    When a callback request is received, the state contains information about the
+    configuration class/model to be applied. A particular config_class may require
+    certain view behaviour. This view acts as a centralized entrypoint so that there
+    is only a single callback endpoint required. It ensures that the configuration
+    is extracted from the request.
+    """
+
+    def get(self, request: HttpRequest) -> HttpResponseBase:
+        """
+        Extract the state from the request parameters and persist it.
+
+        The state is extracted so that it's available for the authentication backend(s)
+        and the downstream views.
+        """
+        store_config(request)
+        config_class = lookup_config(request)
+        config = cast(OpenIDConnectConfigBase, config_class.get_solo())
+        view_function = config.get_callback_view()
+        return view_function(request)
+
+
+class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
+    """
+    Base callback view that retrieves the settings from the config object.
+    """
+
+    def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
+        """
+        Look up the request setting from the database config.
+
+        For the duration of the request, the configuration instance is cached on the
+        view.
+        """
+        if (config := getattr(self, "_config", None)) is None:
+            config_class = lookup_config(self.request)
+            # django-solo and type checking is challenging, but a new release is on the
+            # way and should fix that :fingers_crossed:
+            config = cast(OpenIDConnectConfigBase, config_class.get_solo())
+            self._config = config
+        return get_setting_from_config(config, attr, *args)
+
+
+class AdminCallbackView(OIDCAuthenticationCallbackView):
     """
     Intercept errors raised by the authentication backend and display them.
     """
@@ -60,8 +107,6 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
     failure_url = reverse_lazy("admin-oidc-error")
 
     def get(self, request: HttpRequest):
-        store_config(request)
-
         try:
             # ensure errors don't lead to half-created users
             with transaction.atomic():
@@ -78,6 +123,10 @@ class OIDCCallbackView(OIDCAuthenticationCallbackView):
             if _OIDC_ERROR_SESSION_KEY in request.session:
                 del request.session[_OIDC_ERROR_SESSION_KEY]
         return response
+
+
+default_callback_view = OIDCAuthenticationCallbackView.as_view()
+admin_callback_view = AdminCallbackView.as_view()
 
 
 class AdminLoginFailure(TemplateView):
@@ -102,7 +151,7 @@ class AdminLoginFailure(TemplateView):
 T = TypeVar("T", bound=OpenIDConnectConfigBase)
 
 
-class OIDCInit(Generic[T], _OIDCAuthenticationRequestView):
+class OIDCInit(Generic[T], BaseOIDCInitView):
     """
     A 'view' to start an OIDC authentication flow.
 
