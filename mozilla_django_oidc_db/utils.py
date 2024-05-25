@@ -1,10 +1,15 @@
+import logging
 from collections.abc import Collection
 from copy import deepcopy
 
+import requests
 from glom import Path, PathAccessError, assign, glom
 from requests.utils import _parse_content_type_header  # type: ignore
 
+from .models import OpenIDConnectConfigBase
 from .typing import ClaimPath, JSONObject, JSONValue
+
+logger = logging.getLogger(__name__)
 
 
 def obfuscate_claim_value(value: JSONValue) -> JSONValue:
@@ -51,3 +56,25 @@ def extract_content_type(ct_header: str) -> str:
     content_type, _ = _parse_content_type_header(ct_header)
     # discard the params, we only want the content type itself
     return content_type
+
+
+def do_op_logout(config: OpenIDConnectConfigBase, id_token: str) -> None:
+    """
+    Perform the logout with the OpenID Provider.
+
+    Standard: https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
+    """
+    logout_endpoint = config.oidc_op_logout_endpoint
+    if not logout_endpoint:
+        return
+
+    response = requests.post(logout_endpoint, data={"id_token_hint": id_token})
+    if not response.ok:
+        logger.warning(
+            "Failed to log out the user at the OpenID Provider. Status code: %s",
+            response.status_code,
+            extra={
+                "response": response,
+                "status_code": response.status_code,
+            },
+        )

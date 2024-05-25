@@ -36,6 +36,7 @@ def test_derive_endpoints_success():
         "token_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/token",
         "userinfo_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/userinfo",
         "jwks_uri": "http://provider.com/auth/realms/master/protocol/openid-connect/certs",
+        "end_session_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/logout",
     }
     with requests_mock.Mocker() as m:
         m.get(

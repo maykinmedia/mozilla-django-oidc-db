@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 from pyquery import PyQuery as pq
 from requests import Session
 
@@ -6,6 +8,7 @@ def keycloak_login(
     login_url: str,
     username: str = "testuser",
     password: str = "testuser",
+    session: Session | None = None,
 ) -> str:
     """
     Test helper to perform a keycloak login.
@@ -15,8 +18,8 @@ def keycloak_login(
     :returns: The redirect URI to consume in the django application, with the ``code``
         ``state`` query parameters. Consume this with ``response = client.get(url)``.
     """
-
-    with Session() as session:
+    cm = Session() if session is None else nullcontext(session)
+    with cm as session:
         login_page = session.get(login_url)
         assert login_page.status_code == 200
 
