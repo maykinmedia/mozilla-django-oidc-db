@@ -37,6 +37,7 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                     "oidc_op_token_endpoint",
                     "oidc_token_use_basic_auth",
                     "oidc_op_user_endpoint",
+                    "oidc_op_logout_endpoint",
                 )
             },
         ),
@@ -53,6 +54,13 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                     "make_users_staff",
                     "superuser_group_names",
                 )
+            },
+        ),
+        (
+            _("Keycloak specific settings"),
+            {
+                "fields": ("oidc_keycloak_idp_hint",),
+                "classes": ["collapse in"],
             },
         ),
         (

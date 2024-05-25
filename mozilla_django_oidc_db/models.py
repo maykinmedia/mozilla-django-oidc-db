@@ -139,6 +139,12 @@ class OpenIDConnectConfigBase(SingletonModel):
         ),
         blank=True,
     )
+    oidc_op_logout_endpoint = models.URLField(
+        _("Logout endpoint"),
+        max_length=1000,
+        help_text=_("URL of your OpenID Connect provider logout endpoint"),
+        blank=True,
+    )
 
     # Advanced settings
     oidc_use_nonce = models.BooleanField(
@@ -172,6 +178,17 @@ class OpenIDConnectConfigBase(SingletonModel):
             "or Django view names. This plus the mozilla-django-oidc urls are exempted "
             "from the session renewal by the SessionRefresh middleware."
         ),
+    )
+
+    # Keycloak specific config
+    oidc_keycloak_idp_hint = models.CharField(
+        _("Keycloak Identity Provider hint"),
+        max_length=1000,
+        help_text=_(
+            "Specific for Keycloak: parameter that indicates which identity provider "
+            "should be used (therefore skipping the Keycloak login screen)."
+        ),
+        blank=True,
     )
 
     userinfo_claims_source = models.CharField(
