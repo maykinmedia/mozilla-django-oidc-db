@@ -9,7 +9,6 @@ class EmptyConfig(OpenIDConnectConfigBase):
 
 
 class WrongConfigModel(SingletonModel):
-
     @property
     def oidc_op_authorization_endpoint(self):
         return "bad"
