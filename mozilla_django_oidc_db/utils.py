@@ -32,7 +32,7 @@ def obfuscate_claims(
     claims: JSONObject, claims_to_obfuscate: Collection[ClaimPath]
 ) -> JSONObject:
     """
-    Obfuscates the specified claims in the specified claims dict
+    Obfuscates the specified claims in the provided claims object.
     """
     copied_claims = deepcopy(claims)
     for claim_bits in claims_to_obfuscate:
@@ -63,6 +63,13 @@ def do_op_logout(config: OpenIDConnectConfigBase, id_token: str) -> None:
     Perform the logout with the OpenID Provider.
 
     Standard: https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
+
+    .. warning:: Preferably, you should send the user to the configured logout endpoint
+       so they can confirm the logout and any session cookies are cleared. If that is not
+       possible, you can call this helper for server-to-server logout, but there are no
+       guarantees this works for every possible OpenID Provider implementation. It has
+       been tested with Keycloak, but the standard says nothing about server-to-server
+       calls to log out a user.
     """
     logout_endpoint = config.oidc_op_logout_endpoint
     if not logout_endpoint:
