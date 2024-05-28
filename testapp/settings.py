@@ -72,7 +72,6 @@ AUTHENTICATION_BACKENDS = [
     "mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
 ]
 
-MOZILLA_DJANGO_OIDC_DB_PREFIX = "default"
 # These settings are evaluated at import-time of the urlconf in mozilla_django_oidc.urls.
 # Changing them via @override_settings (or the pytest-django settings fixture) has no
 # effect.
