@@ -76,8 +76,9 @@ Furthermore, ensure the following settings are configured:
 
     OIDC_AUTHENTICATE_CLASS = "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
     OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
-    MOZILLA_DJANGO_OIDC_DB_CACHE = "oidc"
-    MOZILLA_DJANGO_OIDC_DB_CACHE_TIMEOUT = 1
+    # Optionally, configure django-solo caching
+    # SOLO_CACHE = "solo"
+    # SOLO_CACHE_TIMEOUT = 1
 
 In order to properly catch admin login errors, add the following to urlpatterns:
 
@@ -91,15 +92,19 @@ In order to properly catch admin login errors, add the following to urlpatterns:
         ...
     ]
 
-``MOZILLA_DJANGO_OIDC_DB_CACHE`` is used to cache the configuration that is stored in the database,
-to prevent a lot of database lookups. Ensure this cache is configured in ``CACHES`` (using the backend of choice):
+You can optionally enable the configuration cache (prevent database lookups) by enabling
+the django-solo cache: ``SOLO_CACHE = "solo"``. Ensure this cache is configured in
+``CACHES`` (using the backend of choice):
 
 .. code-block:: python
 
     CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         ...
-        "oidc": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "solo": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": "redis://127.0.0.1:6379",
+        },
     }
 
 Add the urlpatterns:
