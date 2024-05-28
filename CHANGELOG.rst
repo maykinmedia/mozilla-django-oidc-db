@@ -2,19 +2,50 @@
 Changelog
 =========
 
-0.17.0 (2024-05-??)
+0.17.0 (2024-05-28)
 ===================
 
-Refactor/rewrite release.
+This release is a big rewrite and refactor of the library internals.
 
-The custom views and backend have been rewritten to be more configurable out of the box,
-without needing to write much code in your own project. We've incorporated our
-experiences from the Open Forms and Open Inwoner projects in this rewrite.
+💥 There are a number of breaking changes, please review the notes further down.
+
+**Why the rework?**
+
+mozilla-django-oidc-db originated in being able to change OpenID Provider configuration
+(such as the endpoints, client ID...) on the fly rather than at deploy time. So, we
+implemented looking up the settings from a database model rather than the Django
+settings, and this worked for a while. The scope was limited to logging in to the admin
+interface with OpenID Connect.
+
+Then, authentication flows also relying on OpenID Connect for different types of users
+became relevant - one or more different configurations, with different client IDs etc.
+This was further complicated that not every configuration should result in a Django user
+record being created/updated.
+
+Implementing this in projects was possible, but it involved custom authentication
+backends, custom authentication request views and custom callback views to achieve the
+desired behaviour, resulting in quite a lot of spread-out code, duplication and
+annoyances for the administrators on the OpenID Provider side (adding yet another
+new Redirect URI for every configuration flavour...).
+
+The rework addresses all this - customization and extension is still possible through
+(custom or proxy) models, but our authentication request view now makes sure to store
+which configuration to use in the callback view and authentication backend(s).
+Customizing behaviour on the authentication backend level is now also much more in line
+with standard Django practices, by using ``settings.AUTHENTICATION_BACKENDS``.
+
+This is a big internal rewrite and mostly affects people that were doing these sort of
+customizations. We've incorporated our experiences from the Open Forms and Open Inwoner
+projects in this rework and applied "lessons learned".
 
 **💥 Breaking changes**
 
 While we were able to perform most of the changes without breaking public API, some
-aspects could not be avoided.
+aspects could not be avoided. The majority are related to customization - for more
+details, please read the customization documentation.
+
+* Dropped support for Django 3.2 (and thus also mozilla-django-oidc 3.x). These are no
+  longer maintained.
 
 * The attributes ``OIDCAuthenticationBackend.sensitive_claim_names`` and
   ``OIDCAuthenticationBackend.config_identifier_field`` are removed. This affects you
@@ -24,8 +55,46 @@ aspects could not be avoided.
   ``oidcdb_sensitive_claims`` and ``oidcdb_username_claim`` model fields or properties.
   See the implementation of the ``OpenIDConnectConfigBase`` model for more details.
 
-* ``mozilla_django_oidc_db.models.CachingMixin`` is removed. Our base model overrides the
-  generated cache key so that it uniquely points to a specific Django model.
+* The ``GetAttributeMixin``, ``SoloConfigMixin`` and generic type support for
+  ``OIDCAuthenticationBackend`` are removed. Instead of the dynamic attribute lookups,
+  you can use ``mozilla_django_oidc_db.config.dynamic_setting``. The solo config mixin
+  is no longer relevant, because the ``config_class`` attribute is set during
+  the ``authenticate`` method call, and that also removed the necessity for generic
+  types.
+
+* Custom callback views should generally not be necessary anymore to modify user
+  authentication/creation/updating behaviour. Instead, you should probably use a custom
+  authentication backend and add that to your Django settings. However, if you modify
+  the authentication views to add error handling or different redirect behaviour on
+  success/error, you should subclass
+  ``mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView`` rather than
+  ``OIDCCallbackView`` (the latter now acts as a router). You can point from the config
+  model to the view to use for this.
+
+* The ``GetAttributeMixin`` and ``SoloConfigMixin`` for ``SessionRefresh`` are removed,
+  instead you can use the ``dynamic_setting`` descriptor (similar to the authentication
+  backend change).
+
+* The django-solo caching mixin is removed from the models. The configuration is only
+  retrieved when authenticating, and the regular django-solo cache settings apply. We
+  do however modify the cache key so that it points to a unique django model to look up.
+
+* The fields ``oidc_kc_idp_hint`` and ``oidc_op_logout_endpoint`` are added to the base
+  model. If you specify these yourself, remove them from your own models. You'll need to
+  run ``makemigrations`` to update your own models.
+
+**New features**
+
+* [#99] Improved support for customizing authentication behaviour. See the new section
+  in the documentation for details.
+* [#102] Added system checks.
+* [#42] Added keycloak IDP hint configuration field and logout endpoint.
+
+**Project maintenance**
+
+* Added more (technical) documentation - both user-guide style and API reference docs.
+* Improved quality of tests - we avoid mocks and favour testing against real OpenID
+  Providers (using VCR.py).
 
 0.16.0 (2024-05-02)
 ===================
