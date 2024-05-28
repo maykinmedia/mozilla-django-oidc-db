@@ -17,7 +17,5 @@ python:
     - method: pip
       path: .
       extra_requirements:
+        - tests
         - docs
-    - method: pip
-      packages:
-        - psycopg
