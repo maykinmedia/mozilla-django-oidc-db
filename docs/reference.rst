@@ -28,3 +28,4 @@ Utils
 
 .. automodule:: mozilla_django_oidc_db.utils
     :members:
+    :exclude-members: obfuscate_claim_value, extract_content_type

@@ -37,7 +37,8 @@ def test_default_config_flow(dummy_config, client):
     assert client.session["oidc-db_redirect_next"] == "/admin/"
 
 
-def test_keycloak_idp_hint_via_settings(dummy_config, settings, client):
+@pytest.mark.oidcconfig(oidc_keycloak_idp_hint="keycloak-idp2")
+def test_keycloak_idp_hint_via_config(dummy_config, settings, client):
     settings.OIDC_KEYCLOAK_IDP_HINT = "keycloak-idp1"
     start_url = reverse("oidc_authentication_init")
 
@@ -47,7 +48,7 @@ def test_keycloak_idp_hint_via_settings(dummy_config, settings, client):
     parsed_url = urlsplit(response.url)
 
     query = parse_qs(parsed_url.query)
-    assert query["kc_idp_hint"] == ["keycloak-idp1"]
+    assert query["kc_idp_hint"] == ["keycloak-idp2"]
 
 
 def test_check_idp_availability_not_available(
