@@ -15,7 +15,7 @@ from django_jsonform.models.fields import ArrayField
 from solo import settings as solo_settings
 from solo.models import SingletonModel
 
-from .fields import ClaimField
+from .fields import ClaimField, ClaimFieldDefault
 from .typing import ClaimPath, DjangoView
 
 
@@ -39,14 +39,6 @@ def get_claim_mapping() -> dict[str, list[str]]:
         "first_name": ["given_name"],
         "last_name": ["family_name"],
     }
-
-
-def get_default_username_claim() -> list[str]:
-    return ["sub"]
-
-
-def get_default_groups_claim() -> list[str]:
-    return ["roles"]
 
 
 class OpenIDConnectConfigBase(SingletonModel):
@@ -240,7 +232,7 @@ class OpenIDConnectConfigBase(SingletonModel):
         """
         The claim to read to extract the value for the username field.
         """
-        return get_default_username_claim()
+        return ["sub"]
 
     @property
     def oidcdb_userinfo_claims_source(self) -> UserInformationClaimsSources:
@@ -264,7 +256,7 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
 
     username_claim = ClaimField(
         verbose_name=_("username claim"),
-        default=get_default_username_claim,
+        default=ClaimFieldDefault("sub"),
         help_text=_("The name of the OIDC claim that is used as the username"),
     )
 
@@ -275,7 +267,7 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
     )
     groups_claim = ClaimField(
         verbose_name=_("groups claim"),
-        default=get_default_groups_claim,
+        default=ClaimFieldDefault("roles"),
         help_text=_(
             "The name of the OIDC claim that holds the values to map to local user groups."
         ),

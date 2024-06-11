@@ -1,7 +1,35 @@
 from django.db import models
+from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField
+
+
+@deconstructible
+class ClaimFieldDefault:
+    """
+    Callable default for ClaimField.
+
+    Django's ArrayField requires a callable to be passed for the ``default`` kwarg, to
+    avoid sharing a mutable value shared by all instances. This custom class provides
+    a straight-forward interface so that defaults can be provided inline rather than
+    requiring a function to be defined at the module level, since lambda's cannot be
+    serialized for migrations.
+
+    Usage:
+
+    >>> field = ClaimField(default=ClaimFieldDefault("foo", "bar"))
+    >>> field.get_default()  # ["foo", "bar"]
+    """
+
+    def __init__(self, *bits: str):
+        self.bits = list(bits)
+
+    def __eq__(self, other) -> bool:
+        return self.bits == other.bits
+
+    def __call__(self) -> list[str]:
+        return self.bits
 
 
 class ClaimField(ArrayField):

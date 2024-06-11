@@ -3,6 +3,7 @@ from django.utils.translation import gettext as _
 
 import pytest
 
+from mozilla_django_oidc_db.fields import ClaimFieldDefault
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
 
@@ -58,3 +59,8 @@ def test_validate_username_field_not_in_claim_mapping():
     assert "claim_mapping" in err_dict
     error = _("The username field may not be in the claim mapping")
     assert error in err_dict["claim_mapping"]
+
+
+def test_claim_field_default_equality():
+    assert ClaimFieldDefault("foo", "bar") == ClaimFieldDefault("foo", "bar")
+    assert ClaimFieldDefault("foo", "bar") != ClaimFieldDefault("bar", "foo")

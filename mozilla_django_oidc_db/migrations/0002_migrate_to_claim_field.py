@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                     max_length=50, verbose_name="claim path segment"
                 ),
                 blank=True,
-                default=mozilla_django_oidc_db.models.get_default_groups_claim,
+                default=mozilla_django_oidc_db.fields.ClaimFieldDefault("roles"),
                 help_text="The name of the OIDC claim that holds the values to map to local user groups.",
                 size=None,
                 verbose_name="groups claim",
@@ -82,7 +82,7 @@ class Migration(migrations.Migration):
                 base_field=models.CharField(
                     max_length=50, verbose_name="claim path segment"
                 ),
-                default=mozilla_django_oidc_db.models.get_default_username_claim,
+                default=mozilla_django_oidc_db.fields.ClaimFieldDefault("sub"),
                 help_text="The name of the OIDC claim that is used as the username",
                 size=None,
                 verbose_name="username claim",
