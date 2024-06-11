@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.18.0 (2024-06-1?)
+===================
+
+Small feature release
+
+* Added ``mozilla_django_oidc_db.fields.ClaimFieldDefault`` to specify default values
+  for ``ClaimField`` in a less verbose way.
+
 0.17.0 (2024-05-28)
 ===================
 
