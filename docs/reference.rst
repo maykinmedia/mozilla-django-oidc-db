@@ -23,6 +23,9 @@ Models
 .. automodule:: mozilla_django_oidc_db.models
     :members:
 
+.. automodule:: mozilla_django_oidc_db.fields
+    :members:
+
 Utils
 =====
 
