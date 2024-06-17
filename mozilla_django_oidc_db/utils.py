@@ -75,7 +75,11 @@ def do_op_logout(config: OpenIDConnectConfigBase, id_token: str) -> None:
     if not logout_endpoint:
         return
 
-    response = requests.post(logout_endpoint, data={"id_token_hint": id_token})
+    response = requests.post(
+        logout_endpoint,
+        data={"id_token_hint": id_token},
+        allow_redirects=False,
+    )
     if not response.ok:
         logger.warning(
             "Failed to log out the user at the OpenID Provider. Status code: %s",
