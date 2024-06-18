@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.18.1 (2024-06-18)
+===================
+
+Bugfix release
+
+* Redirect responses from the OP_LOGOUT request are no longer followed automatically.
+
 0.18.0 (2024-06-12)
 ===================
 
