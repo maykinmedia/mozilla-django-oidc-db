@@ -86,3 +86,17 @@ def test_logout_with_logout_endpoint_configured(
 
     assert kc_response.status_code == 200, "Did not end up on Keycloak's login page"
     assert kc_response.headers["Content-Type"].startswith("text/html")
+
+
+@pytest.mark.oidcconfig(oidc_op_logout_endpoint="https://example.com/oidc/logout")
+def test_logout_response_has_redirect(dummy_config: OpenIDConnectConfig, requests_mock):
+    requests_mock.post(
+        "https://example.com/oidc/logout",
+        status_code=302,
+        headers={"Location": "http://testserver/endpoint-that-does-not-exist"},
+    )
+
+    try:
+        do_op_logout(dummy_config, id_token="dummy-id-token")
+    except Exception:
+        pytest.fail("Logout should not crash")
