@@ -15,6 +15,7 @@ from django.http import HttpRequest
 from mozilla_django_oidc.utils import import_from_settings
 from typing_extensions import Self, TypedDict, Unpack
 
+from .constants import CONFIG_CLASS_SESSION_KEY
 from .models import OpenIDConnectConfigBase
 
 
@@ -109,19 +110,25 @@ def store_config(request: HttpRequest) -> None:
     mozilla-django-oidc's callback view deletes the state key after it has validated it,
     so our :func:`lookup_config` cannot extract it from the session anymore.
     """
+    # Attempt to retrieve the config_class from the session, this only works for users
+    # that are actually logged in as Django users
     # The config_class key is added to the state in the OIDCInit.get method.
     # TODO: verify that the state query param is present for error flows! Need to check
     # the OAUTH2 spec for this, but according to ChatGeePeeTee if the request contains
     # it, the callback must have it too.
+    config_class = ""
     state_key = request.GET.get("state")
-    if not state_key or state_key not in (
-        states := request.session.get("oidc_states", [])
-    ):
-        raise BadRequest("Could not look up the referenced config.")
+    if state_key and state_key in (states := request.session.get("oidc_states", [])):
+        state = states[state_key]
+        config_class = state.get("config_class", "")
 
-    state = states[state_key]
+    if not config_class and (
+        _config := request.session.get(CONFIG_CLASS_SESSION_KEY, "")
+    ):
+        config_class = _config
+
     try:
-        config = apps.get_model(state.get("config_class", ""))
+        config = apps.get_model(config_class)
     except (LookupError, ValueError) as exc:
         raise BadRequest("Could not look up the referenced config.") from exc
 
