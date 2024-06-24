@@ -85,7 +85,7 @@ def test_derive_endpoints_extra_field():
         # Define an extra field to derive from the configuration
         oidc_mapping = dict(
             **OpenIDConnectConfigForm.oidc_mapping,
-            **{"logout_endpoint": "end_session_endpoint"}
+            **{"logout_endpoint": "end_session_endpoint"},
         )
 
     form = ExtendedOpenIDConnectConfigForm(data=form_data)
