@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.19.0 (2024-07-02)
+===================
+
+Bugfix and cleanup release
+
+* Fixed broken ``SessionRefresh`` middleware
+* Removed ``oidc_exempt_urls`` config model fields - these turn out not to be used and
+  you typically want to specify them in django settings as they are tied to the session
+  refresh middleware.
+
 0.18.1 (2024-06-18)
 ===================
 
