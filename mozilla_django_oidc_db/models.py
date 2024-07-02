@@ -160,17 +160,6 @@ class OpenIDConnectConfigBase(SingletonModel):
         ),
         default=32,
     )
-    oidc_exempt_urls = ArrayField(
-        verbose_name=_("URLs exempt from session renewal"),
-        base_field=models.CharField(_("Exempt URL"), max_length=1000),
-        default=list,
-        blank=True,
-        help_text=_(
-            "This is a list of absolute url paths, regular expressions for url paths, "
-            "or Django view names. This plus the mozilla-django-oidc urls are exempted "
-            "from the session renewal by the SessionRefresh middleware."
-        ),
-    )
 
     # Keycloak specific config
     oidc_keycloak_idp_hint = models.CharField(

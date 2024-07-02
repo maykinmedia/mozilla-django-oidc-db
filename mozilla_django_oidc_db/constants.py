@@ -9,3 +9,5 @@ OIDC_MAPPING = {
 }
 
 OPEN_ID_CONFIG_PATH = ".well-known/openid-configuration"
+
+CONFIG_CLASS_SESSION_KEY = "_OIDCDB_CONFIG_CLASS"

@@ -7,9 +7,12 @@ from mozilla_django_oidc_db.views import (
     OIDCAuthenticationRequestView,
 )
 
+from .views import custom_callback_view_init
+
 urlpatterns = [
     path("admin/login/failure/", AdminLoginFailure.as_view(), name="admin-oidc-error"),
     path("admin/", admin.site.urls),
     path("login", OIDCAuthenticationRequestView.as_view(), name="login"),
     path("oidc/", include("mozilla_django_oidc.urls")),
+    path("custom-init-login/", custom_callback_view_init, name="custom-init-login"),
 ] + staticfiles_urlpatterns()

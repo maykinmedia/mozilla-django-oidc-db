@@ -7,3 +7,4 @@ class MozillaDjangoOidcDbConfig(AppConfig):
 
     def ready(self) -> None:
         from . import checks  # noqa
+        from . import signals  # noqa

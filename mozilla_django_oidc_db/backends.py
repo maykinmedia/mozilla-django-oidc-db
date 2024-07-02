@@ -161,7 +161,15 @@ class OIDCAuthenticationBackend(BaseBackend):
             return None
 
         # Allright, now try to actually authenticate the user.
-        return super().authenticate(request, nonce=nonce, code_verifier=code_verifier)
+        user = super().authenticate(request, nonce=nonce, code_verifier=code_verifier)
+
+        # Store the config class name on the user, so that we can store this in the user's
+        # session after they have been successfully authenticated (by listening to the `user_logged_in` signal)
+        if user:
+            options = self.config_class._meta
+            user._oidcdb_config_class = f"{options.app_label}.{options.object_name}"  # type: ignore
+
+        return user
 
     def _extract_username(
         self, claims: JSONObject, *, raise_on_empty: bool = False

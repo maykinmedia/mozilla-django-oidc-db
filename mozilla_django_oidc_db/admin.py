@@ -70,7 +70,6 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                     "oidc_use_nonce",
                     "oidc_nonce_size",
                     "oidc_state_size",
-                    "oidc_exempt_urls",
                     "userinfo_claims_source",
                 ),
                 "classes": [

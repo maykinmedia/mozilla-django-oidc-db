@@ -21,6 +21,10 @@ def mock_state_and_nonce(mocker):
         "mozilla_django_oidc.views.get_random_string",
         return_value="not-a-random-string",
     )
+    mocker.patch(
+        "mozilla_django_oidc.middleware.get_random_string",
+        return_value="not-a-random-string",
+    )
 
 
 @pytest.fixture
