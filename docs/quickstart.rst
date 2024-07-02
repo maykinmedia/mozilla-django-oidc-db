@@ -147,7 +147,6 @@ and the following settings from ``mozilla-django-oidc`` for OpenID Connect can b
 - ``OIDC_RP_IDP_SIGN_KEY``
 - ``OIDC_USE_NONCE``
 - ``OIDC_STATE_SIZE``
-- ``OIDC_EXEMPT_URLS``
 
 In case no value is provided for one of these variables, the default from ``mozilla-django-oidc``
 will be used (if there is one). A detailed description of all settings can be found in the `mozilla-django-oidc settings documentation`_.
