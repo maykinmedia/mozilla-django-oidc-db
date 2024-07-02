@@ -74,7 +74,7 @@ class dynamic_setting(Generic[T]):
     default: T
 
     def __init__(self, **kwargs: Unpack[DynamicSettingKwargs[T]]):
-        if default := kwargs.get("default"):
+        if (default := kwargs.get("default")) is not None:
             self.default = default
             self._default_set = True
 
