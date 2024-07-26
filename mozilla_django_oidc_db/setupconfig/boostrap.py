@@ -38,7 +38,6 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep):
         "ADMIN_OIDC_OIDC_USE_NONCE",
         "ADMIN_OIDC_OIDC_NONCE_SIZE",
         "ADMIN_OIDC_OIDC_STATE_SIZE",
-        "ADMIN_OIDC_OIDC_EXEMPT_URLS",
         "ADMIN_OIDC_USERINFO_CLAIMS_SOURCE",
     ]
     enable_setting = "ADMIN_OIDC_CONFIG_ENABLE"
