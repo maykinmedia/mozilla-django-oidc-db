@@ -17,6 +17,9 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep):
     required_settings = [
         "ADMIN_OIDC_OIDC_RP_CLIENT_ID",
         "ADMIN_OIDC_OIDC_RP_CLIENT_SECRET",
+        "ADMIN_OIDC_OIDC_OP_AUTHORIZATION_ENDPOINT",
+        "ADMIN_OIDC_OIDC_OP_TOKEN_ENDPOINT",
+        "ADMIN_OIDC_OIDC_OP_USER_ENDPOINT",
     ]
     all_settings = required_settings + [
         "ADMIN_OIDC_OIDC_RP_SCOPES_LIST",
@@ -24,9 +27,6 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep):
         "ADMIN_OIDC_OIDC_RP_IDP_SIGN_KEY",
         "ADMIN_OIDC_OIDC_OP_DISCOVERY_ENDPOINT",
         "ADMIN_OIDC_OIDC_OP_JWKS_ENDPOINT",
-        "ADMIN_OIDC_OIDC_OP_AUTHORIZATION_ENDPOINT",
-        "ADMIN_OIDC_OIDC_OP_TOKEN_ENDPOINT",
-        "ADMIN_OIDC_OIDC_OP_USER_ENDPOINT",
         "ADMIN_OIDC_USERNAME_CLAIM",
         "ADMIN_OIDC_GROUPS_CLAIM",
         "ADMIN_OIDC_CLAIM_MAPPING",
