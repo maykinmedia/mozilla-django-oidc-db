@@ -24,6 +24,12 @@ This will also install the following packages:
 - ``django-solo``
 - ``django-jsonform``
 
+You can optionally install ``django-setup-configuration`` support with:
+
+.. code-block:: bash
+
+    pip install mozilla-django-oidc-db[setupconfig]
+
 Django settings
 ---------------
 
