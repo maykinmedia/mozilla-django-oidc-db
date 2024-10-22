@@ -33,6 +33,7 @@ Using ``email`` as the unique identifier is not recommended, as mentioned in the
 
    quickstart
    customizing
+   setup_configuration
    reference
    architecture
    changelog
