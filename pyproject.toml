@@ -43,6 +43,9 @@ Documentation = "https://mozilla-django-oidc-db.readthedocs.io/en/latest/"
 Changelog = "https://github.com/maykinmedia/mozilla-django-oidc-db/blob/master/CHANGELOG.rst"
 
 [project.optional-dependencies]
+setupconfig = [
+    "django-setup-configuration@git+https://github.com/maykinmedia/django-setup-configuration.git@ba0ed8a14acf0ffe05244f53b78fb343c6e5c3df",
+]
 tests = [
     "psycopg2",
     "pytest",

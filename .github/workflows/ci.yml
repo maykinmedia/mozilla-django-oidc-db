@@ -18,8 +18,10 @@ jobs:
         python: ['3.10', '3.11', '3.12']
         django: ['4.2']
         mozilla_django_oidc: ['4.0']
+        setup_config_enabled: ['no', 'yes']
 
-    name: Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }}, mozilla-django-oidc ${{ matrix.mozilla_django_oidc }})
+    name: "Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }},
+      mozilla-django-oidc ${{ matrix.mozilla_django_oidc }}, Setup Config: ${{ matrix.setup_config_enabled }}))"
 
     services:
       postgres:
@@ -41,18 +43,21 @@ jobs:
         run: pip install tox tox-gh-actions
 
       - name: Run tests
-        run: tox
+        run: |
+          tox -- ${{ matrix.setup_config_enabled != 'yes' && '--ignore tests/setupconfig' || '' }}
         env:
           PYTHON_VERSION: ${{ matrix.python }}
           DJANGO: ${{ matrix.django }}
           MOZILLA_DJANGO_OIDC: ${{ matrix.mozilla_django_oidc }}
           PGUSER: postgres
           PGHOST: localhost
+          SETUP_CONFIG_ENABLED: ${{ matrix.setup_config_enabled }}
 
       - name: Publish coverage report
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ${{ matrix.setup_config_enabled == 'yes' && 'setupconfig' || 'base' }}
 
   publish:
     name: Publish package to PyPI
