@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import fnmatch
 import logging
 from collections.abc import Collection
 from typing import Any, TypeAlias, cast
@@ -25,7 +24,7 @@ from .exceptions import MissingIdentifierClaim
 from .jwt import verify_and_decode_token
 from .models import OpenIDConnectConfigBase, UserInformationClaimsSources
 from .typing import ClaimPath, JSONObject
-from .utils import extract_content_type, obfuscate_claims
+from .utils import create_missing_groups, extract_content_type, obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
@@ -385,18 +384,10 @@ def _set_user_groups(
         return
 
     # Create missing groups if required
-    existing_groups = set(Group.objects.filter(name__in=desired_group_names))
-    existing_group_names = {group.name for group in existing_groups}
-    filtered_names = fnmatch.filter(
-        set(desired_group_names) - existing_group_names, sync_groups_glob
-    )
-    groups_to_create = (
-        [Group(name=name) for name in filtered_names] if sync_missing_groups else []
-    )
-    if groups_to_create:
-        # postgres sets the PK after bulk_create
-        Group.objects.bulk_create(groups_to_create)
-        existing_groups |= set(groups_to_create)
+    if sync_missing_groups:
+        existing_groups = create_missing_groups(desired_group_names, sync_groups_glob)
+    else:
+        existing_groups = set(Group.objects.filter(name__in=desired_group_names))
 
     # at this point, existing_groups is the full collection of groups that should be
     # set on the user model, because:

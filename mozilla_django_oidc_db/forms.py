@@ -72,3 +72,17 @@ class OpenIDConnectConfigForm(forms.ModelForm):
                     self.add_error(field, _("This field is required."))
 
         return cleaned_data
+
+
+class OIDCSetupConfigForm(OpenIDConnectConfigForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.fields:
+            self.fields["oidc_rp_sign_algo"].required = False
+            self.fields["oidc_nonce_size"].required = False
+            self.fields["oidc_state_size"].required = False
+            self.fields["userinfo_claims_source"].required = False
+            self.fields["username_claim"].required = False
+            self.fields["claim_mapping"].required = False
+            self.fields["sync_groups_glob_pattern"].required = False
