@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.20.0 (????)
+=============
+
+New Features:
+
+* Add optional support for `django-setup-configuration`_
+
+.. _django-setup-configuration: https://pypi.org/project/django-setup-configuration/
+
 0.19.0 (2024-07-02)
 ===================
 
