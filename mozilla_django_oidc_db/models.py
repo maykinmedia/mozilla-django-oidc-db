@@ -68,7 +68,7 @@ class OpenIDConnectConfigBase(SingletonModel):
         _("OpenID sign algorithm"),
         max_length=50,
         help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
-        default="HS256",
+        default="RS256",
     )
     oidc_rp_scopes_list = ArrayField(
         verbose_name=_("OpenID Connect scopes"),
