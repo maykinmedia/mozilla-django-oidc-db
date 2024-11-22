@@ -11,10 +11,11 @@ from django.db import models
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 
-from django_jsonform.models.fields import ArrayField
+from django_jsonform.models.fields import ArrayField, JSONField
 from solo import settings as solo_settings
 from solo.models import SingletonModel
 
+from .constants import CLAIM_MAPPING_SCHEMA
 from .fields import ClaimField, ClaimFieldDefault
 from .typing import ClaimPath, DjangoView
 
@@ -249,10 +250,11 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
         help_text=_("The name of the OIDC claim that is used as the username"),
     )
 
-    claim_mapping = models.JSONField(
+    claim_mapping = JSONField(
         _("claim mapping"),
         default=get_claim_mapping,
-        help_text=("Mapping from user-model fields to OIDC claims"),
+        help_text=_("Mapping from user-model fields to OIDC claims"),
+        schema=CLAIM_MAPPING_SCHEMA,
     )
     groups_claim = ClaimField(
         verbose_name=_("groups claim"),

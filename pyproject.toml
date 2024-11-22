@@ -28,7 +28,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "django>=4.2",
-    "django-jsonform",
+    "django-jsonform>=2.12",
     "django-solo",
     "glom",
     "mozilla-django-oidc>=3.0.0",
