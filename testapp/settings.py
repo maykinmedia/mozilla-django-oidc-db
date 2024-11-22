@@ -87,7 +87,6 @@ try:
 
     INSTALLED_APPS += ["django_setup_configuration"]
 
-    OIDC_DB_CONFIG_ENABLE = True
     SETUP_CONFIGURATION_STEPS = [
         "mozilla_django_oidc_db.setup_configuration.steps.AdminOIDCConfigurationStep",
     ]

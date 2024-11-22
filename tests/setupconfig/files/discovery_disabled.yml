@@ -1,5 +1,5 @@
-ADMIN_OIDC_CONFIG_ENABLE: False
-ADMIN_OIDC:
+OIDC_DB_CONFIG_ENABLE: False
+OIDC_DB_SETUP_CONFIG_ADMIN_AUTH:
   oidc_rp_client_id: testid
   oidc_rp_client_secret: 7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I
   endpoint_config:

@@ -22,28 +22,38 @@ put the ``AdminOIDCConfigurationStep`` in your django-setup-configuration steps:
 
     SETUP_CONFIGURATION_STEPS = [
         ...
-        "mozilla_django_oidc_db.setup_config.AdminOIDCConfigurationStep",
+        "mozilla_django_oidc_db.setup_configuration.steps.AdminOIDCConfigurationStep",
         ...
     ]
 
-Configuration Settings:
-=======================
+Configuration Settings YAML:
+============================
 
-* ``OIDC_DB_CONFIG_ENABLE``: enable setup configuration step
+
+The setup configuration admin must contain the following base keys to use setup configuration:
+
+* ``OIDC_DB_CONFIG_ENABLE``: enable setup configuration step boolean
 
 * ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH``: Dictionary that maps OIDC fields to their values.
 
 
 Example:
 
-.. code-block:: python
+.. code-block:: YAML
 
-    OIDC_DB_SETUP_CONFIG_ADMIN_AUTH = {
-        "oidc_rp_client_id": "client-id",
-        "oidc_rp_client_secret": "secret",
-        "oidc_op_discovery_endpoint": "https://keycloak.local/protocol/openid-connect/",
-    }
+    OTHER_ENABLE: True
+    OTHER_CONFiG:
+    ...
+    OIDC_DB_CONFIG_ENABLE: True
+    OIDC_DB_SETUP_CONFIG_ADMIN_AUTH:
+      oidc_rp_client_id: client-id
+      oidc_rp_client_secret: secret
+      endpoint_config:
+        oidc_op_discovery_endpoint: https://keycloak.local/protocol/openid-connect/
+    ...
 
+
+Any field from the ``OpenIDConnectConfig`` can be added to ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH`` (except endpoints, see below)
 
 Required Fields:
 """"""""""""""""
@@ -51,21 +61,25 @@ Required Fields:
 
 * ``oidc_rp_client_id``: OpenID Connect client ID from the OIDC Provider.
 * ``oidc_rp_client_secret``: OpenID Connect secret from the OIDC Provider.
+* ``endpoint_config``: Dictionary containing endpoint information
 
-The discovery endpoint can be configured to automatically fetch the other endpoints. Otherwise the endpoints must be set individually.
+    * ``oidc_op_discovery_endpoint``: URL of your OpenID Connect provider discovery endpoint ending with a slash (`.well-known/...` will be added automatically).
 
-* ``oidc_op_discovery_endpoint``: URL of your OpenID Connect provider discovery endpoint ending with a slash (`.well-known/...` will be added automatically).
+            **OR**
 
-   **OR**
-
-* ``oidc_op_authorization_endpoint``: URL of your OpenID Connect provider authorization endpoint
-* ``oidc_op_token_endpoint``: URL of your OpenID Connect provider token endpoint
-* ``oidc_op_user_endpoint``: URL of your OpenID Connect provider userinfo endpoint
+    * ``oidc_op_authorization_endpoint``: URL of your OpenID Connect provider authorization endpoint
+    * ``oidc_op_token_endpoint``: URL of your OpenID Connect provider token endpoint
+    * ``oidc_op_user_endpoint``: URL of your OpenID Connect provider userinfo endpoint
 
 
+The endpoints must be provided in the ``endpoint_config`` dictionary.
+You can add the discovery endpoint to automatically fetch the other endpoints.
+Otherwise the endpoints must be specified individually.
+Providing both will cause the validation to fail.
 
 Optional Fields:
 """"""""""""""""
+All the following keys are placed in the ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH`` dictionary.
 
 * ``oidc_op_jwks_endpoint``: URL of your OpenID Connect provider JSON Web Key Set endpoint.
   Required if ``RS256`` is used as signing algorithm. No default value.
