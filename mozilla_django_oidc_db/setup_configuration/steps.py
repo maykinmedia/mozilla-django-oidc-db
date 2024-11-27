@@ -16,8 +16,8 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
 
     verbose_name = "Configuration for admin login via OpenID Connect"
     config_model = AdminOIDCConfigurationModel
-    namespace = "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH"
-    enable_setting = "OIDC_DB_CONFIG_ENABLE"
+    namespace = "oidc_db_config_admin_auth"
+    enable_setting = "oidc_db_config_enable"
 
     def execute(self, model: AdminOIDCConfigurationModel) -> None:
 

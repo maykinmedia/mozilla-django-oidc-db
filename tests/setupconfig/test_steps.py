@@ -84,13 +84,9 @@ def test_required_settings():
         command_error.value
     )
 
-    assert "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH.oidc_rp_client_id" in str(
-        command_error.value
-    )
-    assert "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH.oidc_rp_client_secret" in str(
-        command_error.value
-    )
-    assert "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH.endpoint_config" in str(command_error.value)
+    assert "oidc_db_config_admin_auth.oidc_rp_client_id" in str(command_error.value)
+    assert "oidc_db_config_admin_auth.oidc_rp_client_secret" in str(command_error.value)
+    assert "oidc_db_config_admin_auth.endpoint_config" in str(command_error.value)
 
     config = OpenIDConnectConfig.get_solo()
     assert not config.enabled
@@ -116,12 +112,11 @@ def test_partial_endpoints_provided():
     )
 
     assert (
-        "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH.endpoint_config.all.oidc_op_token_endpoint"
+        "oidc_db_config_admin_auth.endpoint_config.all.oidc_op_token_endpoint"
         in str(command_error.value)
     )
-    assert (
-        "OIDC_DB_SETUP_CONFIG_ADMIN_AUTH.endpoint_config.all.oidc_op_user_endpoint"
-        in str(command_error.value)
+    assert "oidc_db_config_admin_auth.endpoint_config.all.oidc_op_user_endpoint" in str(
+        command_error.value
     )
 
     config = OpenIDConnectConfig.get_solo()

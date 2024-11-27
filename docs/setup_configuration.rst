@@ -30,22 +30,22 @@ Configuration Settings YAML:
 ============================
 
 
-The setup configuration admin must contain the following base keys to use setup configuration:
+The setup configuration file must contain the following base keys to use this setup configuration step:
 
-* ``OIDC_DB_CONFIG_ENABLE``: enable setup configuration step boolean
+* ``oidc_db_config_enable``: enable setup configuration step boolean
 
-* ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH``: Dictionary that maps OIDC fields to their values.
+* ``oidc_db_config_admin_auth``: Dictionary that maps OIDC fields to their values.
 
 
 Example:
 
 .. code-block:: YAML
 
-    OTHER_ENABLE: True
-    OTHER_CONFiG:
+    other_enable: True
+    other_config:
     ...
-    OIDC_DB_CONFIG_ENABLE: True
-    OIDC_DB_SETUP_CONFIG_ADMIN_AUTH:
+    oidc_db_config_enable: True
+    oidc_db_config_admin_auth:
       oidc_rp_client_id: client-id
       oidc_rp_client_secret: secret
       endpoint_config:
@@ -53,7 +53,7 @@ Example:
     ...
 
 
-Any field from the ``OpenIDConnectConfig`` can be added to ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH`` (except endpoints, see below)
+Any field from the ``OpenIDConnectConfig`` can be added to ``oidc_db_config_admin_auth`` (except endpoints, see below)
 
 Required Fields:
 """"""""""""""""
@@ -79,7 +79,7 @@ Providing both will cause the validation to fail.
 
 Optional Fields:
 """"""""""""""""
-All the following keys are placed in the ``OIDC_DB_SETUP_CONFIG_ADMIN_AUTH`` dictionary.
+All the following keys are placed in the ``oidc_db_config_admin_auth`` dictionary.
 
 * ``oidc_op_jwks_endpoint``: URL of your OpenID Connect provider JSON Web Key Set endpoint.
   Required if ``RS256`` is used as signing algorithm. No default value.

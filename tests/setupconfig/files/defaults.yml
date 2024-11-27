@@ -1,5 +1,5 @@
-OIDC_DB_CONFIG_ENABLE: True
-OIDC_DB_SETUP_CONFIG_ADMIN_AUTH:
+oidc_db_config_enable: True
+oidc_db_config_admin_auth:
   oidc_rp_client_id: client-id
   oidc_rp_client_secret: secret
   endpoint_config:
