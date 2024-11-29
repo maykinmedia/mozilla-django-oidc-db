@@ -2,8 +2,8 @@
 Django Setup Configuration
 ==========================
 
-There is optional support for`django-setup-configuration`_ that allows you to automatically configure the
-OpenID Connect configuration the ``setup_configuration`` commmand.
+There is optional support for ``django-setup-configuration`` that allows you to automatically configure the
+OpenID Connect configuration using that package's ``setup_configuration`` command.
 
 You must install the ``setupconfig`` dependency group:
 
@@ -30,7 +30,7 @@ Configuration Settings YAML:
 ============================
 
 
-The setup configuration file must contain the following base keys to use this setup configuration step:
+The setup configuration source must contain the following base keys to use this setup configuration step (using ``yaml`` as an example):
 
 * ``oidc_db_config_enable``: enable setup configuration step boolean
 
