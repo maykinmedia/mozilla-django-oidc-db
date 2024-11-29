@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
@@ -48,23 +48,24 @@ EndpointConfigUnion = Annotated[
 
 class AdminOIDCConfigurationModel(ConfigurationModel):
 
+    # Change default to True
+    enabled: bool | None = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
+
     # Json
-    claim_mapping: Optional[dict] = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
+    claim_mapping: dict | None = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
 
     # Arrays are overridden to make the typing simpler (the underlying Django field is an ArrayField, which is non-standard)
-    username_claim: Optional[list[str]] = DjangoModelRef(
+    username_claim: list[str] | None = DjangoModelRef(
         OpenIDConnectConfig, "username_claim"
     )
-    groups_claim: Optional[list[str]] = DjangoModelRef(
-        OpenIDConnectConfig, "groups_claim"
-    )
-    superuser_group_names: Optional[list[str]] = DjangoModelRef(
+    groups_claim: list[str] | None = DjangoModelRef(OpenIDConnectConfig, "groups_claim")
+    superuser_group_names: list[str] | None = DjangoModelRef(
         OpenIDConnectConfig, "superuser_group_names"
     )
-    default_groups: Optional[list[str]] = DjangoModelRef(
+    default_groups: list[str] | None = DjangoModelRef(
         OpenIDConnectConfig, "superuser_group_names"
     )
-    oidc_rp_scopes_list: Optional[list[str]] = DjangoModelRef(
+    oidc_rp_scopes_list: list[str] | None = DjangoModelRef(
         OpenIDConnectConfig, "oidc_rp_scopes_list"
     )
 

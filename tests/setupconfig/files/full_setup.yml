@@ -1,5 +1,6 @@
 oidc_db_config_enable: True
 oidc_db_config_admin_auth:
+  enabled: False
   oidc_rp_client_id: client-id
   oidc_rp_client_secret: secret
   oidc_rp_scopes_list:

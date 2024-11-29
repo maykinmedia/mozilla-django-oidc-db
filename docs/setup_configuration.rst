@@ -26,8 +26,8 @@ put the ``AdminOIDCConfigurationStep`` in your django-setup-configuration steps:
         ...
     ]
 
-Configuration Settings YAML:
-============================
+Setup Configuration Settings:
+=============================
 
 
 The setup configuration source must contain the following base keys to use this setup configuration step (using ``yaml`` as an example):
@@ -79,8 +79,15 @@ Providing both will cause the validation to fail.
 
 Optional Fields:
 """"""""""""""""
+
+.. warning::
+
+    The default values are always provided and will overwrite any settings changed in the admin.
+    Make sure updated settings are added to the configuration yaml.
+
 All the following keys are placed in the ``oidc_db_config_admin_auth`` dictionary.
 
+* ``enabled``: whether OIDC is enabled for admin login. Defaults to ``True``.
 * ``oidc_op_jwks_endpoint``: URL of your OpenID Connect provider JSON Web Key Set endpoint.
   Required if ``RS256`` is used as signing algorithm. No default value.
 * ``claim_mapping``: Mapping from user-model fields to OIDC claims.

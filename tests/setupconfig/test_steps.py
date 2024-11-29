@@ -28,7 +28,7 @@ def test_configure(setup_config_full_model):
 
     config = OpenIDConnectConfig.get_solo()
 
-    assert config.enabled
+    assert not config.enabled
     assert config.oidc_rp_client_id == "client-id"
     assert config.oidc_rp_client_secret == "secret"
     assert config.oidc_rp_scopes_list == ["open_id", "email", "profile", "extra_scope"]

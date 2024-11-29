@@ -1,7 +1,7 @@
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import ConfigurationRunFailed
 
-from mozilla_django_oidc_db.forms import OIDCSetupConfigForm
+from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 from mozilla_django_oidc_db.setup_configuration.models import (
     AdminOIDCConfigurationModel,
@@ -23,25 +23,16 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
 
         config = OpenIDConnectConfig.get_solo()
 
-        base_model_data = model.model_dump()
-        endpoint_config_data = base_model_data.pop("endpoint_config")
-
-        all_settings = {
-            "sync_groups": config.sync_groups,
-            "oidc_use_nonce": config.oidc_use_nonce,
-            "enabled": True,
-            "claim_mapping": config.claim_mapping,  # JSONFormField widget cannot handle blank values with object schema
-            "sync_groups_glob_pattern": config.sync_groups_glob_pattern,
-            **base_model_data,
-            **endpoint_config_data,
-        }
+        all_settings = model.model_dump()
+        endpoint_config_data = all_settings.pop("endpoint_config")
+        all_settings.update(endpoint_config_data)
 
         if groups := all_settings.get("default_groups"):
             all_settings["default_groups"] = create_missing_groups(
                 groups, all_settings["sync_groups_glob_pattern"]
             )
 
-        form = OIDCSetupConfigForm(
+        form = OpenIDConnectConfigForm(
             instance=config,
             data=all_settings,
         )
