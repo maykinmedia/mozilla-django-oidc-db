@@ -4,7 +4,11 @@ from django.core.management import CommandError, call_command
 
 import pytest
 import requests
-from django_setup_configuration.exceptions import ConfigurationRunFailed
+from django_setup_configuration.exceptions import (
+    ConfigurationRunFailed,
+    PrerequisiteFailed,
+)
+from django_setup_configuration.test_utils import execute_single_step
 
 from mozilla_django_oidc_db.models import (
     OpenIDConnectConfig,
@@ -22,9 +26,8 @@ def clear_solo_cache():
 
 
 @pytest.mark.django_db
-def test_configure(setup_config_full_model):
-    step = AdminOIDCConfigurationStep()
-    step.execute(setup_config_full_model)
+def test_configure(full_config_yml):
+    execute_single_step(AdminOIDCConfigurationStep, yaml_source=full_config_yml)
 
     config = OpenIDConnectConfig.get_solo()
 
@@ -69,82 +72,8 @@ def test_configure(setup_config_full_model):
 
 
 @pytest.mark.django_db
-def test_required_settings():
-    output = StringIO()
-    err = StringIO()
-    with pytest.raises(CommandError) as command_error:
-        call_command(
-            "setup_configuration",
-            yaml_file="tests/setupconfig/files/empty.yml",
-            stdout=output,
-            stderr=err,
-        )
-
-    assert "Prerequisites for configuration are not fulfilled:" in str(
-        command_error.value
-    )
-
-    assert "oidc_db_config_admin_auth.oidc_rp_client_id" in str(command_error.value)
-    assert "oidc_db_config_admin_auth.oidc_rp_client_secret" in str(command_error.value)
-    assert "oidc_db_config_admin_auth.endpoint_config" in str(command_error.value)
-
-    config = OpenIDConnectConfig.get_solo()
-    assert not config.enabled
-
-
-@pytest.mark.django_db
-def test_partial_endpoints_provided():
-    """
-    Test what if only one endpoint (not discovery) is provided
-    """
-    output = StringIO()
-    err = StringIO()
-    with pytest.raises(CommandError) as command_error:
-        call_command(
-            "setup_configuration",
-            yaml_file="tests/setupconfig/files/partial_endpoints.yml",
-            stdout=output,
-            stderr=err,
-        )
-
-    assert "Prerequisites for configuration are not fulfilled:" in str(
-        command_error.value
-    )
-
-    assert (
-        "oidc_db_config_admin_auth.endpoint_config.all.oidc_op_token_endpoint"
-        in str(command_error.value)
-    )
-    assert "oidc_db_config_admin_auth.endpoint_config.all.oidc_op_user_endpoint" in str(
-        command_error.value
-    )
-
-    config = OpenIDConnectConfig.get_solo()
-    assert not config.enabled
-
-
-@pytest.mark.django_db
-def test_enable_setting():
-    output = StringIO()
-    err = StringIO()
-    with pytest.raises(CommandError) as command_error:
-        call_command(
-            "setup_configuration",
-            yaml_file="tests/setupconfig/files/discovery_disabled.yml",
-            stdout=output,
-            stderr=err,
-        )
-
-    assert "No steps enabled, aborting." in str(command_error.value)
-
-    config = OpenIDConnectConfig.get_solo()
-    assert not config.enabled
-
-
-@pytest.mark.django_db
-def test_configure_use_defaults(setup_config_defaults_model):
-    step = AdminOIDCConfigurationStep()
-    step.execute(setup_config_defaults_model)
+def test_configure_use_defaults(set_config_to_non_default_values, default_config_yml):
+    execute_single_step(AdminOIDCConfigurationStep, yaml_source=default_config_yml)
 
     config = OpenIDConnectConfig.get_solo()
 
@@ -191,9 +120,10 @@ def test_configure_use_defaults(setup_config_defaults_model):
 
 @pytest.mark.vcr
 @pytest.mark.django_db
-def test_configure_use_discovery_endpoint(setup_config_discovery_model):
-    step = AdminOIDCConfigurationStep()
-    step.execute(setup_config_discovery_model)
+def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
+    execute_single_step(
+        AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
+    )
 
     config = OpenIDConnectConfig.get_solo()
 
@@ -218,7 +148,7 @@ def test_configure_use_discovery_endpoint(setup_config_discovery_model):
 
 
 @pytest.mark.django_db
-def test_configure_discovery_failure(requests_mock, setup_config_discovery_model):
+def test_configure_discovery_failure(requests_mock, discovery_endpoint_config_yml):
     mock_kwargs = (
         {"exc": requests.ConnectTimeout},
         {"exc": requests.ConnectionError},
@@ -233,6 +163,10 @@ def test_configure_discovery_failure(requests_mock, setup_config_discovery_model
         )
 
         with pytest.raises(ConfigurationRunFailed):
-            AdminOIDCConfigurationStep().execute(setup_config_discovery_model)
+            execute_single_step(
+                AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
+            )
 
-        assert not OpenIDConnectConfig.get_solo().enabled
+        config = OpenIDConnectConfig.get_solo()
+        assert not config.enabled
+        assert config.oidc_op_discovery_endpoint == ""

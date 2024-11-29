@@ -1,7 +1,9 @@
 import pytest
-from django_setup_configuration.test_utils import build_step_config_from_sources
 
-from mozilla_django_oidc_db.setup_configuration.steps import AdminOIDCConfigurationStep
+from mozilla_django_oidc_db.models import (
+    OpenIDConnectConfig,
+    UserInformationClaimsSources,
+)
 
 """
 Key cloak credentials are setup for the keycloak docker-compose.yml.
@@ -14,22 +16,61 @@ See more info in /docker/README.md
 """
 
 
-@pytest.fixture
-def setup_config_discovery_model(settings):
-    return build_step_config_from_sources(
-        AdminOIDCConfigurationStep, "tests/setupconfig/files/discovery.yml"
-    )
+# Test files
+@pytest.fixture()
+def full_config_yml():
+    return "tests/setupconfig/files/full_setup.yml"
+
+
+@pytest.fixture()
+def default_config_yml():
+    return "tests/setupconfig/files/defaults.yml"
+
+
+@pytest.fixture()
+def discovery_endpoint_config_yml():
+    return "tests/setupconfig/files/discovery.yml"
 
 
 @pytest.fixture
-def setup_config_defaults_model(settings):
-    return build_step_config_from_sources(
-        AdminOIDCConfigurationStep, "tests/setupconfig/files/defaults.yml"
-    )
+def set_config_to_non_default_values():
+    """
+    Set the current config to non-default values.
+    """
 
+    config = OpenIDConnectConfig.get_solo()
 
-@pytest.fixture
-def setup_config_full_model():
-    return build_step_config_from_sources(
-        AdminOIDCConfigurationStep, "tests/setupconfig/files/full_setup.yml"
-    )
+    # Will be always overwritten
+    config.oidc_rp_client_id = "client-id"
+    config.oidc_rp_client_secret = "secret"
+    config.oidc_op_authorization_endpoint = "http://localhost:8080/whatever"
+    config.oidc_op_token_endpoint = "http://localhost:8080/whatever"
+    config.oidc_op_user_endpoint = "http://localhost:8080/whatever"
+
+    # Set some non-default values
+    config.oidc_op_discovery_endpoint = "http://localhost:8080/whatever"
+    config.enabled = False
+
+    config.oidc_rp_scopes_list = [
+        "not_open_id",
+        "not_email",
+        "not_profile",
+        "not_extra_scope",
+    ]
+    config.oidc_rp_sign_algo = "M1911"
+    config.oidc_rp_idp_sign_key = "name"
+    config.oidc_op_jwks_endpoint = "http://localhost:8080/whatever"
+    config.username_claim = ["claim_title"]
+    config.groups_claim = ["groups_claim_title"]
+    config.claim_mapping = {"first_title": ["given_title"]}
+    config.sync_groups = True
+    config.sync_groups_glob_pattern = "not_local.groups.*"
+
+    config.make_users_staff = False
+    config.superuser_group_names = ["poweruser"]
+    config.oidc_use_nonce = True
+    config.oidc_nonce_size = 64
+    config.oidc_state_size = 64
+    config.userinfo_claims_source = UserInformationClaimsSources.userinfo_endpoint
+
+    config.save()
