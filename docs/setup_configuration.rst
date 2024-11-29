@@ -37,7 +37,7 @@ The setup configuration source must contain the following base keys to use this 
 * ``oidc_db_config_admin_auth``: Dictionary that maps OIDC fields to their values.
 
 
-Example:
+Example: *setup_config.yml*
 
 .. code-block:: YAML
 
@@ -51,6 +51,12 @@ Example:
       endpoint_config:
         oidc_op_discovery_endpoint: https://keycloak.local/protocol/openid-connect/
     ...
+
+This is file is then used with the setup configuration command setup the OIDC admin:
+
+.. code-block:: Bash
+
+    python manage.py setup_configuration --yaml-file path/to/setup_config.yml
 
 
 Any field from the ``OpenIDConnectConfig`` can be added to ``oidc_db_config_admin_auth`` (except endpoints, see below)
