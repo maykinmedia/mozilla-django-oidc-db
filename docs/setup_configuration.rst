@@ -2,17 +2,17 @@
 Django Setup Configuration
 ==========================
 
-There is optional support for ``django-setup-configuration`` that allows you to automatically configure the
+There is optional support for `django-setup-configuration`_ that allows you to automatically configure the
 OpenID Connect configuration using that package's ``setup_configuration`` command.
 
-You must install the ``setupconfig`` dependency group:
+You must install the ``setup-configuration`` dependency group:
 
 .. _django-setup-configuration: https://pypi.org/project/django-setup-configuration/
 
 
 .. code-block:: bash
 
-    pip install mozilla-django-oidc-db[setupconfig]
+    pip install mozilla-django-oidc-db[setup-configuration]
 
 
 You must then define the required and any optional django settings mentioned below and
