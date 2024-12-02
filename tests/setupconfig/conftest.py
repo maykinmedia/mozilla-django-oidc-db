@@ -4,7 +4,7 @@ from mozilla_django_oidc_db.models import (
     OpenIDConnectConfig,
     UserInformationClaimsSources,
 )
-from mozilla_django_oidc_db.utils import create_missing_groups
+from mozilla_django_oidc_db.utils import get_groups_by_name
 
 """
 Key cloak credentials are setup for the keycloak docker-compose.yml.
@@ -33,6 +33,16 @@ def discovery_endpoint_config_yml():
     return "tests/setupconfig/files/discovery.yml"
 
 
+@pytest.fixture()
+def no_sync_groups_config_yml():
+    return "tests/setupconfig/files/no_sync_groups.yml"
+
+
+@pytest.fixture()
+def sync_groups_config_yml():
+    return "tests/setupconfig/files/sync_groups.yml"
+
+
 @pytest.fixture
 def set_config_to_non_default_values():
     """
@@ -42,8 +52,8 @@ def set_config_to_non_default_values():
     config = OpenIDConnectConfig.get_solo()
 
     # Will be always overwritten
-    config.oidc_rp_client_id = "client-id"
-    config.oidc_rp_client_secret = "secret"
+    config.oidc_rp_client_id = "different-client-id"
+    config.oidc_rp_client_secret = "different-secret"
     config.oidc_op_authorization_endpoint = "http://localhost:8080/whatever"
     config.oidc_op_token_endpoint = "http://localhost:8080/whatever"
     config.oidc_op_user_endpoint = "http://localhost:8080/whatever"
@@ -74,7 +84,7 @@ def set_config_to_non_default_values():
     config.oidc_state_size = 64
     config.userinfo_claims_source = UserInformationClaimsSources.userinfo_endpoint
 
-    config.default_groups.set(create_missing_groups(["OldAdmin", "OldUser"]))
+    config.default_groups.set(get_groups_by_name(["OldAdmin", "OldUser"], "*", True))
 
     config.save()
 

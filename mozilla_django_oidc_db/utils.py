@@ -94,13 +94,20 @@ def do_op_logout(config: OpenIDConnectConfigBase, id_token: str) -> None:
         )
 
 
-def create_missing_groups(
-    group_names: Iterable[str], sync_groups_glob: str = "*"
+def get_groups_by_name(
+    group_names: Iterable[str], sync_groups_glob: str, sync_missing_groups: bool
 ) -> set[Group]:
+    """
+    Gets Django User groups by name.
+
+    Optionally creates missing groups that match glob pattern.
+    """
 
     existing_groups = set(Group.objects.filter(name__in=group_names))
-    existing_group_names = {group.name for group in existing_groups}
+    if not sync_missing_groups:
+        return existing_groups
 
+    existing_group_names = {group.name for group in existing_groups}
     filtered_names = fnmatch.filter(
         set(group_names) - existing_group_names, sync_groups_glob
     )

@@ -24,7 +24,7 @@ from .exceptions import MissingIdentifierClaim
 from .jwt import verify_and_decode_token
 from .models import OpenIDConnectConfigBase, UserInformationClaimsSources
 from .typing import ClaimPath, JSONObject
-from .utils import create_missing_groups, extract_content_type, obfuscate_claims
+from .utils import extract_content_type, get_groups_by_name, obfuscate_claims
 
 logger = logging.getLogger(__name__)
 
@@ -384,10 +384,9 @@ def _set_user_groups(
         return
 
     # Create missing groups if required
-    if sync_missing_groups:
-        existing_groups = create_missing_groups(desired_group_names, sync_groups_glob)
-    else:
-        existing_groups = set(Group.objects.filter(name__in=desired_group_names))
+    existing_groups = get_groups_by_name(
+        desired_group_names, sync_groups_glob, sync_missing_groups
+    )
 
     # at this point, existing_groups is the full collection of groups that should be
     # set on the user model, because:
