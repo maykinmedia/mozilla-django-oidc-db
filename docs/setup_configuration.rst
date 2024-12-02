@@ -88,8 +88,8 @@ Optional Fields:
 
 .. warning::
 
-    The default values are always provided and will overwrite any settings changed in the admin.
-    Make sure updated settings are added to the configuration yaml.
+    Values that are not provided will use the default or empty value and will overwrite any setting changed in the admin.
+    Make sure settings that were manually changed in the admin are added to the configuration yaml.
 
 All the following keys are placed in the ``oidc_db_config_admin_auth`` dictionary.
 
