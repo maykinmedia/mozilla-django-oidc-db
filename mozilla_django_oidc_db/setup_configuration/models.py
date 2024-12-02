@@ -49,23 +49,21 @@ EndpointConfigUnion = Annotated[
 class AdminOIDCConfigurationModel(ConfigurationModel):
 
     # Change default to True
-    enabled: bool | None = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
+    enabled: bool = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
 
     # Json
-    claim_mapping: dict | None = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
+    claim_mapping: dict = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
 
     # Arrays are overridden to make the typing simpler (the underlying Django field is an ArrayField, which is non-standard)
-    username_claim: list[str] | None = DjangoModelRef(
-        OpenIDConnectConfig, "username_claim"
-    )
-    groups_claim: list[str] | None = DjangoModelRef(OpenIDConnectConfig, "groups_claim")
-    superuser_group_names: list[str] | None = DjangoModelRef(
+    username_claim: list[str] = DjangoModelRef(OpenIDConnectConfig, "username_claim")
+    groups_claim: list[str] = DjangoModelRef(OpenIDConnectConfig, "groups_claim")
+    superuser_group_names: list[str] = DjangoModelRef(
         OpenIDConnectConfig, "superuser_group_names"
     )
-    default_groups: list[str] | None = DjangoModelRef(
+    default_groups: list[str] = DjangoModelRef(
         OpenIDConnectConfig, "superuser_group_names"
     )
-    oidc_rp_scopes_list: list[str] | None = DjangoModelRef(
+    oidc_rp_scopes_list: list[str] = DjangoModelRef(
         OpenIDConnectConfig, "oidc_rp_scopes_list"
     )
 

@@ -148,25 +148,36 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
 
 
 @pytest.mark.django_db
-def test_configure_discovery_failure(requests_mock, discovery_endpoint_config_yml):
-    mock_kwargs = (
+@pytest.mark.parametrize(
+    "mock_kwargs",
+    (
         {"exc": requests.ConnectTimeout},
         {"exc": requests.ConnectionError},
         {"status_code": 404},
         {"status_code": 403},
         {"status_code": 500},
+    ),
+    ids=[
+        "Connection Timeout",
+        "Connection Error",
+        "Status 404",
+        "Status 403",
+        "Status 500",
+    ],
+)
+def test_configure_discovery_failure(
+    requests_mock, discovery_endpoint_config_yml, mock_kwargs
+):
+    requests_mock.get(
+        f"{KEYCLOAK_BASE_URL}.well-known/openid-configuration",
+        **mock_kwargs,
     )
-    for mock_config in mock_kwargs:
-        requests_mock.get(
-            f"{KEYCLOAK_BASE_URL}.well-known/openid-configuration",
-            **mock_config,
+
+    with pytest.raises(ConfigurationRunFailed):
+        execute_single_step(
+            AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
         )
 
-        with pytest.raises(ConfigurationRunFailed):
-            execute_single_step(
-                AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
-            )
-
-        config = OpenIDConnectConfig.get_solo()
-        assert not config.enabled
-        assert config.oidc_op_discovery_endpoint == ""
+    config = OpenIDConnectConfig.get_solo()
+    assert not config.enabled
+    assert config.oidc_op_discovery_endpoint == ""
