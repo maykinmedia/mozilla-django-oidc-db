@@ -1,0 +1,6 @@
+oidc_db_config_enable: True
+oidc_db_config_admin_auth:
+  oidc_rp_client_id: testid
+  oidc_rp_client_secret: 7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I
+  endpoint_config:
+    oidc_op_discovery_endpoint: http://localhost:8080/realms/test/

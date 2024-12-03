@@ -80,3 +80,15 @@ OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
 LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
 
 STATIC_URL = "/static/"
+
+# Django setup configuration settings
+try:
+    import django_setup_configuration
+
+    INSTALLED_APPS += ["django_setup_configuration"]
+
+    SETUP_CONFIGURATION_STEPS = [
+        "mozilla_django_oidc_db.setup_configuration.steps.AdminOIDCConfigurationStep",
+    ]
+except ImportError:
+    pass

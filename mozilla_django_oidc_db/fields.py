@@ -26,7 +26,9 @@ class ClaimFieldDefault:
         self.bits = list(bits)
 
     def __eq__(self, other) -> bool:
-        return self.bits == other.bits
+        if isinstance(other, ClaimFieldDefault):
+            return self.bits == other.bits
+        return False
 
     def __call__(self) -> list[str]:
         return self.bits

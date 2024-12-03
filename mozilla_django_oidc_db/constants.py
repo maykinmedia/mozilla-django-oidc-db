@@ -11,3 +11,16 @@ OIDC_MAPPING = {
 OPEN_ID_CONFIG_PATH = ".well-known/openid-configuration"
 
 CONFIG_CLASS_SESSION_KEY = "_OIDCDB_CONFIG_CLASS"
+
+CLAIM_MAPPING_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Claim Mapping",
+    "description": "Mapping from user-model fields to OIDC claims",
+    "type": "object",
+    "properties": {},
+    "additionalProperties": {
+        "description": "mapping",
+        "type": "array",
+        "items": {"type": "string"},
+    },
+}

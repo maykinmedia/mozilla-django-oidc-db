@@ -1,6 +1,9 @@
+import fnmatch
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from copy import deepcopy
+
+from django.contrib.auth.models import Group
 
 import requests
 from glom import Path, PathAccessError, assign, glom
@@ -89,3 +92,29 @@ def do_op_logout(config: OpenIDConnectConfigBase, id_token: str) -> None:
                 "status_code": response.status_code,
             },
         )
+
+
+def get_groups_by_name(
+    group_names: Iterable[str], sync_groups_glob: str, sync_missing_groups: bool
+) -> set[Group]:
+    """
+    Gets Django User groups by name.
+
+    Optionally creates missing groups that match glob pattern.
+    """
+
+    existing_groups = set(Group.objects.filter(name__in=group_names))
+    if not sync_missing_groups:
+        return existing_groups
+
+    existing_group_names = {group.name for group in existing_groups}
+    filtered_names = fnmatch.filter(
+        set(group_names) - existing_group_names, sync_groups_glob
+    )
+
+    groups_to_create = [Group(name=name) for name in filtered_names]
+    if groups_to_create:
+        # postgres sets the PK after bulk_create
+        Group.objects.bulk_create(groups_to_create)
+        existing_groups |= set(groups_to_create)
+    return existing_groups

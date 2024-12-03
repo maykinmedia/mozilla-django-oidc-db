@@ -24,6 +24,12 @@ This will also install the following packages:
 - ``django-solo``
 - ``django-jsonform``
 
+You can optionally install `django-setup-configuration`_ support with:
+
+.. code-block:: bash
+
+    pip install mozilla-django-oidc-db[setup-configuration]
+
 Django settings
 ---------------
 
@@ -267,3 +273,5 @@ and ``OIDCAuthenticationBackend.config_class`` to be this new class.
 .. _mozilla-django-oidc settings documentation: https://mozilla-django-oidc.readthedocs.io/en/stable/settings.html
 
 .. _OIDC spec: https://openid.net/specs/openid-connect-discovery-1_0.html#WellKnownRegistry
+
+.. _django-setup-configuration: https://pypi.org/project/django-setup-configuration/
