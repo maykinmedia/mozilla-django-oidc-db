@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mozilla-django-oidc-db"
-version = "0.19.0"
+version = "0.20.0"
 description = "A database-backed configuration for mozilla-django-oidc"
 authors = [
     {name = "Maykin Media", email = "support@maykinmedia.nl"}
@@ -96,7 +96,7 @@ markers = [
 ]
 
 [tool.bumpversion]
-current_version = "0.19.0"
+current_version = "0.20.0"
 files = [
     {filename = "pyproject.toml"},
     {filename = "README.rst"},

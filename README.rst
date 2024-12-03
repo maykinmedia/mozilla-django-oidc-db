@@ -7,7 +7,7 @@
 mozilla-django-oidc-db
 ======================
 
-:Version: 0.19.0
+:Version: 0.20.0
 :Source: https://github.com/maykinmedia/mozilla-django-oidc-db
 :Keywords: OIDC, django, database, authentication
 
