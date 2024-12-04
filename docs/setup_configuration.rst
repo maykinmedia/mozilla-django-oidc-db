@@ -65,18 +65,17 @@ Required Fields:
 """"""""""""""""
 
 
-* ``oidc_rp_client_id``: OpenID Connect client ID from the OIDC Provider.
-* ``oidc_rp_client_secret``: OpenID Connect secret from the OIDC Provider.
+* :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_rp_client_id`
+* :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_rp_client_secret`
 * ``endpoint_config``: Dictionary containing endpoint information
 
-    * ``oidc_op_discovery_endpoint``: URL of your OpenID Connect provider discovery endpoint ending with a slash (`.well-known/...` will be added automatically).
+    *  :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_op_discovery_endpoint`
 
             **OR**
 
-    * ``oidc_op_authorization_endpoint``: URL of your OpenID Connect provider authorization endpoint
-    * ``oidc_op_token_endpoint``: URL of your OpenID Connect provider token endpoint
-    * ``oidc_op_user_endpoint``: URL of your OpenID Connect provider userinfo endpoint
-
+    * :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_op_authorization_endpoint`
+    * :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_op_token_endpoint`
+    * :model_field:`mozilla_django_oidc_db.models.OpenIDConnectConfig.oidc_op_user_endpoint`
 
 The endpoints must be provided in the ``endpoint_config`` dictionary.
 You can add the discovery endpoint to automatically fetch the other endpoints.
@@ -85,7 +84,6 @@ Providing both will cause the validation to fail.
 
 Optional Fields:
 """"""""""""""""
-
 .. warning::
 
     Values that are not provided will use the default or empty value and will overwrite any setting changed in the admin.
@@ -93,27 +91,22 @@ Optional Fields:
 
 All the following keys are placed in the ``oidc_db_config_admin_auth`` dictionary.
 
-* ``enabled``: whether OIDC is enabled for admin login. Defaults to ``True``.
-* ``oidc_op_jwks_endpoint``: URL of your OpenID Connect provider JSON Web Key Set endpoint.
-  Required if ``RS256`` is used as signing algorithm. No default value.
-* ``claim_mapping``: Mapping from user-model fields to OIDC claims.
-  Defaults to ``{"email": ["email"], "first_name": ["given_name"], "last_name": ["family_name"]}``
-* ``username_claim``: The name of the OIDC claim that is used as the username. Defaults to ``["sub"]``
-* ``groups_claim``: The name of the OIDC claim that holds the values to map to local user groups. Defaults to ``["roles"]``
-* ``default_groups``: The default groups to which every user logging in with OIDC will be assigned.  No default values.
-* ``superuser_group_names``: If any of these group names are present in the claims upon login, the user will be marked as a superuser.
-  If none of these groups are present the user will lose superuser permissions. Defaults to empty list.
-* ``make_users_staff``: Users will be flagged as being a staff user automatically.
-  This allows users to login to the admin interface. Defaults to ``False``.
-* ``oidc_use_nonce``:  Controls whether the OpenID Connect client uses nonce verification. Defaults to ``True``.
-* ``oidc_nonce_size``: Sets the length of the random string used for OpenID Connect nonce verification. Defaults to ``32``.
-* ``oidc_state_size``: Sets the length of the random string used for OpenID Connect state verification. Defaults to ``32``.
-* ``oidc_rp_idp_sign_key``:  Key the Identity Provider uses to sign ID tokens in the case of an RSA sign algorithm.
-  Should be the signing key in PEM or DER format. No default.
-* ``oidc_rp_scopes_list``: OpenID Connect scopes that are requested during login. Defaults to ``["openid", "email", "profile"]``.
-* ``oidc_rp_sign_algo``: Algorithm the Identity Provider uses to sign ID tokens. Defaults to ``"HS256"``.
-* ``sync_groups``: If checked, local user groups will be created for group names present in the groups claim,
-  if they do not exist yet locally. Defaults to ``True``.
-* ``sync_groups_glob_pattern``: The glob pattern that groups must match to be synchronized to the local database. Defaults to ``"*"``.
-* ``userinfo_claims_source``: Indicates the source from which the user information claims should be extracted
-  (``"userinfo_endpoint"`` or ``"id_token"``). Defaults to ``"userinfo_endpoint"``.
+.. model_fields:: mozilla_django_oidc_db.models.OpenIDConnectConfig
+
+    enabled
+    oidc_op_jwks_endpoint
+    claim_mapping
+    username_claim
+    groups_claim
+    default_groups
+    superuser_group_names
+    make_users_staff
+    oidc_use_nonce
+    oidc_nonce_size
+    oidc_state_size
+    oidc_rp_idp_sign_key
+    oidc_rp_scopes_list
+    oidc_rp_sign_algo
+    sync_groups
+    sync_groups_glob_pattern
+    userinfo_claims_source

@@ -37,9 +37,13 @@ release = "0.20.0"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
+
+sys.path.append(os.path.abspath("./_ext"))
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
+    "model_field",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
