@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.21.0 (2024-12-09)
+===================
+
+Some changes to prepare the django-setup-configuration YAML format for when support
+for multiple configurations is added:
+* Add ``identifier`` field to YAML data to setup configuration
+* Modify format of YAML data to accept list of configurations
+
 0.20.0 (2024-12-03)
 ===================
 
