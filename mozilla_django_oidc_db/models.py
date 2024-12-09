@@ -244,6 +244,9 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
     Configuration for authentication/authorization via OpenID connect
     """
 
+    # reserve this for when it will be added in the future
+    identifier: ClassVar[str] = "admin-oidc"
+
     username_claim = ClaimField(
         verbose_name=_("username claim"),
         default=ClaimFieldDefault("sub"),
