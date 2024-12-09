@@ -2,7 +2,7 @@ from typing import Union
 
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
-from pydantic import AnyUrl, Discriminator, Tag
+from pydantic import AnyUrl, Discriminator, Field, Tag
 from typing_extensions import Annotated
 
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
@@ -46,7 +46,10 @@ EndpointConfigUnion = Annotated[
 ]
 
 
-class AdminOIDCConfigurationModel(ConfigurationModel):
+class AdminOIDCConfigurationModelItem(ConfigurationModel):
+    # Currently unused because we use a SingletonModel, but this will be relevant in the
+    # future
+    identifier: str = Field(description="a unique identifier for this configuration")
 
     # Change default to True
     enabled: bool = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
@@ -89,3 +92,7 @@ class AdminOIDCConfigurationModel(ConfigurationModel):
                 "make_users_staff",
             ]
         }
+
+
+class AdminOIDCConfigurationModel(ConfigurationModel):
+    items: list[AdminOIDCConfigurationModelItem] = Field(default_factory=list)
