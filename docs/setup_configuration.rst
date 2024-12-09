@@ -46,10 +46,12 @@ Example: *setup_config.yml*
     ...
     oidc_db_config_enable: True
     oidc_db_config_admin_auth:
-      oidc_rp_client_id: client-id
-      oidc_rp_client_secret: secret
-      endpoint_config:
-        oidc_op_discovery_endpoint: https://keycloak.local/protocol/openid-connect/
+      items:
+      - identifier: admin-oidc
+        oidc_rp_client_id: client-id
+        oidc_rp_client_secret: secret
+        endpoint_config:
+          oidc_op_discovery_endpoint: https://keycloak.local/protocol/openid-connect/
     ...
 
 This is file is then used with the setup configuration command setup the OIDC admin:
@@ -65,6 +67,7 @@ Required Fields:
 """"""""""""""""
 
 
+* ``identifier``: a unique identifier for this configuration.
 * ``oidc_rp_client_id``: OpenID Connect client ID from the OIDC Provider.
 * ``oidc_rp_client_secret``: OpenID Connect secret from the OIDC Provider.
 * ``endpoint_config``: Dictionary containing endpoint information
