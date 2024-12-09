@@ -43,6 +43,16 @@ def sync_groups_config_yml():
     return "tests/setupconfig/files/sync_groups.yml"
 
 
+@pytest.fixture()
+def multiple_configs_yml():
+    return "tests/setupconfig/files/multiple_configs.yml"
+
+
+@pytest.fixture()
+def missing_identifier_yml():
+    return "tests/setupconfig/files/missing_identifier.yml"
+
+
 @pytest.fixture
 def set_config_to_non_default_values():
     """

@@ -8,3 +8,10 @@ oidc_db_config_admin_auth:
       oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
       oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
       oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
+  - identifier: admin-oidc
+    oidc_rp_client_id: client-id2
+    oidc_rp_client_secret: secret2
+    endpoint_config:
+      oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
+      oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
+      oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo

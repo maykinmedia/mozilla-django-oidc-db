@@ -21,43 +21,51 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
     enable_setting = "oidc_db_config_enable"
 
     def execute(self, model: AdminOIDCConfigurationModel) -> None:
+        if len(model.items) != 1:
+            raise ConfigurationRunFailed(
+                "You must specify exactly one OIDC configuration"
+            )
+
+        config_model = model.items[0]
 
         all_settings = {
-            "enabled": model.enabled,
-            "oidc_rp_client_id": model.oidc_rp_client_id,
-            "oidc_rp_client_secret": model.oidc_rp_client_secret,
-            "oidc_rp_sign_algo": model.oidc_rp_sign_algo,
-            "oidc_rp_scopes_list": model.oidc_rp_scopes_list,
-            "oidc_op_jwks_endpoint": model.oidc_op_jwks_endpoint,
-            "oidc_token_use_basic_auth": model.oidc_token_use_basic_auth,
-            "oidc_rp_idp_sign_key": model.oidc_rp_idp_sign_key,
-            "oidc_op_logout_endpoint": model.oidc_op_logout_endpoint,
-            "oidc_use_nonce": model.oidc_use_nonce,
-            "oidc_nonce_size": model.oidc_nonce_size,
-            "oidc_state_size": model.oidc_state_size,
-            "oidc_keycloak_idp_hint": model.oidc_keycloak_idp_hint,
-            "userinfo_claims_source": model.userinfo_claims_source,
-            "username_claim": model.username_claim,
-            "claim_mapping": model.claim_mapping,
-            "groups_claim": model.groups_claim,
-            "sync_groups": model.sync_groups,
-            "sync_groups_glob_pattern": model.sync_groups_glob_pattern,
-            "make_users_staff": model.make_users_staff,
-            "superuser_group_names": model.superuser_group_names,
+            "enabled": config_model.enabled,
+            "oidc_rp_client_id": config_model.oidc_rp_client_id,
+            "oidc_rp_client_secret": config_model.oidc_rp_client_secret,
+            "oidc_rp_sign_algo": config_model.oidc_rp_sign_algo,
+            "oidc_rp_scopes_list": config_model.oidc_rp_scopes_list,
+            "oidc_op_jwks_endpoint": config_model.oidc_op_jwks_endpoint,
+            "oidc_token_use_basic_auth": config_model.oidc_token_use_basic_auth,
+            "oidc_rp_idp_sign_key": config_model.oidc_rp_idp_sign_key,
+            "oidc_op_logout_endpoint": config_model.oidc_op_logout_endpoint,
+            "oidc_use_nonce": config_model.oidc_use_nonce,
+            "oidc_nonce_size": config_model.oidc_nonce_size,
+            "oidc_state_size": config_model.oidc_state_size,
+            "oidc_keycloak_idp_hint": config_model.oidc_keycloak_idp_hint,
+            "userinfo_claims_source": config_model.userinfo_claims_source,
+            "username_claim": config_model.username_claim,
+            "claim_mapping": config_model.claim_mapping,
+            "groups_claim": config_model.groups_claim,
+            "sync_groups": config_model.sync_groups,
+            "sync_groups_glob_pattern": config_model.sync_groups_glob_pattern,
+            "make_users_staff": config_model.make_users_staff,
+            "superuser_group_names": config_model.superuser_group_names,
             "default_groups": get_groups_by_name(
-                model.default_groups, model.sync_groups_glob_pattern, model.sync_groups
+                config_model.default_groups,
+                config_model.sync_groups_glob_pattern,
+                config_model.sync_groups,
             ),
         }
 
-        if isinstance(model.endpoint_config, OIDCDiscoveryEndpoint):
+        if isinstance(config_model.endpoint_config, OIDCDiscoveryEndpoint):
             all_settings.update(
-                oidc_op_discovery_endpoint=model.endpoint_config.oidc_op_discovery_endpoint,
+                oidc_op_discovery_endpoint=config_model.endpoint_config.oidc_op_discovery_endpoint,
             )
         else:
             all_settings.update(
-                oidc_op_authorization_endpoint=model.endpoint_config.oidc_op_authorization_endpoint,
-                oidc_op_token_endpoint=model.endpoint_config.oidc_op_token_endpoint,
-                oidc_op_user_endpoint=model.endpoint_config.oidc_op_user_endpoint,
+                oidc_op_authorization_endpoint=config_model.endpoint_config.oidc_op_authorization_endpoint,
+                oidc_op_token_endpoint=config_model.endpoint_config.oidc_op_token_endpoint,
+                oidc_op_user_endpoint=config_model.endpoint_config.oidc_op_user_endpoint,
             )
 
         form = OpenIDConnectConfigForm(
