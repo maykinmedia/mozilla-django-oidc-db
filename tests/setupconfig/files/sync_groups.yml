@@ -1,15 +1,17 @@
 oidc_db_config_enable: True
 oidc_db_config_admin_auth:
-  oidc_rp_client_id: client-id
-  oidc_rp_client_secret: secret
-  endpoint_config:
-    oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
-    oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
-    oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
-  sync_groups: true
-  sync_groups_glob_pattern: local.groups.*
-  default_groups:
-    - local.groups.SuperAdmins
-    - local.WeirdAdmins
-    - local.groups.NormalUsers
-    - local.WeirdUsers
+  items:
+  - identifier: admin-oidc
+    oidc_rp_client_id: client-id
+    oidc_rp_client_secret: secret
+    endpoint_config:
+      oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
+      oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
+      oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
+    sync_groups: true
+    sync_groups_glob_pattern: local.groups.*
+    default_groups:
+      - local.groups.SuperAdmins
+      - local.WeirdAdmins
+      - local.groups.NormalUsers
+      - local.WeirdUsers

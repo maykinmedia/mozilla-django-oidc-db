@@ -2,7 +2,10 @@ from django.contrib.auth.models import Group
 
 import pytest
 import requests
-from django_setup_configuration.exceptions import ConfigurationRunFailed
+from django_setup_configuration.exceptions import (
+    ConfigurationRunFailed,
+    PrerequisiteFailed,
+)
 from django_setup_configuration.test_utils import execute_single_step
 
 from mozilla_django_oidc_db.models import (
@@ -245,6 +248,30 @@ def test_configure_discovery_failure(
 
 
 @pytest.mark.django_db
+def test_configure_fails_with_multiple_configs(multiple_configs_yml):
+    with pytest.raises(ConfigurationRunFailed) as excinfo:
+        execute_single_step(
+            AdminOIDCConfigurationStep, yaml_source=multiple_configs_yml
+        )
+    assert str(excinfo.value) == "You must specify exactly one OIDC configuration"
+
+    config = OpenIDConnectConfig.get_solo()
+    assert not config.enabled
+
+
+@pytest.mark.django_db
+def test_configure_fails_without_identifier(missing_identifier_yml):
+    with pytest.raises(PrerequisiteFailed) as excinfo:
+        execute_single_step(
+            AdminOIDCConfigurationStep, yaml_source=missing_identifier_yml
+        )
+    assert "oidc_db_config_admin_auth.items.0.identifier" in str(excinfo.value)
+
+    config = OpenIDConnectConfig.get_solo()
+    assert not config.enabled
+
+
+@pytest.mark.django_db
 def test_sync_groups_is_false(no_sync_groups_config_yml):
     # create groups so they can be found
     super_admin = Group.objects.create(name="SuperAdmins")
@@ -253,8 +280,10 @@ def test_sync_groups_is_false(no_sync_groups_config_yml):
         AdminOIDCConfigurationStep, yaml_source=no_sync_groups_config_yml
     )
 
-    assert not result.config_model.sync_groups
-    assert result.config_model.default_groups == ["SuperAdmins", "NormalUsers"]
+    config_model = result.config_model.items[0]
+
+    assert not config_model.sync_groups
+    assert config_model.default_groups == ["SuperAdmins", "NormalUsers"]
 
     config = OpenIDConnectConfig.get_solo()
     assert config.default_groups.all().count() == 1
@@ -271,14 +300,16 @@ def test_sync_groups_is_true(sync_groups_config_yml):
         AdminOIDCConfigurationStep, yaml_source=sync_groups_config_yml
     )
 
-    assert result.config_model.sync_groups
-    assert result.config_model.default_groups == [
+    config_model = result.config_model.items[0]
+
+    assert config_model.sync_groups
+    assert config_model.default_groups == [
         "local.groups.SuperAdmins",
         "local.WeirdAdmins",
         "local.groups.NormalUsers",
         "local.WeirdUsers",
     ]
-    assert result.config_model.sync_groups_glob_pattern == "local.groups.*"
+    assert config_model.sync_groups_glob_pattern == "local.groups.*"
 
     config = OpenIDConnectConfig.get_solo()
     assert config.default_groups.all().count() == 3
