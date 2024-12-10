@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.21.1 (2024-12-10)
+===================
+
+A bugfix for the django-setup-configuration YAML format:
+* Move ``oidc_op_jwks_endpoint`` and ``oidc_op_logout_endpoint`` to the ``endpoint_config`` key
+
 0.21.0 (2024-12-09)
 ===================
 
