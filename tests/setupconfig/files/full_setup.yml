@@ -12,11 +12,13 @@ oidc_db_config_admin_auth:
     - extra_scope
     oidc_rp_sign_algo: RS256
     oidc_rp_idp_sign_key: key
-    oidc_op_jwks_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/certs
     endpoint_config:
         oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
         oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
         oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
+        oidc_op_jwks_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/certs
+        oidc_op_logout_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/logout
+    oidc_token_use_basic_auth: True
     username_claim:
     - claim_name
     groups_claim:
@@ -35,5 +37,6 @@ oidc_db_config_admin_auth:
     oidc_use_nonce: false
     oidc_nonce_size: 48
     oidc_state_size: 48
+    oidc_keycloak_idp_hint: foo
     userinfo_claims_source: id_token
 
