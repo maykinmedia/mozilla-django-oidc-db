@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Literal, Union
 
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
@@ -17,6 +17,12 @@ class OIDCFullEndpointConfig(ConfigurationModel):
     )
     oidc_op_user_endpoint: AnyUrl = DjangoModelRef(
         OpenIDConnectConfig, "oidc_op_user_endpoint"
+    )
+    oidc_op_logout_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
+        OpenIDConnectConfig, "oidc_op_logout_endpoint"
+    )
+    oidc_op_jwks_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
+        OpenIDConnectConfig, "oidc_op_jwks_endpoint"
     )
 
 
@@ -80,8 +86,6 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
                 "oidc_token_use_basic_auth",
                 "oidc_rp_sign_algo",
                 "oidc_rp_idp_sign_key",
-                "oidc_op_logout_endpoint",
-                "oidc_op_jwks_endpoint",
                 "oidc_use_nonce",
                 "oidc_nonce_size",
                 "oidc_state_size",
