@@ -34,10 +34,8 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             "oidc_rp_client_secret": config_model.oidc_rp_client_secret,
             "oidc_rp_sign_algo": config_model.oidc_rp_sign_algo,
             "oidc_rp_scopes_list": config_model.oidc_rp_scopes_list,
-            "oidc_op_jwks_endpoint": config_model.oidc_op_jwks_endpoint,
             "oidc_token_use_basic_auth": config_model.oidc_token_use_basic_auth,
             "oidc_rp_idp_sign_key": config_model.oidc_rp_idp_sign_key,
-            "oidc_op_logout_endpoint": config_model.oidc_op_logout_endpoint,
             "oidc_use_nonce": config_model.oidc_use_nonce,
             "oidc_nonce_size": config_model.oidc_nonce_size,
             "oidc_state_size": config_model.oidc_state_size,
@@ -66,6 +64,8 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
                 oidc_op_authorization_endpoint=config_model.endpoint_config.oidc_op_authorization_endpoint,
                 oidc_op_token_endpoint=config_model.endpoint_config.oidc_op_token_endpoint,
                 oidc_op_user_endpoint=config_model.endpoint_config.oidc_op_user_endpoint,
+                oidc_op_logout_endpoint=config_model.endpoint_config.oidc_op_logout_endpoint,
+                oidc_op_jwks_endpoint=config_model.endpoint_config.oidc_op_jwks_endpoint,
             )
 
         form = OpenIDConnectConfigForm(
