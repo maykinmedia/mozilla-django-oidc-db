@@ -39,20 +39,7 @@ The setup configuration source must contain the following base keys to use this 
 
 Example: *setup_config.yml*
 
-.. code-block:: YAML
-
-    other_enable: True
-    other_config:
-    ...
-    oidc_db_config_enable: True
-    oidc_db_config_admin_auth:
-      items:
-      - identifier: admin-oidc
-        oidc_rp_client_id: client-id
-        oidc_rp_client_secret: secret
-        endpoint_config:
-          oidc_op_discovery_endpoint: https://keycloak.local/protocol/openid-connect/
-    ...
+.. inject-validated-example:: mozilla_django_oidc_db.setup_configuration.steps.AdminOIDCConfigurationStep
 
 This is file is then used with the setup configuration command setup the OIDC admin:
 

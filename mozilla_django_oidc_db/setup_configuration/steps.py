@@ -10,6 +10,42 @@ from mozilla_django_oidc_db.setup_configuration.models import (
 from mozilla_django_oidc_db.utils import get_groups_by_name
 
 
+EXAMPLE = """\
+oidc_db_config_enable: True
+oidc_db_config_admin_auth:
+  items:
+  - identifier: admin-oidc
+    enabled: True
+    oidc_rp_client_id: testid
+    oidc_rp_client_secret: 7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I
+    oidc_rp_scopes_list:
+    - openid
+    - email
+    - profile
+    oidc_rp_sign_algo: RS256
+    endpoint_config:
+      oidc_op_discovery_endpoint: http://keycloak.open-forms.local:8080/realms/test/
+    username_claim:
+    - sub
+    groups_claim:
+    - roles
+    claim_mapping:
+      first_name:
+      - given_name
+    sync_groups: true
+    sync_groups_glob_pattern: "*"
+    default_groups:
+    - Functioneel beheer
+    make_users_staff: true
+    superuser_group_names:
+    - superuser
+    oidc_use_nonce: true
+    oidc_nonce_size: 32
+    oidc_state_size: 32
+    userinfo_claims_source: id_token
+"""
+
+
 class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationModel]):
     """
     Configure admin login via OpenID Connect
@@ -19,6 +55,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
     config_model = AdminOIDCConfigurationModel
     namespace = "oidc_db_config_admin_auth"
     enable_setting = "oidc_db_config_enable"
+    example = EXAMPLE
 
     def execute(self, model: AdminOIDCConfigurationModel) -> None:
         if len(model.items) != 1:

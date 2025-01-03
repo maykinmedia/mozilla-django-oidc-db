@@ -22,6 +22,14 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "testapp.settings")
 
 django.setup()
 
+from django_setup_configuration.documentation.directives import (
+    InjectValidatedExample,
+)
+
+
+def setup(app):
+    app.add_directive("inject-validated-example", InjectValidatedExample)
+
 # -- Project information -----------------------------------------------------
 
 project = "mozilla_django_oidc_db"
