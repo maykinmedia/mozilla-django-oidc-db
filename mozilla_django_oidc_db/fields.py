@@ -33,6 +33,9 @@ class ClaimFieldDefault:
     def __call__(self) -> list[str]:
         return self.bits
 
+    def __hash__(self) -> int:
+        return hash(tuple(self.bits))
+
 
 class ClaimField(ArrayField):
     """
