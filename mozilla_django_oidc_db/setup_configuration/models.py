@@ -92,7 +92,10 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
         OpenIDConnectConfig, "superuser_group_names", examples=[["superusers"]]
     )
     default_groups: list[str] = DjangoModelRef(
-        OpenIDConnectConfig, "superuser_group_names", examples=[["read-only-users"]]
+        OpenIDConnectConfig,
+        "default_groups",
+        examples=[["read-only-users"]],
+        default=list,
     )
     oidc_rp_scopes_list: list[str] = DjangoModelRef(
         OpenIDConnectConfig, "oidc_rp_scopes_list"
