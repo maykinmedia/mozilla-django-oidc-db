@@ -42,7 +42,6 @@ class OIDCDiscoveryEndpoint(ConfigurationModel):
     oidc_op_discovery_endpoint: AnyUrl = DjangoModelRef(
         OpenIDConnectConfig,
         "oidc_op_discovery_endpoint",
-        default=None,
         examples=[f"{EXAMPLE_REALM}/"],
     )
 
