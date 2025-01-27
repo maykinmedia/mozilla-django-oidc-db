@@ -12,7 +12,9 @@ from mozilla_django_oidc_db.utils import get_groups_by_name
 
 class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationModel]):
     """
-    Configure admin login via OpenID Connect
+    Configure the necessary settings to enable OpenID Connect authentication for admin users.
+
+    This allows admin users to log in with Single Sign On (SSO) to access the management interface.
     """
 
     verbose_name = "Configuration for admin login via OpenID Connect"

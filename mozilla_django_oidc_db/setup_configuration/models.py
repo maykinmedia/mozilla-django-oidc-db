@@ -7,28 +7,42 @@ from typing_extensions import Annotated
 
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 
+EXAMPLE_REALM = "http://keycloak.local:8080/realms/test"
+
 
 class OIDCFullEndpointConfig(ConfigurationModel):
     oidc_op_authorization_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_authorization_endpoint"
+        OpenIDConnectConfig,
+        "oidc_op_authorization_endpoint",
+        examples=[f"{EXAMPLE_REALM}/openid-connect/auth"],
     )
     oidc_op_token_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_token_endpoint"
+        OpenIDConnectConfig,
+        "oidc_op_token_endpoint",
+        examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/token"],
     )
     oidc_op_user_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_user_endpoint"
+        OpenIDConnectConfig,
+        "oidc_op_user_endpoint",
+        examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/userinfo"],
     )
     oidc_op_logout_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_logout_endpoint"
+        OpenIDConnectConfig,
+        "oidc_op_logout_endpoint",
+        examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/logout"],
     )
     oidc_op_jwks_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_jwks_endpoint"
+        OpenIDConnectConfig,
+        "oidc_op_jwks_endpoint",
+        examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/certs"],
     )
 
 
 class OIDCDiscoveryEndpoint(ConfigurationModel):
     oidc_op_discovery_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_op_discovery_endpoint", default=None
+        OpenIDConnectConfig,
+        "oidc_op_discovery_endpoint",
+        examples=[f"{EXAMPLE_REALM}/"],
     )
 
 
@@ -55,7 +69,10 @@ EndpointConfigUnion = Annotated[
 class AdminOIDCConfigurationModelItem(ConfigurationModel):
     # Currently unused because we use a SingletonModel, but this will be relevant in the
     # future
-    identifier: str = Field(description="a unique identifier for this configuration")
+    identifier: str = Field(
+        description="a unique identifier for this configuration",
+        examples=["admin-oidc"],
+    )
 
     # Change default to True
     enabled: bool = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
@@ -64,13 +81,20 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     claim_mapping: dict = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
 
     # Arrays are overridden to make the typing simpler (the underlying Django field is an ArrayField, which is non-standard)
-    username_claim: list[str] = DjangoModelRef(OpenIDConnectConfig, "username_claim")
+    username_claim: list[str] = DjangoModelRef(
+        OpenIDConnectConfig,
+        "username_claim",
+        examples=[["nested", "username", "claim"]],
+    )
     groups_claim: list[str] = DjangoModelRef(OpenIDConnectConfig, "groups_claim")
     superuser_group_names: list[str] = DjangoModelRef(
-        OpenIDConnectConfig, "superuser_group_names"
+        OpenIDConnectConfig, "superuser_group_names", examples=[["superusers"]]
     )
     default_groups: list[str] = DjangoModelRef(
-        OpenIDConnectConfig, "superuser_group_names"
+        OpenIDConnectConfig,
+        "default_groups",
+        examples=[["read-only-users"]],
+        default=list,
     )
     oidc_rp_scopes_list: list[str] = DjangoModelRef(
         OpenIDConnectConfig, "oidc_rp_scopes_list"
@@ -96,7 +120,13 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
                 "make_users_staff",
             ]
         }
+        extra_kwargs = {
+            "oidc_rp_client_id": {"examples": ["modify-this"]},
+            "oidc_rp_client_secret": {"examples": ["modify-this"]},
+            "oidc_rp_idp_sign_key": {"examples": ["modify-this"]},
+            "oidc_keycloak_idp_hint": {"examples": ["some-identity-provider"]},
+        }
 
 
 class AdminOIDCConfigurationModel(ConfigurationModel):
-    items: list[AdminOIDCConfigurationModelItem] = Field(default_factory=list)
+    items: list[AdminOIDCConfigurationModelItem]
