@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from solo.admin import SingletonModelAdmin
 
 from .forms import OpenIDConnectConfigForm
-from .models import OpenIDConnectConfig
+from .models import OIDCConfig, OIDCProviderConfig, OpenIDConnectConfig
 
 
 @admin.register(OpenIDConnectConfig)
@@ -79,3 +79,62 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
         ),
     )
     filter_horizontal = ("default_groups",)
+
+
+@admin.register(OIDCConfig)
+class OIDCConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "identifier",
+        "enabled",
+    )
+    list_filter = ("identifier", "oidc_provider_config__identifier")
+    fieldsets = (
+        (
+            _("Activation"),
+            {"fields": ("enabled",)},
+        ),
+        (
+            _("Relying Party settings"),
+            {
+                "fields": (
+                    "oidc_rp_client_id",
+                    "oidc_rp_client_secret",
+                    "oidc_rp_scopes_list",
+                    "oidc_rp_sign_algo",
+                    "oidc_rp_idp_sign_key",
+                )
+            },
+        ),
+        (
+            _("OIDC Provider"),
+            {"fields": ("oidc_provider_config",)},
+        ),
+        (
+            _("Keycloak specific settings"),
+            {
+                "fields": ("oidc_keycloak_idp_hint",),
+                "classes": ["collapse in"],
+            },
+        ),
+        (
+            _("Advanced settings"),
+            {
+                "fields": (
+                    "oidc_use_nonce",
+                    "oidc_nonce_size",
+                    "oidc_state_size",
+                    "userinfo_claims_source",
+                ),
+                "classes": [
+                    "collapse in",
+                ],
+            },
+        ),
+        (_("Custom settings"), {"fields": ("options",)}),
+    )
+
+
+@admin.register(OIDCProviderConfig)
+class OIDCProviderConfigAdmin(admin.ModelAdmin):
+    list_display = ("identifier",)
+    list_filter = ("identifier",)
