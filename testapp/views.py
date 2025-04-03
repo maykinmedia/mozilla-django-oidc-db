@@ -1,6 +1,11 @@
-from mozilla_django_oidc_db.views import OIDCAuthenticationCallbackView, OIDCInit
+from django.http import HttpResponse
 
-from .models import CustomCallbackViewConfig
+from mozilla_django_oidc_db.views import (
+    OIDCAuthenticationCallbackView,
+    OIDCInit,
+)
+
+from .models import AnotherEmptyConfig, CustomCallbackViewConfig, EmptyConfig
 
 
 class CustomCallbackView(OIDCAuthenticationCallbackView):
@@ -10,3 +15,5 @@ class CustomCallbackView(OIDCAuthenticationCallbackView):
 
 
 custom_callback_view_init = OIDCInit.as_view(config_class=CustomCallbackViewConfig)
+empty_config_callback_view_init = lambda r: HttpResponse()
+another_empty_config_callback_view_init = lambda r: HttpResponse()

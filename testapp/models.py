@@ -5,7 +5,15 @@ from mozilla_django_oidc_db.typing import DjangoView
 
 
 class EmptyConfig(OpenIDConnectConfigBase):
-    pass
+    @property
+    def oidc_authentication_callback_url(self):
+        return "empty-config-callback"
+
+
+class AnotherEmptyConfig(OpenIDConnectConfigBase):
+    @property
+    def oidc_authentication_callback_url(self):
+        return "another-empty-config-callback"
 
 
 class WrongConfigModel(SingletonModel):
