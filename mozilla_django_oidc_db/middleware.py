@@ -1,29 +1,25 @@
-from typing import Any, ClassVar, Generic, TypeVar, cast
+from typing import Any, cast
 
-from django.http import HttpRequest
+from django.urls import reverse
 
 from mozilla_django_oidc.middleware import SessionRefresh as BaseSessionRefresh
 from typing_extensions import override
 
-from .config import dynamic_setting, get_setting_from_config
-from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
+from .config import (
+    BadRequest,
+    dynamic_setting,
+    get_setting_from_config,
+    lookup_config,
+)
+from .models import OpenIDConnectConfigBase
 
-T = TypeVar("T", bound=OpenIDConnectConfigBase)
 
-
-class BaseRefreshMiddleware(Generic[T], BaseSessionRefresh):
+class SessionRefresh(BaseSessionRefresh):
     """
-    Point the middleware to a particular config class to use.
-
-    This base class sets up the dynamic settings mechanism.
-    """
-
-    _config: T
-    config_class: ClassVar[type[OpenIDConnectConfigBase]]
-    """
-    The config model/class to get the endpoints/credentials from.
+    Refresh stale sessions based on a config dynamically resolved from the session.
     """
 
+    _config: OpenIDConnectConfigBase
     OIDC_EXEMPT_URLS = dynamic_setting[list[str]](default=[])
     OIDC_OP_AUTHORIZATION_ENDPOINT = dynamic_setting[str]()
     OIDC_RP_CLIENT_ID = dynamic_setting[str]()
@@ -52,24 +48,39 @@ class BaseRefreshMiddleware(Generic[T], BaseSessionRefresh):
         at stale cached configuration.
         """
         if (config := getattr(self, "_config", None)) is None:
-            # django-solo and type checking is challenging, but a new release is on the
-            # way and should fix that :fingers_crossed:
-            config = cast(T, self.config_class.get_solo())
-            self._config = config
+            raise BadRequest("No config object was set from the request")
+
         return get_setting_from_config(config, attr, *args)
 
-    def __call__(self, request: HttpRequest):
-        # reset the python-level cache for each request
-        if hasattr(self, "_config"):
-            del self._config
-        return super().__call__(request)
+    def _set_config_from_request(self, request):
+        config_class = lookup_config(request)
+
+        # django-solo and type checking is challenging, but a new release is on the
+        # way and should fix that :fingers_crossed:
+        config = cast(OpenIDConnectConfigBase, config_class.get_solo())
+        self._config = config
 
     def process_request(self, request):
+        try:
+            self._set_config_from_request(request)
+        except BadRequest:
+            return None
+
         # do nothing if the configuration is not enabled
         if not self.get_settings("ENABLED"):
             return None
+
         return super().process_request(request)
 
-
-class SessionRefresh(BaseRefreshMiddleware[OpenIDConnectConfig]):
-    config_class = OpenIDConnectConfig
+    @property
+    def exempt_urls(self):
+        # In many cases, the OIDC_AUTHENTICATION_CALLBACK_URL will be the generic
+        # callback handler and already be part of super().exempt_urls. However, this is
+        # not a given, and consumers might have implemented different callback handlers,
+        # in which case they may have overridden the callback URL on the config class.
+        #
+        # If this is the case, it should always be part of the exempt URLs.
+        callback_url = self.OIDC_AUTHENTICATION_CALLBACK_URL
+        return {
+            callback_url if callback_url.startswith("/") else reverse(callback_url)
+        } | super().exempt_urls
