@@ -6,8 +6,10 @@ from django.test import RequestFactory
 
 import pytest
 
+from mozilla_django_oidc_db.constants import CONFIG_CLASS_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.models import OpenIDConnectConfig, OpenIDConnectConfigBase
+from testapp.models import AnotherEmptyConfig, EmptyConfig
 
 
 @pytest.fixture(scope="session")
@@ -28,13 +30,28 @@ def session_refresh(dummy_view):
     return SessionRefresh(dummy_view)
 
 
+@pytest.fixture()
+def request_factory(rf: RequestFactory, session_middleware):
+    def _factory(config_class: OpenIDConnectConfigBase | None = None):
+        request = rf.get("/")
+        session_middleware(request)
+        session = request.session
+        session[CONFIG_CLASS_SESSION_KEY] = (
+            config_class or OpenIDConnectConfig
+        )._meta.label
+        session.save()
+        return request
+
+    return _factory
+
+
 @pytest.mark.oidcconfig(enabled=False)
 def test_sessionrefresh_oidc_not_enabled(
     dummy_config: OpenIDConnectConfig,
-    rf: RequestFactory,
+    request_factory,
     session_refresh: SessionRefresh,
 ):
-    request = rf.get("/")
+    request = request_factory(dummy_config)
 
     # Running the middleware should return None, since OIDC is disabled
     result = session_refresh(request)
@@ -49,8 +66,7 @@ def test_sessionrefresh_oidc_not_enabled(
 )
 def test_sessionrefresh_config_always_refreshed(
     dummy_config: OpenIDConnectConfig,
-    rf: RequestFactory,
-    session_middleware: SessionMiddleware,
+    request_factory,
     session_refresh: SessionRefresh,
     mocker,
 ):
@@ -58,8 +74,7 @@ def test_sessionrefresh_config_always_refreshed(
     Middleware should refresh the config on every call
     """
     mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
-    request = rf.get("/")
-    session_middleware(request)
+    request = request_factory()
 
     result1 = session_refresh(request)
     assert isinstance(result1, HttpResponseRedirect)
@@ -82,9 +97,8 @@ def test_sessionrefresh_config_always_refreshed(
 def test_sessionrefresh_config_use_defaults(
     dummy_config,
     settings,
-    session_middleware: SessionMiddleware,
     session_refresh: SessionRefresh,
-    rf: RequestFactory,
+    request_factory,
     mocker,
 ):
     """
@@ -93,8 +107,7 @@ def test_sessionrefresh_config_use_defaults(
     settings.OIDC_AUTHENTICATION_CALLBACK_URL = "admin:index"
     mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
 
-    request = rf.get("/")
-    session_middleware(request)
+    request = request_factory(dummy_config.__class__)
 
     result = session_refresh(request)
 
@@ -102,13 +115,3 @@ def test_sessionrefresh_config_use_defaults(
     query = parse_qs(urlparse(result.url).query)
     assert query["redirect_uri"] == ["http://testserver/admin/"]
     assert len(query["nonce"][0]) == 32  # default set on middleware dynamic_setting
-
-
-def test_attributeerror_for_non_oidc_attribute(
-    dummy_config, session_refresh: SessionRefresh
-):
-    with pytest.raises(AttributeError):
-        session_refresh.__name__  # type: ignore
-
-    # OIDC attributes should never raise AttributeErrors
-    assert session_refresh.OIDC_AUTHENTICATION_CALLBACK_URL
