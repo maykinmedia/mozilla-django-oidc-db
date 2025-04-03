@@ -141,7 +141,20 @@ def store_config(request: HttpRequest) -> None:
 
 
 def lookup_config(request: HttpRequest) -> type[OpenIDConnectConfigBase]:
-    # cache on request for optimized access
-    if (config := getattr(request, "_oidcdb_config_class", None)) is None:
-        raise BadRequest("The required config is not available on the request.")
+    # cache on request for optimized access -- preferred access
+    if config := getattr(request, "_oidcdb_config_class", None):
+        return config
+
+    # if not cached, try to reconstruct from session
+    if (session := getattr(request, "session", None)) is None:
+        raise BadRequest("No session present on request")
+
+    if (config_class := session.get(CONFIG_CLASS_SESSION_KEY)) is None:
+        raise BadRequest("The required config is not available on the session.")
+
+    try:
+        config = apps.get_model(config_class)
+    except (LookupError, ValueError) as exc:
+        raise BadRequest("Could not look up the referenced config.") from exc
+
     return config

@@ -636,6 +636,7 @@ def test_groups_claim_wrong_type(dummy_config, callback_request: HttpRequest):
 
 def test_authenticate_without_previous_state(rf: RequestFactory):
     request = rf.get("/oidc/callback", {"state": "foo", "code": "bar"})
+    request.session = {}
     backend = OIDCAuthenticationBackend()
 
     with pytest.raises(BadRequest):
