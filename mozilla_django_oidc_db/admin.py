@@ -94,6 +94,10 @@ class OIDCConfigAdmin(admin.ModelAdmin):
             {"fields": ("enabled",)},
         ),
         (
+            _("OIDC Provider"),
+            {"fields": ("oidc_provider_config",)},
+        ),
+        (
             _("Relying Party settings"),
             {
                 "fields": (
@@ -105,17 +109,7 @@ class OIDCConfigAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        (
-            _("OIDC Provider"),
-            {"fields": ("oidc_provider_config",)},
-        ),
-        (
-            _("Keycloak specific settings"),
-            {
-                "fields": ("oidc_keycloak_idp_hint",),
-                "classes": ["collapse in"],
-            },
-        ),
+        (_("Custom settings"), {"fields": ("options",)}),
         (
             _("Advanced settings"),
             {
@@ -124,13 +118,13 @@ class OIDCConfigAdmin(admin.ModelAdmin):
                     "oidc_nonce_size",
                     "oidc_state_size",
                     "userinfo_claims_source",
+                    "oidc_keycloak_idp_hint",
                 ),
                 "classes": [
                     "collapse in",
                 ],
             },
         ),
-        (_("Custom settings"), {"fields": ("options",)}),
     )
 
 

@@ -15,55 +15,44 @@ def move_data_backwards(apps, schema_editor):
     if not new_config:
         return
 
-    old_config = OpenIDConnectConfig()
-
-    old_config.enabled = new_config.enabled
-    old_config.oidc_rp_client_id = new_config.oidc_rp_client_id
-    old_config.oidc_rp_client_secret = new_config.oidc_rp_client_secret
-    old_config.oidc_rp_sign_algo = new_config.oidc_rp_sign_algo
-    old_config.oidc_rp_scopes_list = new_config.oidc_rp_scopes_list
-
-    old_config.oidc_op_discovery_endpoint = (
-        new_config.oidc_provider_config.oidc_op_discovery_endpoint
-    )
-    old_config.oidc_op_jwks_endpoint = (
-        new_config.oidc_provider_config.oidc_op_jwks_endpoint
-    )
-    old_config.oidc_op_authorization_endpoint = (
-        new_config.oidc_provider_config.oidc_op_authorization_endpoint
-    )
-    old_config.oidc_op_token_endpoint = (
-        new_config.oidc_provider_config.oidc_op_token_endpoint
-    )
-    old_config.oidc_op_user_endpoint = (
-        new_config.oidc_provider_config.oidc_op_user_endpoint
-    )
-    old_config.oidc_op_logout_endpoint = (
-        new_config.oidc_provider_config.oidc_op_logout_endpoint
-    )
-
-    old_config.oidc_token_use_basic_auth = new_config.oidc_token_use_basic_auth
-    old_config.oidc_rp_idp_sign_key = new_config.oidc_rp_idp_sign_key
-    old_config.oidc_use_nonce = new_config.oidc_use_nonce
-    old_config.oidc_nonce_size = new_config.oidc_nonce_size
-    old_config.oidc_state_size = new_config.oidc_state_size
-    old_config.oidc_keycloak_idp_hint = new_config.oidc_keycloak_idp_hint
-    old_config.userinfo_claims_source = new_config.userinfo_claims_source
-
-    old_config.username_claim = new_config.options["user_claim_mappings"]["username"]
-
     other_user_mappings = new_config.options["user_claim_mappings"]
     del other_user_mappings["username"]
 
-    old_config.claim_mapping = other_user_mappings
-
     group_settings = new_config.options.get("groups_settings", {})
-    old_config.groups_claim = group_settings.get("claim_mapping", [])
-    old_config.sync_groups = group_settings.get("sync", True)
-    old_config.sync_groups_glob_pattern = group_settings.get("sync_pattern", "*")
-    old_config.make_users_staff = group_settings.get("make_users_staff", False)
-    old_config.superuser_group_names = group_settings.get("superuser_group_names", [])
-    old_config.save()
+
+    old_config = OpenIDConnectConfig.objects.create(
+        enabled=new_config.enabled,
+        oidc_rp_client_id=new_config.oidc_rp_client_id,
+        oidc_rp_client_secret=new_config.oidc_rp_client_secret,
+        oidc_rp_sign_algo=new_config.oidc_rp_sign_algo,
+        oidc_rp_scopes_list=new_config.oidc_rp_scopes_list,
+        oidc_op_discovery_endpoint=(
+            new_config.oidc_provider_config.oidc_op_discovery_endpoint
+        ),
+        oidc_op_jwks_endpoint=new_config.oidc_provider_config.oidc_op_jwks_endpoint,
+        oidc_op_authorization_endpoint=(
+            new_config.oidc_provider_config.oidc_op_authorization_endpoint
+        ),
+        oidc_op_token_endpoint=new_config.oidc_provider_config.oidc_op_token_endpoint,
+        oidc_op_user_endpoint=new_config.oidc_provider_config.oidc_op_user_endpoint,
+        oidc_op_logout_endpoint=(
+            new_config.oidc_provider_config.oidc_op_logout_endpoint
+        ),
+        oidc_token_use_basic_auth=new_config.oidc_token_use_basic_auth,
+        oidc_rp_idp_sign_key=new_config.oidc_rp_idp_sign_key,
+        oidc_use_nonce=new_config.oidc_use_nonce,
+        oidc_nonce_size=new_config.oidc_nonce_size,
+        oidc_state_size=new_config.oidc_state_size,
+        oidc_keycloak_idp_hint=new_config.oidc_keycloak_idp_hint,
+        userinfo_claims_source=new_config.userinfo_claims_source,
+        username_claim=new_config.options["user_claim_mappings"]["username"],
+        claim_mapping=other_user_mappings,
+        groups_claim=group_settings.get("claim_mapping", []),
+        sync_groups=group_settings.get("sync", True),
+        sync_groups_glob_pattern=group_settings.get("sync_pattern", "*"),
+        make_users_staff=group_settings.get("make_users_staff", False),
+        superuser_group_names=group_settings.get("superuser_group_names", []),
+    )
 
     groups = [
         Group.objects.get_or_create(name=group_name)[0]
@@ -86,51 +75,48 @@ def move_data_forward(apps, schema_editor):
     if not old_config:
         return
 
-    oidc_provider_config = OIDCProviderConfig()
-    oidc_provider_config.identifier = "admin-oidc-provider"
-    oidc_provider_config.oidc_op_discovery_endpoint = (
-        old_config.oidc_op_discovery_endpoint
+    oidc_provider_config = OIDCProviderConfig.objects.create(
+        identifier="admin-oidc-provider",
+        oidc_op_discovery_endpoint=(old_config.oidc_op_discovery_endpoint),
+        oidc_op_jwks_endpoint=old_config.oidc_op_jwks_endpoint,
+        oidc_op_authorization_endpoint=(old_config.oidc_op_authorization_endpoint),
+        oidc_op_token_endpoint=old_config.oidc_op_token_endpoint,
+        oidc_op_user_endpoint=old_config.oidc_op_user_endpoint,
+        oidc_op_logout_endpoint=old_config.oidc_op_logout_endpoint,
     )
-    oidc_provider_config.oidc_op_jwks_endpoint = old_config.oidc_op_jwks_endpoint
-    oidc_provider_config.oidc_op_authorization_endpoint = (
-        old_config.oidc_op_authorization_endpoint
+
+    OIDCConfig.objects.create(
+        identifier="admin-oidc",
+        enabled=old_config.enabled,
+        oidc_provider_config=oidc_provider_config,
+        oidc_rp_client_id=old_config.oidc_rp_client_id,
+        oidc_rp_client_secret=old_config.oidc_rp_client_secret,
+        oidc_rp_sign_algo=old_config.oidc_rp_sign_algo,
+        oidc_rp_scopes_list=old_config.oidc_rp_scopes_list,
+        oidc_rp_idp_sign_key=old_config.oidc_rp_idp_sign_key,
+        oidc_token_use_basic_auth=old_config.oidc_token_use_basic_auth,
+        oidc_use_nonce=old_config.oidc_use_nonce,
+        oidc_nonce_size=old_config.oidc_nonce_size,
+        oidc_state_size=old_config.oidc_state_size,
+        oidc_keycloak_idp_hint=old_config.oidc_keycloak_idp_hint,
+        userinfo_claims_source=old_config.userinfo_claims_source,
+        options={
+            "user_claim_mappings": {
+                "username": old_config.username_claim,
+                **old_config.claim_mapping,
+            },
+            "groups_settings": {
+                "claim_mapping": old_config.groups_claim,
+                "sync": old_config.sync_groups,
+                "sync_pattern": old_config.sync_groups_glob_pattern,
+                "default_groups": [
+                    group.name for group in old_config.default_groups.all()
+                ],
+                "make_users_staff": old_config.make_users_staff,
+                "superuser_group_names": old_config.superuser_group_names,
+            },
+        },
     )
-    oidc_provider_config.oidc_op_token_endpoint = old_config.oidc_op_token_endpoint
-    oidc_provider_config.oidc_op_user_endpoint = old_config.oidc_op_user_endpoint
-    oidc_provider_config.oidc_op_logout_endpoint = old_config.oidc_op_logout_endpoint
-    oidc_provider_config.save()
-
-    new_config = OIDCConfig()
-    new_config.identifier = "admin-oidc"
-    new_config.enabled = old_config.enabled
-    new_config.oidc_provider_config = oidc_provider_config
-    new_config.oidc_rp_client_id = old_config.oidc_rp_client_id
-    new_config.oidc_rp_client_secret = old_config.oidc_rp_client_secret
-    new_config.oidc_rp_sign_algo = old_config.oidc_rp_sign_algo
-    new_config.oidc_rp_scopes_list = old_config.oidc_rp_scopes_list
-    new_config.oidc_rp_idp_sign_key = old_config.oidc_rp_idp_sign_key
-    new_config.oidc_token_use_basic_auth = old_config.oidc_token_use_basic_auth
-    new_config.oidc_use_nonce = old_config.oidc_use_nonce
-    new_config.oidc_nonce_size = old_config.oidc_nonce_size
-    new_config.oidc_state_size = old_config.oidc_state_size
-    new_config.oidc_keycloak_idp_hint = old_config.oidc_keycloak_idp_hint
-    new_config.userinfo_claims_source = old_config.userinfo_claims_source
-
-    new_config.options = {
-        "user_claim_mappings": {
-            "username": old_config.username_claim,
-            **old_config.claim_mapping,
-        },
-        "groups_settings": {
-            "claim_mapping": old_config.groups_claim,
-            "sync": old_config.sync_groups,
-            "sync_pattern": old_config.sync_groups_glob_pattern,
-            "default_groups": [group.name for group in old_config.default_groups.all()],
-            "make_users_staff": old_config.make_users_staff,
-            "superuser_group_names": old_config.superuser_group_names,
-        },
-    }
-    new_config.save()
 
 
 class Migration(migrations.Migration):

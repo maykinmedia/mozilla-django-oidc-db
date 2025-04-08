@@ -442,9 +442,10 @@ class OIDCProviderConfig(models.Model):
 
     class Meta:
         verbose_name = _("OIDC Provider configuration")
+        verbose_name_plural = _("OIDC Provider configurations")
 
     def __str__(self):
-        return f"OIDC Provider {self.identifier}"
+        return _("OIDC Provider %(identifier)s") % {"identifier": self.identifier}
 
 
 class OIDCConfig(models.Model):
@@ -566,6 +567,7 @@ class OIDCConfig(models.Model):
 
     class Meta:
         verbose_name = _("OIDC configuration")
+        verbose_name_plural = _("OIDC configurations")
 
     def __str__(self):
-        return f"OIDC Config {self.identifier}"
+        return _("OIDC Config %(identifier)s") % {"identifier": self.identifier}
