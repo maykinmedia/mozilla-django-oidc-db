@@ -24,3 +24,6 @@ CLAIM_MAPPING_SCHEMA = {
         "items": {"type": "string"},
     },
 }
+
+DEFAULT_CONFIG_IDENTIFIER = "admin-oidc"
+DEFAULT_PROVIDER_CONFIG_IDENTIFIER = "admin-oidc-provider"

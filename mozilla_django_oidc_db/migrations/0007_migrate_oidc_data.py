@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+from ..constants import DEFAULT_CONFIG_IDENTIFIER, DEFAULT_PROVIDER_CONFIG_IDENTIFIER
+
 
 def move_data_backwards(apps, schema_editor):
     OIDCConfig = apps.get_model("mozilla_django_oidc_db", "OIDCConfig")
@@ -76,7 +78,7 @@ def move_data_forward(apps, schema_editor):
         return
 
     oidc_provider_config = OIDCProviderConfig.objects.create(
-        identifier="admin-oidc-provider",
+        identifier=DEFAULT_PROVIDER_CONFIG_IDENTIFIER,
         oidc_op_discovery_endpoint=(old_config.oidc_op_discovery_endpoint),
         oidc_op_jwks_endpoint=old_config.oidc_op_jwks_endpoint,
         oidc_op_authorization_endpoint=(old_config.oidc_op_authorization_endpoint),
@@ -86,7 +88,7 @@ def move_data_forward(apps, schema_editor):
     )
 
     OIDCConfig.objects.create(
-        identifier="admin-oidc",
+        identifier=DEFAULT_CONFIG_IDENTIFIER,
         enabled=old_config.enabled,
         oidc_provider_config=oidc_provider_config,
         oidc_rp_client_id=old_config.oidc_rp_client_id,
