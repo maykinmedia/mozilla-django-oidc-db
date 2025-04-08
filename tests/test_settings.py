@@ -1,9 +1,12 @@
 from typing import Any
 
+from django.test import RequestFactory
+
 import pytest
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.config import lookup_config
+from mozilla_django_oidc_db.constants import CONFIG_CLASS_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OpenIDConnectConfig
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestView
@@ -84,8 +87,17 @@ def test_view_settings_derived_from_model_oidc_enabled(
 )
 def test_middleware_use_falsy_default(
     dummy_config: OpenIDConnectConfig,
+    rf: RequestFactory,
+    mocker,
 ):
+
     middleware = SessionRefresh(lambda x: x)
+
+    request = rf.get("/")
+    request.session = {CONFIG_CLASS_SESSION_KEY: OpenIDConnectConfig._meta.label}
+
+    mocker.patch.object(middleware, "is_refreshable_url", return_value=True)
+    middleware._set_config_from_request(request)
 
     # verify that the defaults are allowed
     assert middleware.OIDC_EXEMPT_URLS == []
