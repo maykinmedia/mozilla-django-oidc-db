@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mozilla-django-oidc-db"
-version = "0.22.0"
+version = "0.23.0"
 description = "A database-backed configuration for mozilla-django-oidc"
 authors = [
     {name = "Maykin Media", email = "support@maykinmedia.nl"}

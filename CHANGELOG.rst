@@ -2,6 +2,27 @@
 Changelog
 =========
 
+0.23.0 (2025-04-08)
+===================
+
+Feature release to make the ``SessionRefresh`` middleware dynamic config aware.
+
+* The ``SessionRefresh`` middleware would previously hardcode the assumption that, if an
+  ID token had expired, the user should be redirected to the IdP as configured by the
+  ``OpenIDConnectConfig`` singleton. This would frequently cause issues if multiple OIDC
+  backends were configured in parallel, causing a user to be redirected with state and
+  session parameters for this singleton, rather than the specific OIDC backend that the
+  user used to authenticate. This release uses the session parameters to select the
+  correct config model for the active OIDC backend.
+
+**💥 Breaking changes**
+
+The ``mozilla_django_oidc_db.middleware`` module no longer exports
+``BaseRefreshMiddleware``. If you previously relied on this class in order to specify a
+config class other than the default ``OpenIDConnectConfig``, you should now be able to
+just use ``mozilla_django_oidc_db.middleware.SessionRefresh`` and rely on the middleware to select
+the appropriate config class.
+
 0.22.0 (2025-01-27)
 ===================
 
