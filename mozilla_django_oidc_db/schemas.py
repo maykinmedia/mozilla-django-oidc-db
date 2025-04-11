@@ -7,42 +7,56 @@ OPTIONS_SCHEMA = {
     "type": "object",
     "additionalProperties": True,
     "properties": {
-        "user_claim_mappings": {
-            "description": _(
-                "Mapping between the Django User model fields and a path to a claim value."
-            ),
+        "user_settings": {
+            "description": _("Settings for managing the local Django Users."),
             "type": "object",
             "properties": {
-                "username": {
-                    "description": _("Path to the claim to use as username."),
-                    "type": "array",
-                    "items": {
-                        "type": "string",
+                "claim_mappings": {
+                    "description": _(
+                        "Mapping between the Django User model fields and a path to a claim value."
+                    ),
+                    "type": "object",
+                    "properties": {
+                        "username": {
+                            "description": _("Path to the claim to use as username."),
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
+                        "first_name": {
+                            "description": _("Path to the claim to use as first name."),
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
+                        "last_name": {
+                            "description": _("Path to the claim to use as last name."),
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
+                        "email": {
+                            "description": _("Path to the claim to use as email."),
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                            },
+                        },
                     },
+                    "required": ["username"],
+                    "additionalProperties": True,
                 },
-                "first_name": {
-                    "description": _("Path to the claim to use as first name."),
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                    },
-                },
-                "last_name": {
-                    "description": _("Path to the claim to use as last name."),
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                    },
-                },
-                "email": {
-                    "description": _("Path to the claim to use as email."),
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                    },
+                "username_case_sensitive": {
+                    "description": _(
+                        "Whether the username of the Django User is case sensitive. Defaults to true."
+                    ),
+                    "type": "boolean",
                 },
             },
-            "required": ["username"],
+            "required": ["claim_mappings"],
             "additionalProperties": True,
         },
         "groups_settings": {

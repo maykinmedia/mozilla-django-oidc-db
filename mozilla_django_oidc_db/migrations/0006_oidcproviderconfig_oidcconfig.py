@@ -90,6 +90,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "OIDC Provider configuration",
+                "verbose_name_plural": "OIDC Provider configurations",
             },
         ),
         migrations.CreateModel(
@@ -241,6 +242,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "OIDC configuration",
+                "verbose_name_plural": "OIDC configurations",
             },
         ),
     ]

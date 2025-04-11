@@ -17,7 +17,8 @@ def move_data_backwards(apps, schema_editor):
     if not new_config:
         return
 
-    other_user_mappings = new_config.options["user_claim_mappings"]
+    other_user_mappings = new_config.options["user_settings"]["claim_mappings"]
+    username_claim_mapping = other_user_mappings["username"]
     del other_user_mappings["username"]
 
     group_settings = new_config.options.get("groups_settings", {})
@@ -47,7 +48,7 @@ def move_data_backwards(apps, schema_editor):
         oidc_state_size=new_config.oidc_state_size,
         oidc_keycloak_idp_hint=new_config.oidc_keycloak_idp_hint,
         userinfo_claims_source=new_config.userinfo_claims_source,
-        username_claim=new_config.options["user_claim_mappings"]["username"],
+        username_claim=username_claim_mapping,
         claim_mapping=other_user_mappings,
         groups_claim=group_settings.get("claim_mapping", []),
         sync_groups=group_settings.get("sync", True),
@@ -103,9 +104,11 @@ def move_data_forward(apps, schema_editor):
         oidc_keycloak_idp_hint=old_config.oidc_keycloak_idp_hint,
         userinfo_claims_source=old_config.userinfo_claims_source,
         options={
-            "user_claim_mappings": {
-                "username": old_config.username_claim,
-                **old_config.claim_mapping,
+            "user_settings": {
+                "claim_mappings": {
+                    "username": old_config.username_claim,
+                    **old_config.claim_mapping,
+                },
             },
             "groups_settings": {
                 "claim_mapping": old_config.groups_claim,
