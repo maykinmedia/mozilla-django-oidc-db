@@ -9,14 +9,12 @@ import pytest
 from pytest_django.asserts import assertContains, assertRedirects
 
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
+    OIDCConfig,
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.typing import JSONObject
-from mozilla_django_oidc_db.views import OIDCInit
+from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 from testapp.backends import MockBackend
-from testapp.models import WrongConfigModel
-from testapp.views import custom_callback_view_init
 
 from .factories import UserFactory
 
@@ -51,7 +49,7 @@ def callback_client(callback_request: HttpRequest, client: Client) -> Client:
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_duplicate_email_unique_constraint_violated(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -96,12 +94,12 @@ def test_duplicate_email_unique_constraint_violated(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    claim_mapping={
-        "is_superuser": ["wrong_is_superuser_value_type"],
+    extra_options={
+        "user_settings.claim_mappings.is_superuser": ["wrong_is_superuser_value_type"]
     },
 )
 def test_validation_error_during_authentication(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -138,7 +136,7 @@ def test_validation_error_during_authentication(
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_happy_flow(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -152,39 +150,13 @@ def test_happy_flow(
     assert user.username == "some_username"
 
 
-@pytest.mark.mock_backend_claims(
-    {
-        "email": "someone@example.com",
-        "sub": "some_username",
-    }
-)
-@pytest.mark.callback_request(init_view=custom_callback_view_init)
-@pytest.mark.oidcconfig(
-    enabled=True,
-    userinfo_claims_source=UserInformationClaimsSources.id_token,
-)
-def test_dynamically_routed_callback_view(
-    dummy_config: OpenIDConnectConfig,
-    callback_request: HttpRequest,
-    callback_client: Client,
-    mock_auth_backend: MockBackend,
-):
-    callback_url = reverse("oidc_authentication_callback")
-
-    callback_response = callback_client.get(callback_url, {**callback_request.GET})
-
-    assertRedirects(
-        callback_response, "/custom-success-url", fetch_redirect_response=False
-    )
-
-
 @pytest.mark.mock_backend_claims({})
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_empty_claims_returned(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -202,7 +174,7 @@ def test_empty_claims_returned(
 
 
 def test_tampering_with_parameters_invalid_state(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
 ):
@@ -215,18 +187,18 @@ def test_tampering_with_parameters_invalid_state(
     assert callback_response.status_code == 400
 
 
-def test_invalid_reference_to_config_class(
-    dummy_config: OpenIDConnectConfig,
+def test_invalid_reference_to_config_identifier(
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
 ):
     # This only guards against programmer mistakes downstream that would lead to the
-    # end-user being able to manipulate the config_class being set in the state. It is
+    # end-user being able to manipulate the config_identifier being set in the state. It is
     # a synthetic case.
     callback_url = reverse("oidc_authentication_callback")
     state_key = callback_request.GET["state"]
     session = callback_client.session
-    del session["oidc_states"][state_key]["config_class"]
+    del session["oidc_states"][state_key]["config_identifier"]
     session.save()
 
     callback_response = callback_client.get(callback_url, {"state": state_key})
@@ -235,11 +207,13 @@ def test_invalid_reference_to_config_class(
 
 
 @pytest.mark.django_db
+@pytest.mark.oidcconfig(enabled=False, oidc_op_authorization_endpoint="bad")
 def test_wrong_config_model_used(
+    dummy_config: OIDCConfig,
     auth_request: HttpRequest,
     client: Client,
 ):
-    init_view = OIDCInit.as_view(config_class=WrongConfigModel)
+    init_view = OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc")
     init_view(auth_request)
     # there is only one state expected
     state_key = list(auth_request.session["oidc_states"].keys())[0]
@@ -253,7 +227,8 @@ def test_wrong_config_model_used(
         callback_url, {"state": state_key, "code": "irrelevant"}
     )
 
-    assert callback_response.status_code == 400
+    assert callback_response.status_code == 302
+    assert callback_response.url == "/admin/login/failure/"
 
 
 @pytest.mark.auth_request(next="/admin/")
@@ -262,7 +237,7 @@ def test_wrong_config_model_used(
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_error_first_cleared_after_succesful_login(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,

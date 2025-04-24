@@ -1,7 +1,10 @@
 from contextlib import nullcontext
 
+from glom import assign
 from pyquery import PyQuery as pq
 from requests import Session
+
+from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
 
 
 def keycloak_login(
@@ -46,3 +49,57 @@ def keycloak_login(
         )
 
         return redirect_uri
+
+
+def create_or_update_configuration(
+    identifier_provider: str, identifier_config: str, data: dict
+) -> OIDCConfig:
+    """Create or update a OIDCConfig and OIDCProviderConfig.
+
+    The fields for the OIDCProviderConfig are extracted from data and used to create/update the provider configuration.
+    Then the fields for the OIDCConfig are extracted and used to create/update the configuration. The foreing key
+    to the provider will point to the just created/updated provider.
+
+    It is possible to provide an extra field in the ``data`` dict called ``extra_options``. This is a dict with as key
+    a dotted path for within the ``options`` field of the configuration, and as value the value to use for the specified field.
+    For example, if ``extra_options`` is ``{"user_settings.claim_mappings.username": ["sub", "blob"]}``, then the configuration
+    will have an options field:
+
+    .. code:: python
+
+       {
+            "user_settings": {
+                "claim_mappings": {
+                    "username": ["sub", "blob"]
+                }
+            }
+       }
+
+
+    """
+
+    oidc_provider_config_fields = [
+        field.name for field in OIDCProviderConfig._meta.fields
+    ]
+    fields_provider = {
+        key: value for key, value in data.items() if key in oidc_provider_config_fields
+    }
+    oidc_provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+        identifier=identifier_provider,
+        defaults=fields_provider,
+    )
+
+    oidc_config_fields = [field.name for field in OIDCConfig._meta.fields]
+    fields_config = {
+        key: value for key, value in data.items() if key in oidc_config_fields
+    }
+    config, _ = OIDCConfig.objects.update_or_create(
+        identifier=identifier_config,
+        defaults=fields_config,
+    )
+    config.oidc_provider_config = oidc_provider_config
+    for path, value in data.get("extra_options", {}).items():
+        assign(config.options, path, value)
+    config.save()
+
+    return config

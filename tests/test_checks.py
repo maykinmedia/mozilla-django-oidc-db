@@ -41,7 +41,7 @@ def test_check_authenticate_class_not_a_string(app_configs, settings):
         "'settings.OIDC_AUTHENTICATE_CLASS' must be a string that can be imported.",
         hint=(
             "Use 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestView' or a "
-            "subclass of 'mozilla_django_oidc_db.views.OIDCInit'."
+            "subclass of 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView'."
         ),
         id="mozilla_django_oidc_db.E001",
     )
@@ -54,10 +54,10 @@ def test_check_authenticate_class_invalid_view(app_configs, settings):
 
     assert len(messages) == 1
     assert messages[0] == Warning(
-        "'settings.OIDC_AUTHENTICATE_CLASS' should be a subclass of 'OIDCInit'.",
+        "'settings.OIDC_AUTHENTICATE_CLASS' should be a subclass of 'OIDCAuthenticationRequestInitView'.",
         hint=(
             "Use 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestView' or a "
-            "subclass of 'mozilla_django_oidc_db.views.OIDCInit'."
+            "subclass of 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView'."
         ),
         id="mozilla_django_oidc_db.W001",
     )

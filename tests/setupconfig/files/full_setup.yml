@@ -1,7 +1,7 @@
 oidc_db_config_enable: True
 oidc_db_config_admin_auth:
   items:
-  - identifier: admin-oidc
+  - identifier: test-admin-oidc
     enabled: False
     oidc_rp_client_id: client-id
     oidc_rp_client_secret: secret

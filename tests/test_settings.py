@@ -6,10 +6,10 @@ import pytest
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.config import lookup_config
-from mozilla_django_oidc_db.constants import CONFIG_CLASS_SESSION_KEY
+from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
-from mozilla_django_oidc_db.views import OIDCAuthenticationRequestView
+from mozilla_django_oidc_db.models import OIDCConfig
+from testapp.views import PreConfiguredOIDCAuthenticationRequestView
 
 
 @pytest.mark.parametrize(
@@ -58,7 +58,7 @@ def test_backend_reads_settings_from_model(
     dummy_config, callback_request, setting: str, expected: Any
 ):
     backend = OIDCAuthenticationBackend()
-    backend.config_class = lookup_config(callback_request)
+    backend._config = lookup_config(callback_request)
 
     value = getattr(backend, setting)
 
@@ -71,11 +71,11 @@ def test_backend_reads_settings_from_model(
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
 )
 def test_view_settings_derived_from_model_oidc_enabled(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
 ):
-    view = OIDCAuthenticationRequestView()
+    view = PreConfiguredOIDCAuthenticationRequestView()
 
-    # verify that the settings are derived from OpenIDConnectConfig
+    # verify that the settings are derived from OIDCConfig
     assert view.OIDC_RP_CLIENT_ID == "testid"
     assert view.OIDC_OP_AUTH_ENDPOINT == "http://some.endpoint/v1/auth"
 
@@ -86,7 +86,7 @@ def test_view_settings_derived_from_model_oidc_enabled(
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
 )
 def test_middleware_use_falsy_default(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCConfig,
     rf: RequestFactory,
     mocker,
 ):
@@ -94,7 +94,7 @@ def test_middleware_use_falsy_default(
     middleware = SessionRefresh(lambda x: x)
 
     request = rf.get("/")
-    request.session = {CONFIG_CLASS_SESSION_KEY: OpenIDConnectConfig._meta.label}
+    request.session = {CONFIG_IDENTIFIER_SESSION_KEY: dummy_config.identifier}
 
     mocker.patch.object(middleware, "is_refreshable_url", return_value=True)
     middleware._set_config_from_request(request)

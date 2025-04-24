@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
+    OIDCConfig,
     UserInformationClaimsSources,
 )
 
@@ -19,7 +19,7 @@ KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 def test_client_id_secret_full_flow(
     keycloak_config, mock_state_and_nonce, client, django_user_model, vcr
 ):
-    login_url = reverse("login")
+    login_url = reverse("login-keycloak")
     django_login_response = client.get(login_url)
     assert django_login_response.status_code == 302
 
@@ -50,7 +50,7 @@ def test_client_id_secret_full_flow(
 
 @pytest.mark.vcr
 def test_credentials_in_basic_auth_header(
-    keycloak_config: OpenIDConnectConfig,
+    keycloak_config: OIDCConfig,
     mock_state_and_nonce,
     client,
     django_user_model,
@@ -59,7 +59,7 @@ def test_credentials_in_basic_auth_header(
     keycloak_config.oidc_token_use_basic_auth = True
     keycloak_config.save()
 
-    django_login_response = client.get(reverse("login"))
+    django_login_response = client.get(reverse("login-keycloak"))
     # simulate login to Keycloak
     redirect_uri = keycloak_login(django_login_response["Location"])
 
@@ -87,22 +87,20 @@ def test_credentials_in_basic_auth_header(
 
 
 @pytest.mark.vcr
+@pytest.mark.oidcconfig(
+    # Set up client configured to return JWT from userinfo endpoint instead of plain
+    # JSON. Credentials from ``docker/import`` realm export.
+    oidc_rp_client_id="test-userinfo-jwt",
+    oidc_rp_client_secret="ktGlGUELd1FR7dTXc84L7dJzUTjCtw9S",
+    userinfo_claims_source=UserInformationClaimsSources.userinfo_endpoint,
+)
 def test_return_jwt_from_userinfo_endpoint(
-    keycloak_config: OpenIDConnectConfig,
+    keycloak_config: OIDCConfig,
     mock_state_and_nonce,
     client,
     django_user_model,
 ):
-    # Set up client configured to return JWT from userinfo endpoint instead of plain
-    # JSON. Credentials from ``docker/import`` realm export.
-    keycloak_config.oidc_rp_client_id = "test-userinfo-jwt"
-    keycloak_config.oidc_rp_client_secret = "ktGlGUELd1FR7dTXc84L7dJzUTjCtw9S"
-    keycloak_config.userinfo_claims_source = (
-        UserInformationClaimsSources.userinfo_endpoint
-    )
-    keycloak_config.save()
-
-    django_login_response = client.get(reverse("login"))
+    django_login_response = client.get(reverse("login-keycloak"))
     # simulate login to Keycloak
     redirect_uri = keycloak_login(django_login_response["Location"])
 
@@ -131,7 +129,7 @@ def test_session_refresh(
         "mozilla_django_oidc_db.middleware.SessionRefresh"
     ]
     settings.OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 60
-    login_url = reverse("login")
+    login_url = reverse("login-keycloak")
 
     django_login_response = client.get(login_url)
     # simulate login to Keycloak

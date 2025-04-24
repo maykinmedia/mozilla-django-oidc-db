@@ -1,36 +1,26 @@
 from json.decoder import JSONDecodeError
 from unittest.mock import patch
 
+from django.test import Client
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 import pytest
 import requests_mock
 from requests.exceptions import RequestException
 
-from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-from mozilla_django_oidc_db.models import (
-    UserInformationClaimsSources,
-    get_claim_mapping,
-)
+from mozilla_django_oidc_db.forms import OIDCProviderConfigForm
+from mozilla_django_oidc_db.models import OIDCConfig
+from tests.factories import UserFactory
 
 
 @pytest.mark.django_db
 def test_derive_endpoints_success():
     form_data = {
-        "enabled": True,
-        "oidc_rp_client_id": "clientid",
-        "oidc_rp_client_secret": "secret",
-        "oidc_rp_sign_algo": "RS256",
+        "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
-        "claim_mapping": get_claim_mapping(),
-        "groups_claim": ["roles"],
-        "sync_groups_glob_pattern": "*",
-        "username_claim": ["sub"],
-        "oidc_nonce_size": 32,
-        "oidc_state_size": 32,
-        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
-    form = OpenIDConnectConfigForm(data=form_data)
+    form = OIDCProviderConfigForm(data=form_data)
 
     configuration = {
         "authorization_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/auth",
@@ -68,29 +58,19 @@ def test_derive_endpoints_success():
 @pytest.mark.django_db
 def test_derive_endpoints_extra_field():
     form_data = {
-        "enabled": True,
-        "oidc_rp_client_id": "clientid",
-        "oidc_rp_client_secret": "secret",
-        "oidc_rp_sign_algo": "RS256",
+        "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
-        "claim_mapping": get_claim_mapping(),
-        "groups_claim": ["roles"],
-        "sync_groups_glob_pattern": "*",
-        "username_claim": ["sub"],
-        "oidc_nonce_size": 32,
-        "oidc_state_size": 32,
-        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
 
-    class ExtendedOpenIDConnectConfigForm(OpenIDConnectConfigForm):
-        required_endpoints = OpenIDConnectConfigForm.required_endpoints
+    class ExtendedOIDCProviderConfigForm(OIDCProviderConfigForm):
+        required_endpoints = OIDCProviderConfigForm.required_endpoints
         # Define an extra field to derive from the configuration
         oidc_mapping = dict(
-            **OpenIDConnectConfigForm.oidc_mapping,
+            **OIDCProviderConfigForm.oidc_mapping,
             **{"logout_endpoint": "end_session_endpoint"},
         )
 
-    form = ExtendedOpenIDConnectConfigForm(data=form_data)
+    form = ExtendedOIDCProviderConfigForm(data=form_data)
 
     configuration = {
         "authorization_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/auth",
@@ -115,22 +95,13 @@ def test_derive_endpoints_extra_field():
 
 
 @patch("requests.get", side_effect=RequestException)
+@pytest.mark.django_db  # Validation that the identifier is unique uses the DB
 def test_derive_endpoints_request_error(*m):
     form_data = {
-        "enabled": True,
-        "oidc_rp_client_id": "clientid",
-        "oidc_rp_client_secret": "secret",
-        "oidc_rp_sign_algo": "RS256",
+        "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
-        "claim_mapping": get_claim_mapping(),
-        "groups_claim": ["roles"],
-        "sync_groups_glob_pattern": "*",
-        "username_claim": ["sub"],
-        "oidc_nonce_size": 32,
-        "oidc_state_size": 32,
-        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
-    form = OpenIDConnectConfigForm(data=form_data)
+    form = OIDCProviderConfigForm(data=form_data)
 
     form.is_valid()
 
@@ -142,22 +113,13 @@ def test_derive_endpoints_request_error(*m):
 
 
 @patch("requests.get", side_effect=JSONDecodeError("error", "test", 1))
+@pytest.mark.django_db
 def test_derive_endpoints_json_error(*m):
     form_data = {
-        "enabled": True,
-        "oidc_rp_client_id": "clientid",
-        "oidc_rp_client_secret": "secret",
-        "oidc_rp_sign_algo": "RS256",
+        "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
-        "claim_mapping": get_claim_mapping(),
-        "groups_claim": ["roles"],
-        "sync_groups_glob_pattern": "*",
-        "username_claim": ["sub"],
-        "oidc_nonce_size": 32,
-        "oidc_state_size": 32,
-        "userinfo_claims_source": UserInformationClaimsSources.id_token,
     }
-    form = OpenIDConnectConfigForm(data=form_data)
+    form = OIDCProviderConfigForm(data=form_data)
 
     form.is_valid()
 
@@ -168,21 +130,12 @@ def test_derive_endpoints_json_error(*m):
     }
 
 
+@pytest.mark.django_db
 def test_no_discovery_endpoint_other_fields_required():
     form_data = {
-        "enabled": True,
-        "oidc_rp_client_id": "clientid",
-        "oidc_rp_client_secret": "secret",
-        "oidc_rp_sign_algo": "RS256",
-        "claim_mapping": get_claim_mapping(),
-        "groups_claim": ["roles"],
-        "sync_groups_glob_pattern": "*",
-        "username_claim": ["sub"],
-        "oidc_nonce_size": 32,
-        "oidc_state_size": 32,
-        "userinfo_claims_source": UserInformationClaimsSources.id_token,
+        "identifier": "test-tralala",
     }
-    form = OpenIDConnectConfigForm(data=form_data)
+    form = OIDCProviderConfigForm(data=form_data)
 
     form.is_valid()
 
@@ -194,13 +147,29 @@ def test_no_discovery_endpoint_other_fields_required():
 
 
 def test_admin_form_readonly_access():
-    # Empty the base_fields, causing OpenIDConnectConfigForm.fields to be empty
+    # Empty the base_fields, causing OIDCProviderConfigForm.fields to be empty
     # as well, which is also the case for when users access the form with
     # read only access
-    OpenIDConnectConfigForm.base_fields = {}
+    OIDCProviderConfigForm.base_fields = {}
 
     # Form initialization should not raise any errors
-    form = OpenIDConnectConfigForm()
+    OIDCProviderConfigForm()
+
+@pytest.mark.django_db
+def test_get_custom_options_schema(client: Client):
+    config = OIDCConfig.objects.get(identifier="test-oidc")
+    user = UserFactory.create(is_superuser=True, is_staff=True)
+    client.force_login(user)
+
+    response = client.get(
+        reverse(
+            "admin:mozilla_django_oidc_db_oidcclient_change",
+            kwargs={"object_id": config.pk},
+        ),
+    )
+
+    assert response.status_code == 200
+    assert b"custom-option-key" in response.content
 
 
 def test_clean_when_disabled_skips_endpoint_validation():
@@ -224,3 +193,4 @@ def test_clean_when_disabled_skips_endpoint_validation():
 
     assert is_valid
     assert "oidc_op_authorization_endpoint" not in form.errors
+    

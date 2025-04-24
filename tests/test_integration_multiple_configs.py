@@ -4,7 +4,7 @@ from django.urls import reverse
 import pytest
 from requests import Session
 
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.models import OIDCConfig
 
 from .utils import keycloak_login
 
@@ -12,7 +12,8 @@ from .utils import keycloak_login
 @pytest.mark.vcr
 @pytest.mark.oidcconfig(make_users_staff=True)
 def test_use_config_class_from_state_over_config_class_from_session(
-    keycloak_config: OpenIDConnectConfig,
+    keycloak_config: OIDCConfig,
+    dummy_config: OIDCConfig,
     mock_state_and_nonce,
     client: Client,
 ):
@@ -27,7 +28,7 @@ def test_use_config_class_from_state_over_config_class_from_session(
     """
     session = Session()
     # login to the admin
-    login_url = reverse("login")
+    login_url = reverse("login-keycloak")
     django_login_response = client.get(login_url)
     redirect_uri = keycloak_login(django_login_response["Location"], session=session)
     callback_response = client.get(redirect_uri, follow=True)
@@ -37,7 +38,7 @@ def test_use_config_class_from_state_over_config_class_from_session(
     # set up an authentication flow & state with another config - all the credentials
     # are otherwise the same - the only difference is where the callback redirects after
     # succesful authentication
-    login_url2 = reverse("custom-init-login")
+    login_url2 = reverse("login-keycloak-custom")
     django_login_response2 = client.get(login_url2)
     # we expect to still be authenticated in the keycloak session, so we can fetch the
     # URL directly - and perform a sanity check!

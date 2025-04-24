@@ -9,23 +9,17 @@ from django_setup_configuration.exceptions import (
 from django_setup_configuration.test_utils import execute_single_step
 
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
+    OIDCConfig,
+    OIDCProviderConfig,
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.setup_configuration.steps import AdminOIDCConfigurationStep
 
 from ..conftest import KEYCLOAK_BASE_URL
-from .conftest import set_config_to_non_default_values
 
 
-@pytest.fixture(autouse=True)
-def clear_solo_cache():
-    yield
-    OpenIDConnectConfig.clear_cache()
-
-
-def assert_full_values():
-    config = OpenIDConnectConfig.get_solo()
+def assert_full_values(identifier):
+    config = OIDCConfig.objects.get(identifier=identifier)
     assert not config.enabled
     assert config.oidc_rp_client_id == "client-id"
     assert config.oidc_rp_client_secret == "secret"
@@ -37,34 +31,38 @@ def assert_full_values():
     ]
     assert config.oidc_rp_sign_algo == "RS256"
     assert config.oidc_rp_idp_sign_key == "key"
-    assert config.oidc_op_discovery_endpoint == ""
+    assert config.oidc_provider_config.oidc_op_discovery_endpoint == ""
     assert (
-        config.oidc_op_jwks_endpoint
+        config.oidc_provider_config.oidc_op_jwks_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/certs"
     )
     assert (
-        config.oidc_op_authorization_endpoint
+        config.oidc_provider_config.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_op_token_endpoint
+        config.oidc_provider_config.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_op_user_endpoint
+        config.oidc_provider_config.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
-    assert config.username_claim == ["claim_name"]
-    assert config.groups_claim == ["groups_claim_name"]
-    assert config.claim_mapping == {"first_name": ["given_name"]}
-    assert not config.sync_groups
-    assert config.sync_groups_glob_pattern == "local.groups.*"
-    assert set(group.name for group in config.default_groups.all()) == {
+    assert config.options["user_settings"]["claim_mappings"]["username"] == [
+        "claim_name"
+    ]
+    assert config.options["user_settings"]["claim_mappings"]["first_name"] == [
+        "given_name"
+    ]
+    assert config.options["group_settings"]["claim_mapping"] == ["groups_claim_name"]
+    assert not config.options["group_settings"]["sync"]
+    assert config.options["group_settings"]["sync_pattern"] == "local.groups.*"
+    assert config.options["group_settings"]["default_groups"] == [
         "local.groups.Admins",
         "local.groups.Read-only",
-    }
-    assert config.make_users_staff
-    assert config.superuser_group_names == ["superuser"]
+    ]
+    assert config.options["group_settings"]["make_users_staff"]
+    assert config.options["group_settings"]["superuser_group_names"] == ["superuser"]
     assert not config.oidc_use_nonce
     assert config.oidc_nonce_size == 48
     assert config.oidc_state_size == 48
@@ -80,10 +78,10 @@ def test_configure_full(full_config_yml):
 
     # test if idempotent
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=full_config_yml)
-    assert_full_values()
+    assert_full_values(identifier="test-admin-oidc")
 
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=full_config_yml)
-    assert_full_values()
+    assert_full_values(identifier="test-admin-oidc")
 
 
 @pytest.mark.django_db
@@ -93,7 +91,7 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
     Group.objects.create(name="local.groups.Admins")
     Group.objects.create(name="local.groups.Read-only")
 
-    config = OpenIDConnectConfig.get_solo()
+    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
 
     # assert different values
     assert not config.enabled
@@ -107,22 +105,41 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
     ]
     assert config.oidc_rp_sign_algo == "M1911"
     assert config.oidc_rp_idp_sign_key == "name"
-    assert config.oidc_op_discovery_endpoint == "http://localhost:8080/whatever"
-    assert config.oidc_op_jwks_endpoint == "http://localhost:8080/whatever"
-    assert config.oidc_op_authorization_endpoint == "http://localhost:8080/whatever"
-    assert config.oidc_op_token_endpoint == "http://localhost:8080/whatever"
-    assert config.oidc_op_user_endpoint == "http://localhost:8080/whatever"
-    assert config.username_claim == ["claim_title"]
-    assert config.groups_claim == ["groups_claim_title"]
-    assert config.claim_mapping == {"first_title": ["given_title"]}
-    assert config.sync_groups
-    assert config.sync_groups_glob_pattern == "not_local.groups.*"
-    assert set(group.name for group in config.default_groups.all()) == {
+    assert (
+        config.oidc_provider_config.oidc_op_discovery_endpoint
+        == "http://localhost:8080/whatever"
+    )
+    assert (
+        config.oidc_provider_config.oidc_op_jwks_endpoint
+        == "http://localhost:8080/whatever"
+    )
+    assert (
+        config.oidc_provider_config.oidc_op_authorization_endpoint
+        == "http://localhost:8080/whatever"
+    )
+    assert (
+        config.oidc_provider_config.oidc_op_token_endpoint
+        == "http://localhost:8080/whatever"
+    )
+    assert (
+        config.oidc_provider_config.oidc_op_user_endpoint
+        == "http://localhost:8080/whatever"
+    )
+    assert config.options["user_settings"]["claim_mappings"]["username"] == [
+        "claim_title"
+    ]
+    assert config.options["group_settings"]["claim_mapping"] == ["groups_claim_title"]
+    assert config.options["user_settings"]["claim_mappings"]["first_title"] == [
+        "given_title"
+    ]
+    assert config.options["group_settings"]["sync"]
+    assert config.options["group_settings"]["sync_pattern"] == "not_local.groups.*"
+    assert config.options["group_settings"]["default_groups"] == [
         "OldAdmin",
         "OldUser",
-    }
-    assert not config.make_users_staff
-    assert config.superuser_group_names == ["poweruser"]
+    ]
+    assert not config.options["group_settings"]["make_users_staff"]
+    assert config.options["group_settings"]["superuser_group_names"] == ["poweruser"]
     assert config.oidc_use_nonce
     assert config.oidc_nonce_size == 64
     assert config.oidc_state_size == 64
@@ -132,14 +149,14 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
 
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=full_config_yml)
     # assert values overwritten
-    assert_full_values()
+    assert_full_values(identifier="test-admin-oidc")
 
 
 @pytest.mark.django_db
 def test_configure_use_defaults(set_config_to_non_default_values, default_config_yml):
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=default_config_yml)
 
-    config = OpenIDConnectConfig.get_solo()
+    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
 
     assert config.enabled
     assert config.oidc_rp_client_id == "client-id"
@@ -147,33 +164,33 @@ def test_configure_use_defaults(set_config_to_non_default_values, default_config
     assert config.oidc_rp_scopes_list == ["openid", "email", "profile"]
     assert config.oidc_rp_sign_algo == "HS256"
     assert config.oidc_rp_idp_sign_key == ""
-    assert config.oidc_op_discovery_endpoint == ""
-    assert config.oidc_op_jwks_endpoint == ""
+    assert config.oidc_provider_config.oidc_op_discovery_endpoint == ""
+    assert config.oidc_provider_config.oidc_op_jwks_endpoint == ""
 
     assert (
-        config.oidc_op_authorization_endpoint
+        config.oidc_provider_config.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_op_token_endpoint
+        config.oidc_provider_config.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_op_user_endpoint
+        config.oidc_provider_config.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
-    assert config.username_claim == ["sub"]
-    assert config.groups_claim == ["roles"]
-    assert config.claim_mapping == {
+    assert config.options["group_settings"]["claim_mapping"] == ["roles"]
+    assert config.options["user_settings"]["claim_mappings"] == {
+        "username": ["sub"],
         "last_name": ["family_name"],
         "first_name": ["given_name"],
         "email": ["email"],
     }
-    assert config.sync_groups
-    assert config.sync_groups_glob_pattern == "*"
-    assert config.default_groups.all().count() == 0
-    assert not config.make_users_staff
-    assert config.superuser_group_names == []
+    assert config.options["group_settings"]["sync"]
+    assert config.options["group_settings"]["sync_pattern"] == "*"
+    assert config.options["group_settings"]["default_groups"] == []
+    assert not config.options["group_settings"]["make_users_staff"]
+    assert config.options["group_settings"]["superuser_group_names"] == []
     assert config.oidc_use_nonce
     assert config.oidc_nonce_size == 32
     assert config.oidc_state_size == 32
@@ -189,24 +206,24 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
         AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
     )
 
-    config = OpenIDConnectConfig.get_solo()
+    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
 
     assert config.enabled
-    assert config.oidc_op_discovery_endpoint == KEYCLOAK_BASE_URL
+    assert config.oidc_provider_config.oidc_op_discovery_endpoint == KEYCLOAK_BASE_URL
     assert (
-        config.oidc_op_jwks_endpoint
+        config.oidc_provider_config.oidc_op_jwks_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/certs"
     )
     assert (
-        config.oidc_op_authorization_endpoint
+        config.oidc_provider_config.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_op_token_endpoint
+        config.oidc_provider_config.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_op_user_endpoint
+        config.oidc_provider_config.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
 
@@ -232,6 +249,8 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
 def test_configure_discovery_failure(
     requests_mock, discovery_endpoint_config_yml, mock_kwargs
 ):
+    OIDCConfig.objects.get_or_create(identifier="test-admin-oidc")
+
     requests_mock.get(
         f"{KEYCLOAK_BASE_URL}.well-known/openid-configuration",
         **mock_kwargs,
@@ -242,21 +261,9 @@ def test_configure_discovery_failure(
             AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
         )
 
-    config = OpenIDConnectConfig.get_solo()
+    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
     assert not config.enabled
-    assert config.oidc_op_discovery_endpoint == ""
-
-
-@pytest.mark.django_db
-def test_configure_fails_with_multiple_configs(multiple_configs_yml):
-    with pytest.raises(ConfigurationRunFailed) as excinfo:
-        execute_single_step(
-            AdminOIDCConfigurationStep, yaml_source=multiple_configs_yml
-        )
-    assert str(excinfo.value) == "You must specify exactly one OIDC configuration"
-
-    config = OpenIDConnectConfig.get_solo()
-    assert not config.enabled
+    assert config.oidc_provider_config is None
 
 
 @pytest.mark.django_db
@@ -267,54 +274,45 @@ def test_configure_fails_without_identifier(missing_identifier_yml):
         )
     assert "oidc_db_config_admin_auth.items.0.identifier" in str(excinfo.value)
 
-    config = OpenIDConnectConfig.get_solo()
-    assert not config.enabled
+
+@pytest.mark.vcr
+@pytest.mark.django_db
+def test_multiple_providers_configured(multiple_providers_yml):
+    execute_single_step(AdminOIDCConfigurationStep, yaml_source=multiple_providers_yml)
+
+    provider_discovery = OIDCProviderConfig.objects.get(
+        identifier="test-provider-discovery"
+    )
+    assert (
+        provider_discovery.oidc_op_authorization_endpoint
+        == "http://localhost:8080/realms/test/protocol/openid-connect/auth"
+    )
+
+    provider_discovery = OIDCProviderConfig.objects.get(identifier="test-provider-full")
+    assert (
+        provider_discovery.oidc_op_authorization_endpoint
+        == "http://localhost:8080/realms/test/protocol/openid-connect/auth"
+    )
+
+    assert (
+        OIDCConfig.objects.get(identifier="test-oidc-1").oidc_provider_config.identifier
+        == "test-provider-discovery"
+    )
+    assert (
+        OIDCConfig.objects.get(identifier="test-oidc-2").oidc_provider_config.identifier
+        == "test-provider-discovery"
+    )
+    assert (
+        OIDCConfig.objects.get(identifier="test-oidc-3").oidc_provider_config.identifier
+        == "test-provider-full"
+    )
 
 
 @pytest.mark.django_db
-def test_sync_groups_is_false(no_sync_groups_config_yml):
-    # create groups so they can be found
-    super_admin = Group.objects.create(name="SuperAdmins")
+def test_custom_options(custom_options_yml):
+    execute_single_step(AdminOIDCConfigurationStep, yaml_source=custom_options_yml)
 
-    result = execute_single_step(
-        AdminOIDCConfigurationStep, yaml_source=no_sync_groups_config_yml
-    )
+    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
 
-    config_model = result.config_model.items[0]
-
-    assert not config_model.sync_groups
-    assert config_model.default_groups == ["SuperAdmins", "NormalUsers"]
-
-    config = OpenIDConnectConfig.get_solo()
-    assert config.default_groups.all().count() == 1
-    assert config.default_groups.get() == super_admin
-
-
-@pytest.mark.django_db
-def test_sync_groups_is_true(sync_groups_config_yml):
-    # create groups so they can be found
-    super_admin = Group.objects.create(name="local.groups.SuperAdmins")
-    weird_admin = Group.objects.create(name="local.WeirdAdmins")
-
-    result = execute_single_step(
-        AdminOIDCConfigurationStep, yaml_source=sync_groups_config_yml
-    )
-
-    config_model = result.config_model.items[0]
-
-    assert config_model.sync_groups
-    assert config_model.default_groups == [
-        "local.groups.SuperAdmins",
-        "local.WeirdAdmins",
-        "local.groups.NormalUsers",
-        "local.WeirdUsers",
-    ]
-    assert config_model.sync_groups_glob_pattern == "local.groups.*"
-
-    config = OpenIDConnectConfig.get_solo()
-    assert config.default_groups.all().count() == 3
-    assert super_admin in config.default_groups.all()
-    assert weird_admin in config.default_groups.all()
-    assert config.default_groups.all().filter(name="local.groups.NormalUsers").exists()
-    # Does not match glob, is not created
-    assert not config.default_groups.all().filter(name="local.WeirdUsers").exists()
+    assert config.options["test"] == "test"
+    assert config.options["this"]["is"] == "a nested option!"

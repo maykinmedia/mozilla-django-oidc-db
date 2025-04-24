@@ -9,16 +9,13 @@ import pytest
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend as UpstreamBackend
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
-from mozilla_django_oidc_db.config import lookup_config
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
+    OIDCConfig,
+    OIDCProviderConfig,
     UserInformationClaimsSources,
 )
-from mozilla_django_oidc_db.views import OIDCAuthenticationRequestView
+from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 from testapp.backends import MockBackend
-from testapp.models import EmptyConfig
-
-from .custom_config import oidc_init_disabled
 
 #
 # DYNAMIC CONFIGURATION TESTS
@@ -36,16 +33,21 @@ def test_authenticate_oidc_not_enabled(dummy_config, callback_request: HttpReque
     assert user is None
 
 
-@pytest.mark.callback_request(init_view=oidc_init_disabled)
+@pytest.mark.django_db
+@pytest.mark.disabled_config
+@pytest.mark.oidcconfig
+@pytest.mark.callback_request(
+    init_view=OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc-disabled")
+)
 def test_authentication_loads_config_from_init_state(
-    dummy_config, callback_request: HttpRequest
+    dummy_config, disabled_config, callback_request: HttpRequest
 ):
     assert dummy_config.enabled is True
     backend = OIDCAuthenticationBackend()
     # check that we correctly initialized our OIDC state
     state_key = callback_request.GET["state"]
     state = callback_request.session["oidc_states"][state_key]
-    assert state["config_class"] == "mozilla_django_oidc_db.DisabledConfig"
+    assert state["config_identifier"] == "test-oidc-disabled"
 
     user = backend.authenticate(callback_request)
 
@@ -54,47 +56,25 @@ def test_authentication_loads_config_from_init_state(
     assert user is None
 
 
-@pytest.mark.parametrize(
-    "setting,expected",
-    (
-        ("OIDCDB_USERNAME_CASE_SENSITIVE", False),
-        ("OIDCDB_CLAIM_MAPPING", {"foo": "bar"}),
-        ("OIDCDB_GROUPS_CLAIM", ["roles"]),
-        ("OIDCDB_DEFAULT_GROUPS", ["one", "two"]),
-        ("OIDCDB_SYNC_MISSING_GROUPS", False),
-        ("OIDCDB_SYNC_GROUPS_GLOB_PATTERN", "in:*:tricate"),
-        ("OIDCDB_MAKE_USERS_STAFF", True),
-        ("OIDCDB_SUPERUSER_GROUP_NAMES", ["we are gods", "bow for us"]),
-    ),
-)
-@pytest.mark.django_db
-def test_grabs_config_from_django_settings_if_missing_on_model(
-    settings, setting, expected
-):
-    setattr(settings, setting, expected)
-    backend = OIDCAuthenticationBackend()
-    backend.config_class = EmptyConfig
-
-    value = getattr(backend, setting)
-
-    assert value == expected
-
-
 @pytest.mark.parametrize("sign_alg", ("RS**", "ES**"))
-@pytest.mark.oidcconfig()
-def test_settings_still_validated(dummy_config, settings, sign_alg: str):
+@pytest.mark.django_db
+def test_settings_still_validated(settings, sign_alg: str):
     """
     Test that the upstream library settings checks are still performed.
     """
-    dummy_config.oidc_rp_sign_algo = sign_alg
-    dummy_config.oidc_rp_idp_sign_key = ""
-    dummy_config.oidc_op_jwks_endpoint = ""
-    dummy_config.save()
+    config = OIDCConfig.objects.get(identifier="test-oidc-not-configured")
+    oidc_provider = OIDCProviderConfig.objects.create(
+        identifier="test-not-configured-provider", oidc_op_jwks_endpoint=""
+    )
+    config.oidc_rp_sign_algo = sign_alg
+    config.oidc_rp_idp_sign_key = ""
+    config.oidc_provider_config = oidc_provider
+    config.save()
     backend = OIDCAuthenticationBackend()
-    backend.config_class = type(dummy_config)
+    backend._config = config
 
     with pytest.raises(ImproperlyConfigured):
-        backend.OIDC_RP_CLIENT_ID  # the exact setting doesn't matter
+        setting = backend.OIDC_RP_CLIENT_ID  # the exact setting doesn't matter
 
     # check that the same error is raised by the upstream backend
     settings.OIDC_RP_SIGN_ALGO = sign_alg
@@ -109,28 +89,20 @@ def test_settings_still_validated(dummy_config, settings, sign_alg: str):
 #
 
 
-class SensitiveClaimsConfig(OpenIDConnectConfig):
-    class Meta:
-        proxy = True
-        app_label = "mozilla_django_oidc_db"
-
-    sensitive_claims = (
-        ["sensitive_claim1"],
-        ["parent", "sensitive_claim2"],
-    )
-
-
-@pytest.mark.callback_request(
-    init_view=OIDCAuthenticationRequestView.as_view(config_class=SensitiveClaimsConfig)
+@pytest.mark.oidcconfig(
+    enabled=True,
+    username_claim=["sub"],
+    extra_options={
+        "user_settings.sensitive_claims": [
+            ["sensitive_claim1"],
+            ["parent", "sensitive_claim2"],
+        ]
+    },
 )
-@pytest.mark.oidcconfig(enabled=True, username_claim=["sub"])
-def test_obfuscates_sensitive_claims(
-    dummy_config, callback_request: HttpRequest, caplog
-):
-    caplog.set_level(logging.DEBUG, logger="mozilla_django_oidc_db.backends")
+def test_obfuscates_sensitive_claims(dummy_config, caplog):
+    caplog.set_level(logging.DEBUG, logger="mozilla_django_oidc_db.plugins")
     backend = OIDCAuthenticationBackend()
-    backend.request = callback_request
-    backend.config_class = lookup_config(callback_request)
+    backend._config = dummy_config
 
     claims_ok = backend.verify_claims(
         {
@@ -165,6 +137,10 @@ def test_obfuscates_sensitive_claims(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
+    extra_options={
+        "user_settings.claim_mappings.first_name": ["given_name"],
+        "user_settings.claim_mappings.last_name": ["family_name"],
+    },
 )
 def test_create_user_with_default_config(dummy_config, callback_request: HttpRequest):
     assert not User.objects.exists()
@@ -193,12 +169,15 @@ def test_create_user_with_default_config(dummy_config, callback_request: HttpReq
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["sub"],
+    extra_options={
+        "user_settings.claim_mappings.first_name": ["given_name"],
+        "user_settings.claim_mappings.last_name": ["family_name"],
+        "user_settings.username_case_sensitive": False,
+    },
 )
 def test_case_insensitive_username_lookups(
     settings, dummy_config, callback_request: HttpRequest
 ):
-    settings.OIDCDB_USERNAME_CASE_SENSITIVE = False
     existing_user = User.objects.create(username="ADMIN")
 
     backend = MockBackend(
@@ -219,12 +198,12 @@ def test_case_insensitive_username_lookups(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["user", "username"],
-    groups_claim=["user", "groups.names"],
-    claim_mapping={
-        "email": ["attributes.email"],
-        "first_name": ["profile", "given_name"],
-        "last_name": ["profile", "family_name"],
+    extra_options={
+        "user_settings.claim_mappings.username": ["user", "username"],
+        "user_settings.claim_mappings.first_name": ["profile", "given_name"],
+        "user_settings.claim_mappings.last_name": ["profile", "family_name"],
+        "user_settings.claim_mappings.email": ["attributes.email"],
+        "groups_settings.claim_mapping": ["user", "groups.names"],
     },
 )
 def test_create_user_with_custom_and_complex_config(
@@ -262,9 +241,11 @@ def test_create_user_with_custom_and_complex_config(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["user", "username"],
-    groups_claim=["user", "groups.names"],
-    sync_groups=True,
+    extra_options={
+        "user_settings.claim_mappings.username": ["user", "username"],
+        "groups_settings.claim_mapping": ["user", "groups.names"],
+        "groups_settings.sync": True,
+    },
 )
 def test_create_user_with_mapped_groups(dummy_config, callback_request: HttpRequest):
     assert not User.objects.exists()
@@ -293,9 +274,11 @@ def test_create_user_with_mapped_groups(dummy_config, callback_request: HttpRequ
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["sub"],
-    groups_claim=["roles"],
-    sync_groups=True,
+    extra_options={
+        "user_settings.claim_mappings.username": ["sub"],
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": True,
+    },
 )
 def test_groups_claim_string_instead_of_list(
     dummy_config, callback_request: HttpRequest
@@ -322,21 +305,20 @@ def test_groups_claim_string_instead_of_list(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["user", "username"],
-    groups_claim=["user", "groups.names"],
-    claim_mapping={
-        "email": ["attributes.email"],
-        "first_name": ["profile", "given_name"],
-        "last_name": ["profile", "family_name"],
+    extra_options={
+        "user_settings.claim_mappings.username": ["user", "username"],
+        "user_settings.claim_mappings.email": ["attributes.email"],
+        "user_settings.claim_mappings.first_name": ["profile", "given_name"],
+        "user_settings.claim_mappings.last_name": ["profile", "family_name"],
+        "groups_settings.claim_mapping": ["user", "groups.names"],
+        "groups_settings.sync": True,
+        "groups_settings.sync_pattern": "*",
+        "groups_settings.default_groups": [],  # explicitly clear to wipe any possible implicit defaults
     },
-    sync_groups=True,
-    sync_groups_glob_pattern="*",
 )
 def test_update_user_with_custom_and_complex_config(
     dummy_config, callback_request: HttpRequest
 ):
-    # explicitly clear to wipe any possible implicit defaults
-    dummy_config.default_groups.clear()
     existing_user = User.objects.create(
         username="admin",
         email="outdated@example.com",
@@ -384,9 +366,11 @@ def test_update_user_with_custom_and_complex_config(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    groups_claim=[],
-    sync_groups=True,
-    sync_groups_glob_pattern="*",
+    extra_options={
+        "groups_settings.claim_mapping": [],
+        "groups_settings.sync": True,
+        "groups_settings.sync_pattern": "*",
+    },
 )
 def test_authenticate_user_no_group_sync_without_claim(
     dummy_config, callback_request: HttpRequest
@@ -411,9 +395,11 @@ def test_authenticate_user_no_group_sync_without_claim(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    groups_claim=["roles"],
-    sync_groups=True,
-    sync_groups_glob_pattern="myapp:*",
+    extra_options={
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": True,
+        "groups_settings.sync_pattern": "myapp:*",
+    },
 )
 def test_authenticate_user_groups_glob_pattern(
     dummy_config, callback_request: HttpRequest
@@ -437,16 +423,18 @@ def test_authenticate_user_groups_glob_pattern(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    groups_claim=["roles"],
-    sync_groups=True,
-    sync_groups_glob_pattern="myapp:*",
+    extra_options={
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": True,
+        "groups_settings.sync_pattern": "myapp:*",
+        "groups_settings.default_groups": ["default1"],
+    },
 )
 def test_authenticate_user_groups_and_default_groups(
     dummy_config, callback_request: HttpRequest
 ):
-    default_group = Group.objects.create(name="default1")
+    Group.objects.create(name="default1")
     Group.objects.create(name="default2")
-    dummy_config.default_groups.set({default_group})
     backend = MockBackend(
         # a variation of nested paths, custom claims and dots in claim names
         claims={
@@ -469,9 +457,9 @@ def test_authenticate_user_groups_and_default_groups(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    make_users_staff=True,
-    claim_mapping={
-        "is_superuser": ["is_god"],
+    extra_options={
+        "user_settings.claim_mappings.is_superuser": ["is_god"],
+        "groups_settings.make_users_staff": True,
     },
 )
 def test_authenticate_user_make_staff(dummy_config, callback_request: HttpRequest):
@@ -493,10 +481,12 @@ def test_authenticate_user_make_staff(dummy_config, callback_request: HttpReques
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    make_users_staff=True,
-    sync_groups=False,
-    groups_claim=["roles"],
-    superuser_group_names=["superuser"],
+    extra_options={
+        "groups_settings.make_users_staff": True,
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": False,
+        "groups_settings.superuser_group_names": ["superuser"],
+    },
 )
 def test_authenticate_user_make_superuser_based_on_group(
     dummy_config, callback_request: HttpRequest
@@ -519,10 +509,12 @@ def test_authenticate_user_make_superuser_based_on_group(
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    make_users_staff=True,
-    sync_groups=False,
-    groups_claim=["roles"],
-    superuser_group_names=["superuser"],
+    extra_options={
+        "groups_settings.make_users_staff": True,
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": False,
+        "groups_settings.superuser_group_names": ["superuser"],
+    },
 )
 def test_remove_superuser_based_on_group(dummy_config, callback_request: HttpRequest):
     existing_user = User.objects.create_user(username="123456", is_superuser=True)
@@ -544,10 +536,12 @@ def test_remove_superuser_based_on_group(dummy_config, callback_request: HttpReq
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    make_users_staff=True,
-    sync_groups=False,
-    groups_claim=["roles"],
-    superuser_group_names=[],
+    extra_options={
+        "groups_settings.make_users_staff": True,
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": False,
+        "groups_settings.superuser_group_names": [],
+    },
 )
 def test_do_nothing_if_no_superuser_groups_configured(
     dummy_config, callback_request: HttpRequest
@@ -585,7 +579,9 @@ def test_authenticate_called_without_args(dummy_config):
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["sub"],
+    extra_options={
+        "user_settings.claim_mappings.username": ["sub"],
+    },
 )
 def test_username_claim_empty(dummy_config, callback_request: HttpRequest):
     backend = MockBackend(claims={"sub": ""})
@@ -609,9 +605,11 @@ def test_empty_claims(dummy_config, callback_request: HttpRequest):
 @pytest.mark.oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
-    username_claim=["sub"],
-    groups_claim=["roles"],
-    sync_groups=True,
+    extra_options={
+        "user_settings.claim_mappings.username": ["sub"],
+        "groups_settings.claim_mapping": ["roles"],
+        "groups_settings.sync": True,
+    },
 )
 def test_groups_claim_wrong_type(dummy_config, callback_request: HttpRequest):
     backend = MockBackend(

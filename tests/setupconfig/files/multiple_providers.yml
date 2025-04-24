@@ -1,0 +1,31 @@
+oidc_db_config_enable: True
+oidc_db_config_admin_auth:
+  providers:
+  - identifier: test-provider-discovery
+    endpoint_config:
+      oidc_op_discovery_endpoint: http://localhost:8080/realms/test/
+  - identifier: test-provider-full
+    endpoint_config:
+      oidc_op_authorization_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/auth
+      oidc_op_token_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/token
+      oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
+      oidc_op_jwks_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/certs
+      oidc_op_logout_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/logout
+  items:
+  - identifier: test-oidc-1
+    oidc_rp_client_id: client-id-1
+    oidc_rp_client_secret: secret
+    oidc_provider_config_identifier: test-provider-discovery
+    options:
+      test: test
+  - identifier: test-oidc-2
+    oidc_rp_client_id: client-id-2
+    oidc_rp_client_secret: secret
+    oidc_provider_config_identifier: test-provider-discovery
+    options: {}
+  - identifier: test-oidc-3
+    oidc_rp_client_id: client-id-3
+    oidc_rp_client_secret: secret
+    oidc_provider_config_identifier: test-provider-full
+    options: {}
+  
