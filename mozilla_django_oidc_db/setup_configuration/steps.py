@@ -1,13 +1,18 @@
+import warnings
+
+from django.core.exceptions import ObjectDoesNotExist
+
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import ConfigurationRunFailed
 
-from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.forms import OIDCProviderConfigForm
+from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
 from mozilla_django_oidc_db.setup_configuration.models import (
     AdminOIDCConfigurationModel,
-    OIDCDiscoveryEndpoint,
+    AdminOIDCConfigurationModelItem,
+    OIDCConfigProviderModel,
+    OIDCDiscoveryProviderConfig,
 )
-from mozilla_django_oidc_db.utils import get_groups_by_name
 
 
 class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationModel]):
@@ -23,12 +28,76 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
     enable_setting = "oidc_db_config_enable"
 
     def execute(self, model: AdminOIDCConfigurationModel) -> None:
-        if len(model.items) != 1:
-            raise ConfigurationRunFailed(
-                "You must specify exactly one OIDC configuration"
-            )
+        # Configure OIDC Providers
+        for provider_config_model in model.providers:
+            self._create_or_update_providers(provider_config_model)
 
-        config_model = model.items[0]
+        for config_model in model.items:
+            self._create_or_update_configuration(config_model)
+
+    def _get_endpoints(self, endpoint_config) -> dict:
+        endpoints = {}
+        if isinstance(endpoint_config, OIDCDiscoveryProviderConfig):
+            endpoints.update(
+                oidc_op_discovery_endpoint=endpoint_config.oidc_op_discovery_endpoint,
+            )
+        else:
+            endpoints.update(
+                oidc_op_authorization_endpoint=endpoint_config.oidc_op_authorization_endpoint,
+                oidc_op_token_endpoint=endpoint_config.oidc_op_token_endpoint,
+                oidc_op_user_endpoint=endpoint_config.oidc_op_user_endpoint,
+                oidc_op_logout_endpoint=endpoint_config.oidc_op_logout_endpoint,
+                oidc_op_jwks_endpoint=endpoint_config.oidc_op_jwks_endpoint,
+            )
+        return endpoints
+
+    def _create_or_update_provider_config_deprecated(
+        self, config_model: AdminOIDCConfigurationModelItem
+    ) -> OIDCProviderConfig:
+        warnings.warn(
+            "Specifying the OIDC Provider settings directly in the OIDC configuration is deprecated. "
+            "Provide the settings for the OIDC Provider separately.",
+            DeprecationWarning,
+        )
+
+        identifier = f"{config_model.identifier}-provider"
+        settings_provider = {
+            "identifier": identifier,
+            **self._get_endpoints(config_model.endpoint_config),
+        }
+
+        provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+            identifier=identifier
+        )
+        form = OIDCProviderConfigForm(
+            instance=provider_config,
+            data=settings_provider,
+        )
+        if not form.is_valid():
+            raise ConfigurationRunFailed(
+                "Admin OIDC configuration field validation failed",
+                form.errors.as_json(),
+            )
+        provider_config = form.save()
+        return provider_config
+
+    def _create_or_update_configuration(
+        self, config_model: AdminOIDCConfigurationModelItem
+    ) -> None:
+        if not config_model.oidc_provider_config_identifier:
+            provider_config = self._create_or_update_provider_config_deprecated(
+                config_model
+            )
+        else:
+            try:
+                provider_config = OIDCProviderConfig.objects.get(
+                    identifier=config_model.oidc_provider_config_identifier
+                )
+            except ObjectDoesNotExist as exc:
+                raise ConfigurationRunFailed(
+                    f"Could not find an existing OIDC Provider configuration with "
+                    f"identifier `{config_model.oidc_provider_config_identifier}`."
+                )
 
         all_settings = {
             "enabled": config_model.enabled,
@@ -43,36 +112,53 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             "oidc_state_size": config_model.oidc_state_size,
             "oidc_keycloak_idp_hint": config_model.oidc_keycloak_idp_hint,
             "userinfo_claims_source": config_model.userinfo_claims_source,
-            "username_claim": config_model.username_claim,
-            "claim_mapping": config_model.claim_mapping,
-            "groups_claim": config_model.groups_claim,
-            "sync_groups": config_model.sync_groups,
-            "sync_groups_glob_pattern": config_model.sync_groups_glob_pattern,
-            "make_users_staff": config_model.make_users_staff,
-            "superuser_group_names": config_model.superuser_group_names,
-            "default_groups": get_groups_by_name(
-                config_model.default_groups,
-                config_model.sync_groups_glob_pattern,
-                config_model.sync_groups,
-            ),
+            "oidc_provider_config": provider_config,
+            "options": {},
         }
 
-        if isinstance(config_model.endpoint_config, OIDCDiscoveryEndpoint):
-            all_settings.update(
-                oidc_op_discovery_endpoint=config_model.endpoint_config.oidc_op_discovery_endpoint,
-            )
-        else:
-            all_settings.update(
-                oidc_op_authorization_endpoint=config_model.endpoint_config.oidc_op_authorization_endpoint,
-                oidc_op_token_endpoint=config_model.endpoint_config.oidc_op_token_endpoint,
-                oidc_op_user_endpoint=config_model.endpoint_config.oidc_op_user_endpoint,
-                oidc_op_logout_endpoint=config_model.endpoint_config.oidc_op_logout_endpoint,
-                oidc_op_jwks_endpoint=config_model.endpoint_config.oidc_op_jwks_endpoint,
-            )
+        config, _ = OIDCConfig.objects.update_or_create(
+            identifier=config_model.identifier, defaults=all_settings
+        )
 
-        form = OpenIDConnectConfigForm(
-            instance=OpenIDConnectConfig.get_solo(),
-            data=all_settings,
+        if config_model.options:
+            config.options = config_model.options
+        else:
+            warnings.warn(
+                "The OIDC configuration attributes ``username_claim``, ``claim_mapping``, ``sync_groups``, "
+                "``sync_groups_glob_pattern``, ``make_users_staff``, ``superuser_group_names`` and ``default_groups`` "
+                "are deprecated. Use the ``options`` attribute instead.",
+                DeprecationWarning,
+            )
+            config.options = {
+                "user_settings": {
+                    "claim_mappings": {
+                        "username": config_model.username_claim,
+                        **config_model.claim_mapping,
+                    }
+                },
+                "group_settings": {
+                    "claim_mapping": config_model.groups_claim,
+                    "sync": config_model.sync_groups,
+                    "sync_pattern": config_model.sync_groups_glob_pattern,
+                    "make_users_staff": config_model.make_users_staff,
+                    "superuser_group_names": config_model.superuser_group_names,
+                    "default_groups": config_model.default_groups,
+                },
+            }
+        config.save()
+
+    def _create_or_update_providers(
+        self, provider_config_model: OIDCConfigProviderModel
+    ) -> None:
+        provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+            identifier=provider_config_model.identifier
+        )
+        form = OIDCProviderConfigForm(
+            instance=provider_config,
+            data={
+                "identifier": provider_config_model.identifier,
+                **self._get_endpoints(provider_config_model.endpoint_config),
+            },
         )
         if not form.is_valid():
             raise ConfigurationRunFailed(
