@@ -75,7 +75,7 @@ AUTHENTICATION_BACKENDS = [
 # These settings are evaluated at import-time of the urlconf in mozilla_django_oidc.urls.
 # Changing them via @override_settings (or the pytest-django settings fixture) has no
 # effect.
-OIDC_AUTHENTICATE_CLASS = "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
+OIDC_AUTHENTICATE_CLASS = "testapp.views.PreConfiguredOIDCAuthenticationRequestView"
 OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
 LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
 

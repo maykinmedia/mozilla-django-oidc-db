@@ -1,19 +1,12 @@
-from django.http import HttpResponse
-
 from mozilla_django_oidc_db.views import (
-    OIDCAuthenticationCallbackView,
-    OIDCInit,
+    AdminCallbackView,
+    OIDCAuthenticationRequestInitView,
 )
 
-from .models import AnotherEmptyConfig, CustomCallbackViewConfig, EmptyConfig
+
+class PreConfiguredOIDCAuthenticationRequestView(OIDCAuthenticationRequestInitView):
+    identifier = "test-oidc"
 
 
-class CustomCallbackView(OIDCAuthenticationCallbackView):
-    @property
-    def success_url(self):
-        return "/custom-success-url"
-
-
-custom_callback_view_init = OIDCInit.as_view(config_class=CustomCallbackViewConfig)
-empty_config_callback_view_init = lambda r: HttpResponse()
-another_empty_config_callback_view_init = lambda r: HttpResponse()
+class CustomCallbackView(AdminCallbackView):
+    success_url = "/custom-success-url"
