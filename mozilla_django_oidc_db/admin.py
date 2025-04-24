@@ -1,22 +1,29 @@
 from django.contrib import admin
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
-from solo.admin import SingletonModelAdmin
-
-from .forms import OpenIDConnectConfigForm
-from .models import OpenIDConnectConfig
+from .forms import OIDCProviderConfigForm
+from .models import OIDCConfig, OIDCProviderConfig
 
 
-@admin.register(OpenIDConnectConfig)
-class OpenIDConnectConfigAdmin(SingletonModelAdmin):
-    form = OpenIDConnectConfigForm
+@admin.register(OIDCConfig)
+class OIDCConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "identifier",
+        "enabled",
+    )
+    list_filter = ("identifier", "oidc_provider_config__identifier")
     fieldsets = (
         (
             _("Activation"),
             {"fields": ("enabled",)},
         ),
         (
-            _("Common settings"),
+            _("OIDC Provider"),
+            {"fields": ("oidc_provider_config", "check_op_availability")},
+        ),
+        (
+            _("Relying Party settings"),
             {
                 "fields": (
                     "oidc_rp_client_id",
@@ -27,42 +34,7 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                 )
             },
         ),
-        (
-            _("Endpoints"),
-            {
-                "fields": (
-                    "oidc_op_discovery_endpoint",
-                    "oidc_op_jwks_endpoint",
-                    "oidc_op_authorization_endpoint",
-                    "oidc_op_token_endpoint",
-                    "oidc_token_use_basic_auth",
-                    "oidc_op_user_endpoint",
-                    "oidc_op_logout_endpoint",
-                )
-            },
-        ),
-        (
-            _("User profile"),
-            {
-                "fields": (
-                    "username_claim",
-                    "groups_claim",
-                    "claim_mapping",
-                    "sync_groups",
-                    "sync_groups_glob_pattern",
-                    "default_groups",
-                    "make_users_staff",
-                    "superuser_group_names",
-                )
-            },
-        ),
-        (
-            _("Keycloak specific settings"),
-            {
-                "fields": ("oidc_keycloak_idp_hint",),
-                "classes": ["collapse in"],
-            },
-        ),
+        (_("Custom settings"), {"fields": ("options",)}),
         (
             _("Advanced settings"),
             {
@@ -71,6 +43,7 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                     "oidc_nonce_size",
                     "oidc_state_size",
                     "userinfo_claims_source",
+                    "oidc_keycloak_idp_hint",
                 ),
                 "classes": [
                     "collapse in",
@@ -78,4 +51,18 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
             },
         ),
     )
-    filter_horizontal = ("default_groups",)
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def has_delete_permission(
+        self, request: HttpRequest, obj: OIDCConfig = None
+    ) -> bool:
+        return False
+
+
+@admin.register(OIDCProviderConfig)
+class OIDCProviderConfigAdmin(admin.ModelAdmin):
+    list_display = ("identifier",)
+    list_filter = ("identifier",)
+    form = OIDCProviderConfigForm

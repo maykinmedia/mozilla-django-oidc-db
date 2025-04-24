@@ -6,10 +6,10 @@ from django.utils.translation import gettext_lazy as _
 import requests
 
 from .constants import OIDC_MAPPING, OPEN_ID_CONFIG_PATH
-from .models import OpenIDConnectConfig
+from .models import OIDCProviderConfig
 
 
-class OpenIDConnectConfigForm(forms.ModelForm):
+class OIDCProviderConfigForm(forms.ModelForm):
     required_endpoints = [
         "oidc_op_authorization_endpoint",
         "oidc_op_token_endpoint",
@@ -18,8 +18,16 @@ class OpenIDConnectConfigForm(forms.ModelForm):
     oidc_mapping = OIDC_MAPPING
 
     class Meta:
-        model = OpenIDConnectConfig
-        fields = "__all__"
+        model = OIDCProviderConfig
+        fields = (
+            "identifier",
+            "oidc_op_discovery_endpoint",
+            "oidc_op_jwks_endpoint",
+            "oidc_op_authorization_endpoint",
+            "oidc_op_token_endpoint",
+            "oidc_op_user_endpoint",
+            "oidc_op_logout_endpoint",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
