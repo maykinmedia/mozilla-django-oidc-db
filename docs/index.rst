@@ -36,6 +36,7 @@ Using ``email`` as the unique identifier is not recommended, as mentioned in the
    setup_configuration
    reference
    architecture
+   developers
    changelog
 
 
