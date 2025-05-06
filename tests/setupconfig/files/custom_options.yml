@@ -12,7 +12,7 @@ oidc_db_config_admin_auth:
   - identifier: test-admin-oidc
     oidc_rp_client_id: client-id
     oidc_rp_client_secret: secret
-    oidc_provider_config_identifier: test-provider-oidc
+    oidc_provider_identifier: test-provider-oidc
     options:
       test: test
       this:

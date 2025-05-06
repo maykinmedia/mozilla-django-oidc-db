@@ -15,17 +15,17 @@ oidc_db_config_admin_auth:
   - identifier: test-oidc-1
     oidc_rp_client_id: client-id-1
     oidc_rp_client_secret: secret
-    oidc_provider_config_identifier: test-provider-discovery
+    oidc_provider_identifier: test-provider-discovery
     options:
       test: test
   - identifier: test-oidc-2
     oidc_rp_client_id: client-id-2
     oidc_rp_client_secret: secret
-    oidc_provider_config_identifier: test-provider-discovery
+    oidc_provider_identifier: test-provider-discovery
     options: {}
   - identifier: test-oidc-3
     oidc_rp_client_id: client-id-3
     oidc_rp_client_secret: secret
-    oidc_provider_config_identifier: test-provider-full
+    oidc_provider_identifier: test-provider-full
     options: {}
   

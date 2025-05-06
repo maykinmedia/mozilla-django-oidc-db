@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from django.contrib.auth import get_user_model
@@ -6,13 +8,14 @@ from django.contrib.auth.models import (
 )
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.query import QuerySet
+from django.http import HttpRequest, HttpResponse
 from django.views import View
 
 from glom import Path, glom
 
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from .exceptions import MissingIdentifierClaim
-from .models import OIDCConfig
+from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
 from .typing import AnyUser, ClaimPath, JSONObject
@@ -31,8 +34,8 @@ class OIDCBasePlugin:
     def __init__(self, identifier: str):
         self.identifier = identifier
 
-    def get_config(self) -> OIDCConfig:
-        return OIDCConfig.objects.get(identifier=self.identifier)
+    def get_config(self) -> OIDCClient:
+        return OIDCClient.objects.get(identifier=self.identifier)
 
     def verify_claims(self, claims: JSONObject) -> bool:
         raise NotImplementedError
@@ -54,6 +57,9 @@ class OIDCBasePlugin:
         raise NotImplementedError
 
     def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
+        raise NotImplementedError
+
+    def view(request: HttpRequest) -> HttpResponse:
         raise NotImplementedError
 
 
@@ -112,8 +118,8 @@ class OIDCAdminPlugin(OIDCBasePlugin):
             or config.oidc_rp_sign_algo.startswith("ES")
         ) and (
             config.oidc_rp_idp_sign_key == ""
-            and config.oidc_provider_config
-            and config.oidc_provider_config.oidc_op_jwks_endpoint == ""
+            and config.oidc_provider
+            and config.oidc_provider.oidc_op_jwks_endpoint == ""
         ):
             msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
             raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
@@ -273,3 +279,7 @@ class OIDCAdminPlugin(OIDCBasePlugin):
 
     def get_schema(self):
         return ADMIN_OPTIONS_SCHEMA
+
+    def view(self, request: HttpRequest) -> HttpResponse:
+        view = self.callback_view.as_view()
+        return view(request)

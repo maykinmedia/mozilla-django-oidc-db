@@ -4,7 +4,7 @@ from django.urls import reverse
 import pytest
 from requests import Session
 
-from mozilla_django_oidc_db.models import OIDCConfig
+from mozilla_django_oidc_db.models import OIDCClient
 
 from .utils import keycloak_login
 
@@ -12,8 +12,8 @@ from .utils import keycloak_login
 @pytest.mark.vcr
 @pytest.mark.oidcconfig(make_users_staff=True)
 def test_use_config_class_from_state_over_config_class_from_session(
-    keycloak_config: OIDCConfig,
-    dummy_config: OIDCConfig,
+    keycloak_config: OIDCClient,
+    dummy_config: OIDCClient,
     mock_state_and_nonce,
     client: Client,
 ):

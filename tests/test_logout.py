@@ -4,7 +4,7 @@ from django.urls import reverse
 import pytest
 from requests import Session
 
-from mozilla_django_oidc_db.models import OIDCConfig
+from mozilla_django_oidc_db.models import OIDCClient
 from mozilla_django_oidc_db.utils import do_op_logout
 
 from .utils import keycloak_login
@@ -53,7 +53,7 @@ def kc_session(
 @pytest.mark.vcr
 @pytest.mark.oidcconfig(oidc_op_logout_endpoint="")
 def test_logout_without_endpoint_configured(
-    keycloak_config: OIDCConfig,
+    keycloak_config: OIDCClient,
     kc_session: tuple[Client, Session],
 ):
     client, session = kc_session
@@ -71,10 +71,10 @@ def test_logout_without_endpoint_configured(
 
 @pytest.mark.vcr
 def test_logout_with_logout_endpoint_configured(
-    keycloak_config: OIDCConfig,
+    keycloak_config: OIDCClient,
     kc_session: tuple[Client, Session],
 ):
-    assert keycloak_config.oidc_provider_config.oidc_op_logout_endpoint
+    assert keycloak_config.oidc_provider.oidc_op_logout_endpoint
     client, session = kc_session
 
     do_op_logout(keycloak_config, id_token=client.session["oidc_id_token"])
@@ -89,7 +89,7 @@ def test_logout_with_logout_endpoint_configured(
 
 
 @pytest.mark.oidcconfig(oidc_op_logout_endpoint="https://example.com/oidc/logout")
-def test_logout_response_has_redirect(dummy_config: OIDCConfig, requests_mock):
+def test_logout_response_has_redirect(dummy_config: OIDCClient, requests_mock):
     requests_mock.post(
         "https://example.com/oidc/logout",
         status_code=302,

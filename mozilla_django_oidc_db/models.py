@@ -4,19 +4,22 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField, JSONField
+from typing_extensions import deprecated
 
+from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
 from .registry import register as registry
 
 
-# Removed. But left here so that proxy models that in the migrations have
-# bases=("mozilla_django_oidc_db.openidconnectconfig",),
-# can still run their migrations.
+@deprecated(
+    "Left here so that proxy models that in the migrations have "
+    'bases=("mozilla_django_oidc_db.openidconnectconfig",) can still run their migrations.'
+)
 class OpenIDConnectConfig(models.Model):
     class Meta:
         managed = False
 
 
-def get_options_schema(instance: "OIDCConfig") -> JSONField:
+def get_options_schema(instance: "OIDCClient") -> JSONField:
     plugin = registry[instance.identifier]
     return plugin.get_schema()
 
@@ -43,15 +46,15 @@ def get_claim_mapping() -> dict[str, list[str]]:
     }
 
 
-class OIDCProviderConfig(models.Model):
+class OIDCProvider(models.Model):
     """
-    Model to configure settings regarding a particular OIDC Provider (OP).
+    Manage the configuration/connection parameters for a single OIDC Provider (OP).
     """
 
     identifier = models.SlugField(
         unique=True,
         verbose_name=_("identifier"),
-        help_text=_("Unique identifier for a configuration of a OIDC provider."),
+        help_text=_("Unique identifier of the OIDC provider."),
         max_length=255,
     )
 
@@ -59,7 +62,7 @@ class OIDCProviderConfig(models.Model):
         _("Discovery endpoint"),
         max_length=1000,
         help_text=_(
-            "URL of your OpenID Connect provider discovery endpoint ending with a slash "
+            "URL of your provider discovery endpoint ending with a slash "
             "(`.well-known/...` will be added automatically). "
             "If this is provided, the remaining endpoints can be omitted, as "
             "they will be derived from this endpoint."
@@ -70,7 +73,7 @@ class OIDCProviderConfig(models.Model):
         _("JSON Web Key Set endpoint"),
         max_length=1000,
         help_text=_(
-            "URL of your OpenID Connect provider JSON Web Key Set endpoint. "
+            "URL of your provider JSON Web Key Set endpoint. "
             "Required if `RS256` is used as signing algorithm."
         ),
         blank=True,
@@ -78,68 +81,74 @@ class OIDCProviderConfig(models.Model):
     oidc_op_authorization_endpoint = models.URLField(
         _("Authorization endpoint"),
         max_length=1000,
-        help_text=_("URL of your OpenID Connect provider authorization endpoint"),
+        help_text=_("URL of your provider authorization endpoint"),
     )
     oidc_op_token_endpoint = models.URLField(
         _("Token endpoint"),
         max_length=1000,
-        help_text=_("URL of your OpenID Connect provider token endpoint"),
+        help_text=_("URL of your provider token endpoint"),
     )
     oidc_op_user_endpoint = models.URLField(
         _("User endpoint"),
         max_length=1000,
-        help_text=_("URL of your OpenID Connect provider userinfo endpoint"),
+        help_text=_("URL of your provider userinfo endpoint."),
     )
     oidc_op_logout_endpoint = models.URLField(
         _("Logout endpoint"),
         max_length=1000,
-        help_text=_("URL of your OpenID Connect provider logout endpoint"),
+        help_text=_("URL of your provider logout endpoint."),
         blank=True,
     )
 
     class Meta:
-        verbose_name = _("OIDC Provider configuration")
-        verbose_name_plural = _("OIDC Provider configurations")
+        verbose_name = _("OIDC Provider")
+        verbose_name_plural = _("OIDC Providers")
 
     def __str__(self):
         return _("OIDC Provider %(identifier)s") % {"identifier": self.identifier}
 
 
-class OIDCConfig(models.Model):
-    """Model to configure the settings of the Relying Party (RP) to connect to the specified OIDC Provider (OP)."""
+class OIDCClient(models.Model):
+    """
+    Hold the client configuration for the Relying Party (RP).
+
+    At minimum, the client credentials need to be configured for the associated OIDC Provider (OP).
+    Additional dynamic configuration options can be specified that are tied to specific
+    use cases.
+    """
 
     identifier = models.SlugField(
         unique=True,
         verbose_name=_("identifier"),
-        help_text=_("Unique identifier for a configuration."),
-        max_length=255,
+        help_text=_("Unique identifier for the client."),
+        max_length=UNIQUE_PLUGIN_ID_MAX_LENGTH,
     )
 
     enabled = models.BooleanField(
-        _("enable"),
+        _("enabled"),
         default=False,
         help_text=_(
-            "Indicates whether OpenID Connect for authentication/authorization is enabled"
+            "The client must be enabled before users can authenticate through it."
         ),
     )
-    oidc_provider_config = models.ForeignKey(
-        to=OIDCProviderConfig,
+    oidc_provider = models.ForeignKey(
+        to=OIDCProvider,
         on_delete=models.PROTECT,
-        verbose_name=_("OIDC Provider configuration"),
-        help_text=_("Specifies which OIDC Provider configuration to use."),
+        verbose_name=_("OIDC Provider"),
+        help_text=_("Specifies which OIDC Provider to use."),
         # Needed so that we can create empty models at startup
         null=True,
     )
 
     oidc_rp_client_id = models.CharField(
-        _("OpenID Connect client ID"),
+        _("Client ID"),
         max_length=1000,
-        help_text=_("OpenID Connect client ID provided by the OIDC Provider"),
+        help_text=_("Client ID provided by the OIDC Provider"),
     )
     oidc_rp_client_secret = models.CharField(
-        _("OpenID Connect secret"),
+        _("Secret"),
         max_length=1000,
-        help_text=_("OpenID Connect secret provided by the OIDC Provider"),
+        help_text=_("Secret provided by the OIDC Provider"),
     )
     oidc_rp_sign_algo = models.CharField(
         _("OpenID sign algorithm"),
@@ -148,11 +157,11 @@ class OIDCConfig(models.Model):
         default="HS256",
     )
     oidc_rp_scopes_list = ArrayField(
-        verbose_name=_("OpenID Connect scopes"),
-        base_field=models.CharField(_("OpenID Connect scope"), max_length=50),
+        verbose_name=_("Scopes"),
+        base_field=models.CharField(_("Scope"), max_length=50),
         default=get_default_scopes,
         blank=True,
-        help_text=_("OpenID Connect scopes that are requested during login"),
+        help_text=_("Scopes that are requested during login"),
     )
     oidc_rp_idp_sign_key = models.CharField(
         _("Sign key"),
@@ -176,23 +185,17 @@ class OIDCConfig(models.Model):
     # Advanced settings
     oidc_use_nonce = models.BooleanField(
         _("Use nonce"),
-        help_text=_(
-            "Controls whether the OpenID Connect client uses nonce verification"
-        ),
+        help_text=_("Controls whether the client uses nonce verification"),
         default=True,
     )
     oidc_nonce_size = models.PositiveIntegerField(
         _("Nonce size"),
-        help_text=_(
-            "Sets the length of the random string used for OpenID Connect nonce verification"
-        ),
+        help_text=_("Sets the length of the random string used for nonce verification"),
         default=32,
     )
     oidc_state_size = models.PositiveIntegerField(
         _("State size"),
-        help_text=_(
-            "Sets the length of the random string used for OpenID Connect state verification"
-        ),
+        help_text=_("Sets the length of the random string used for state verification"),
         default=32,
     )
 
@@ -235,11 +238,11 @@ class OIDCConfig(models.Model):
     )
 
     class Meta:
-        verbose_name = _("OIDC configuration")
-        verbose_name_plural = _("OIDC configurations")
+        verbose_name = _("OIDC client")
+        verbose_name_plural = _("OIDC clients")
 
     def __str__(self):
-        return _("OIDC Config %(identifier)s") % {"identifier": self.identifier}
+        return _("OIDC client %(identifier)s") % {"identifier": self.identifier}
 
     @property
     def oidc_rp_scopes(self) -> str:

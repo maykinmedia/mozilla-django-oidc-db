@@ -8,7 +8,7 @@ from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.config import lookup_config
 from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
-from mozilla_django_oidc_db.models import OIDCConfig
+from mozilla_django_oidc_db.models import OIDCClient
 from testapp.views import PreConfiguredOIDCAuthenticationRequestView
 
 
@@ -71,11 +71,11 @@ def test_backend_reads_settings_from_model(
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
 )
 def test_view_settings_derived_from_model_oidc_enabled(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
 ):
     view = PreConfiguredOIDCAuthenticationRequestView()
 
-    # verify that the settings are derived from OIDCConfig
+    # verify that the settings are derived from OIDCClient
     assert view.OIDC_RP_CLIENT_ID == "testid"
     assert view.OIDC_OP_AUTH_ENDPOINT == "http://some.endpoint/v1/auth"
 
@@ -86,7 +86,7 @@ def test_view_settings_derived_from_model_oidc_enabled(
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
 )
 def test_middleware_use_falsy_default(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     rf: RequestFactory,
     mocker,
 ):

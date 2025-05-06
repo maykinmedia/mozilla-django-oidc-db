@@ -4,7 +4,7 @@ from glom import assign
 from pyquery import PyQuery as pq
 from requests import Session
 
-from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
+from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
 
 def keycloak_login(
@@ -53,11 +53,11 @@ def keycloak_login(
 
 def create_or_update_configuration(
     identifier_provider: str, identifier_config: str, data: dict
-) -> OIDCConfig:
-    """Create or update a OIDCConfig and OIDCProviderConfig.
+) -> OIDCClient:
+    """Create or update a OIDCClient and OIDCProvider.
 
-    The fields for the OIDCProviderConfig are extracted from data and used to create/update the provider configuration.
-    Then the fields for the OIDCConfig are extracted and used to create/update the configuration. The foreing key
+    The fields for the OIDCProvider are extracted from data and used to create/update the provider configuration.
+    Then the fields for the OIDCClient are extracted and used to create/update the configuration. The foreign key
     to the provider will point to the just created/updated provider.
 
     It is possible to provide an extra field in the ``data`` dict called ``extra_options``. This is a dict with as key
@@ -78,26 +78,24 @@ def create_or_update_configuration(
 
     """
 
-    oidc_provider_config_fields = [
-        field.name for field in OIDCProviderConfig._meta.fields
-    ]
+    oidc_provider_fields = [field.name for field in OIDCProvider._meta.fields]
     fields_provider = {
-        key: value for key, value in data.items() if key in oidc_provider_config_fields
+        key: value for key, value in data.items() if key in oidc_provider_fields
     }
-    oidc_provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+    oidc_provider, _ = OIDCProvider.objects.update_or_create(
         identifier=identifier_provider,
         defaults=fields_provider,
     )
 
-    oidc_config_fields = [field.name for field in OIDCConfig._meta.fields]
+    oidc_config_fields = [field.name for field in OIDCClient._meta.fields]
     fields_config = {
         key: value for key, value in data.items() if key in oidc_config_fields
     }
-    config, _ = OIDCConfig.objects.update_or_create(
+    config, _ = OIDCClient.objects.update_or_create(
         identifier=identifier_config,
         defaults=fields_config,
     )
-    config.oidc_provider_config = oidc_provider_config
+    config.oidc_provider = oidc_provider
     for path, value in data.get("extra_options", {}).items():
         assign(config.options, path, value)
     config.save()

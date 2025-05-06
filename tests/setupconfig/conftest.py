@@ -1,8 +1,8 @@
 import pytest
 
 from mozilla_django_oidc_db.models import (
-    OIDCConfig,
-    OIDCProviderConfig,
+    OIDCClient,
+    OIDCProvider,
     UserInformationClaimsSources,
 )
 
@@ -68,7 +68,7 @@ def set_config_to_non_default_values():
     """
     Set the current config to non-default values.
     """
-    config_provider = OIDCProviderConfig.objects.create(
+    config_provider = OIDCProvider.objects.create(
         identifier="test-admit-oidc-provider",
         # Will be always overwritten
         oidc_op_authorization_endpoint="http://localhost:8080/whatever",
@@ -78,7 +78,7 @@ def set_config_to_non_default_values():
         oidc_op_discovery_endpoint="http://localhost:8080/whatever",
         oidc_op_jwks_endpoint="http://localhost:8080/whatever",
     )
-    config, _ = OIDCConfig.objects.update_or_create(
+    config, _ = OIDCClient.objects.update_or_create(
         identifier="test-admin-oidc",
         defaults={
             # Will be always overwritten
@@ -86,7 +86,7 @@ def set_config_to_non_default_values():
             "oidc_rp_client_secret": "different-secret",
             # Set some non-default values
             "enabled": False,
-            "oidc_provider_config": config_provider,
+            "oidc_provider": config_provider,
             "oidc_rp_scopes_list": [
                 "not_open_id",
                 "not_email",

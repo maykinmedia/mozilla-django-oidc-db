@@ -11,7 +11,7 @@ from .config import (
     get_setting_from_config,
     lookup_config,
 )
-from .models import OIDCConfig
+from .models import OIDCClient
 
 
 class SessionRefresh(BaseSessionRefresh):
@@ -19,7 +19,7 @@ class SessionRefresh(BaseSessionRefresh):
     Refresh stale sessions based on a config dynamically resolved from the session.
     """
 
-    _config: OIDCConfig
+    _config: OIDCClient
 
     OIDC_EXEMPT_URLS = dynamic_setting[list[str]](default=[])
     OIDC_OP_AUTHORIZATION_ENDPOINT = dynamic_setting[str]()

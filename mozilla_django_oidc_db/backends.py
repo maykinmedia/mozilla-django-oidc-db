@@ -15,7 +15,7 @@ from typing_extensions import override
 
 from .config import dynamic_setting, get_setting_from_config, lookup_config
 from .jwt import verify_and_decode_token
-from .models import UserInformationClaimsSources
+from .models import OIDCClient, UserInformationClaimsSources
 from .registry import register as registry
 from .typing import AnyUser, JSONObject
 from .utils import extract_content_type
@@ -70,7 +70,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         self.UserModel = cast(AbstractUser, get_user_model())
 
     @property
-    def config(self):
+    def config(self) -> OIDCClient:
         if (configuration := getattr(self, "_config", None)) is None:
             assert getattr(self, "request") is not None, (
                 "The request must be loaded from the authenticate entrypoint. It looks like "
@@ -137,7 +137,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         # Store the config class identifier on the user, so that we can store this in the user's
         # session after they have been successfully authenticated (by listening to the `user_logged_in` signal)
         if user:
-            user._oidcdb_config_identifier = self._config.identifier
+            user._oidcdb_config_identifier = self._config.identifier  # type: ignore
 
         return user
 
@@ -170,7 +170,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         # Specifying the preferred format in the ``Accept`` header does not work with
         # Keycloak, as it depends on the client settings.
         user_response = requests.get(
-            self.config.oidc_provider_config.oidc_op_user_endpoint,
+            self.config.oidc_provider.oidc_op_user_endpoint,
             headers={
                 "Authorization": "Bearer {0}".format(access_token),
             },

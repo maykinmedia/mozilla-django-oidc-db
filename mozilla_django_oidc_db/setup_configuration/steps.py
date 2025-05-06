@@ -5,8 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django_setup_configuration.configuration import BaseConfigurationStep
 from django_setup_configuration.exceptions import ConfigurationRunFailed
 
-from mozilla_django_oidc_db.forms import OIDCProviderConfigForm
-from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
+from mozilla_django_oidc_db.forms import OIDCProviderForm
+from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 from mozilla_django_oidc_db.setup_configuration.models import (
     AdminOIDCConfigurationModel,
     AdminOIDCConfigurationModelItem,
@@ -51,9 +51,9 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             )
         return endpoints
 
-    def _create_or_update_provider_config_deprecated(
+    def _create_or_update_provider_deprecated(
         self, config_model: AdminOIDCConfigurationModelItem
-    ) -> OIDCProviderConfig:
+    ) -> OIDCProvider:
         warnings.warn(
             "Specifying the OIDC Provider settings directly in the OIDC configuration is deprecated. "
             "Provide the settings for the OIDC Provider separately.",
@@ -66,11 +66,9 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             **self._get_endpoints(config_model.endpoint_config),
         }
 
-        provider_config, _ = OIDCProviderConfig.objects.update_or_create(
-            identifier=identifier
-        )
-        form = OIDCProviderConfigForm(
-            instance=provider_config,
+        provider, _ = OIDCProvider.objects.update_or_create(identifier=identifier)
+        form = OIDCProviderForm(
+            instance=provider,
             data=settings_provider,
         )
         if not form.is_valid():
@@ -78,25 +76,23 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
                 "Admin OIDC configuration field validation failed",
                 form.errors.as_json(),
             )
-        provider_config = form.save()
-        return provider_config
+        provider = form.save()
+        return provider
 
     def _create_or_update_configuration(
         self, config_model: AdminOIDCConfigurationModelItem
     ) -> None:
-        if not config_model.oidc_provider_config_identifier:
-            provider_config = self._create_or_update_provider_config_deprecated(
-                config_model
-            )
+        if not config_model.oidc_provider_identifier:
+            provider = self._create_or_update_provider_deprecated(config_model)
         else:
             try:
-                provider_config = OIDCProviderConfig.objects.get(
-                    identifier=config_model.oidc_provider_config_identifier
+                provider = OIDCProvider.objects.get(
+                    identifier=config_model.oidc_provider_identifier
                 )
             except ObjectDoesNotExist as exc:
                 raise ConfigurationRunFailed(
-                    f"Could not find an existing OIDC Provider configuration with "
-                    f"identifier `{config_model.oidc_provider_config_identifier}`."
+                    f"Could not find an existing OIDC Provider with "
+                    f"identifier `{config_model.oidc_provider_identifier}`."
                 )
 
         all_settings = {
@@ -112,11 +108,11 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             "oidc_state_size": config_model.oidc_state_size,
             "oidc_keycloak_idp_hint": config_model.oidc_keycloak_idp_hint,
             "userinfo_claims_source": config_model.userinfo_claims_source,
-            "oidc_provider_config": provider_config,
+            "oidc_provider": provider,
             "options": {},
         }
 
-        config, _ = OIDCConfig.objects.update_or_create(
+        config, _ = OIDCClient.objects.update_or_create(
             identifier=config_model.identifier, defaults=all_settings
         )
 
@@ -150,11 +146,11 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
     def _create_or_update_providers(
         self, provider_config_model: OIDCConfigProviderModel
     ) -> None:
-        provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+        provider, _ = OIDCProvider.objects.update_or_create(
             identifier=provider_config_model.identifier
         )
-        form = OIDCProviderConfigForm(
-            instance=provider_config,
+        form = OIDCProviderForm(
+            instance=provider,
             data={
                 "identifier": provider_config_model.identifier,
                 **self._get_endpoints(provider_config_model.endpoint_config),

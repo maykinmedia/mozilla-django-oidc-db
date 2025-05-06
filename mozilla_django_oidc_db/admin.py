@@ -2,17 +2,18 @@ from django.contrib import admin
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
-from .forms import OIDCProviderConfigForm
-from .models import OIDCConfig, OIDCProviderConfig
+from .forms import OIDCProviderForm
+from .models import OIDCClient, OIDCProvider
 
 
-@admin.register(OIDCConfig)
-class OIDCConfigAdmin(admin.ModelAdmin):
+@admin.register(OIDCClient)
+class OIDCClientAdmin(admin.ModelAdmin):
     list_display = (
         "identifier",
+        "oidc_rp_client_id",
         "enabled",
     )
-    list_filter = ("identifier", "oidc_provider_config__identifier")
+    search_fields = ("identifier", "oidc_provider__identifier", "oidc_rp_client_id")
     fieldsets = (
         (
             _("Activation"),
@@ -20,7 +21,7 @@ class OIDCConfigAdmin(admin.ModelAdmin):
         ),
         (
             _("OIDC Provider"),
-            {"fields": ("oidc_provider_config", "check_op_availability")},
+            {"fields": ("oidc_provider", "check_op_availability")},
         ),
         (
             _("Relying Party settings"),
@@ -56,7 +57,7 @@ class OIDCConfigAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(
-        self, request: HttpRequest, obj: OIDCConfig = None
+        self, request: HttpRequest, obj: OIDCClient = None
     ) -> bool:
         return False
 
@@ -71,8 +72,8 @@ class OIDCConfigAdmin(admin.ModelAdmin):
         return form
 
 
-@admin.register(OIDCProviderConfig)
-class OIDCProviderConfigAdmin(admin.ModelAdmin):
+@admin.register(OIDCProvider)
+class OIDCProviderAdmin(admin.ModelAdmin):
     list_display = ("identifier",)
-    list_filter = ("identifier",)
-    form = OIDCProviderConfigForm
+    search_fields = ("identifier",)
+    form = OIDCProviderForm

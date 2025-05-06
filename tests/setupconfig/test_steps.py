@@ -9,8 +9,8 @@ from django_setup_configuration.exceptions import (
 from django_setup_configuration.test_utils import execute_single_step
 
 from mozilla_django_oidc_db.models import (
-    OIDCConfig,
-    OIDCProviderConfig,
+    OIDCClient,
+    OIDCProvider,
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.setup_configuration.steps import AdminOIDCConfigurationStep
@@ -19,7 +19,7 @@ from ..conftest import KEYCLOAK_BASE_URL
 
 
 def assert_full_values(identifier):
-    config = OIDCConfig.objects.get(identifier=identifier)
+    config = OIDCClient.objects.get(identifier=identifier)
     assert not config.enabled
     assert config.oidc_rp_client_id == "client-id"
     assert config.oidc_rp_client_secret == "secret"
@@ -31,21 +31,21 @@ def assert_full_values(identifier):
     ]
     assert config.oidc_rp_sign_algo == "RS256"
     assert config.oidc_rp_idp_sign_key == "key"
-    assert config.oidc_provider_config.oidc_op_discovery_endpoint == ""
+    assert config.oidc_provider.oidc_op_discovery_endpoint == ""
     assert (
-        config.oidc_provider_config.oidc_op_jwks_endpoint
+        config.oidc_provider.oidc_op_jwks_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/certs"
     )
     assert (
-        config.oidc_provider_config.oidc_op_authorization_endpoint
+        config.oidc_provider.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_provider_config.oidc_op_token_endpoint
+        config.oidc_provider.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_provider_config.oidc_op_user_endpoint
+        config.oidc_provider.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
     assert config.options["user_settings"]["claim_mappings"]["username"] == [
@@ -91,7 +91,7 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
     Group.objects.create(name="local.groups.Admins")
     Group.objects.create(name="local.groups.Read-only")
 
-    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
+    config = OIDCClient.objects.get(identifier="test-admin-oidc")
 
     # assert different values
     assert not config.enabled
@@ -106,24 +106,21 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
     assert config.oidc_rp_sign_algo == "M1911"
     assert config.oidc_rp_idp_sign_key == "name"
     assert (
-        config.oidc_provider_config.oidc_op_discovery_endpoint
+        config.oidc_provider.oidc_op_discovery_endpoint
         == "http://localhost:8080/whatever"
     )
     assert (
-        config.oidc_provider_config.oidc_op_jwks_endpoint
+        config.oidc_provider.oidc_op_jwks_endpoint == "http://localhost:8080/whatever"
+    )
+    assert (
+        config.oidc_provider.oidc_op_authorization_endpoint
         == "http://localhost:8080/whatever"
     )
     assert (
-        config.oidc_provider_config.oidc_op_authorization_endpoint
-        == "http://localhost:8080/whatever"
+        config.oidc_provider.oidc_op_token_endpoint == "http://localhost:8080/whatever"
     )
     assert (
-        config.oidc_provider_config.oidc_op_token_endpoint
-        == "http://localhost:8080/whatever"
-    )
-    assert (
-        config.oidc_provider_config.oidc_op_user_endpoint
-        == "http://localhost:8080/whatever"
+        config.oidc_provider.oidc_op_user_endpoint == "http://localhost:8080/whatever"
     )
     assert config.options["user_settings"]["claim_mappings"]["username"] == [
         "claim_title"
@@ -156,7 +153,7 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
 def test_configure_use_defaults(set_config_to_non_default_values, default_config_yml):
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=default_config_yml)
 
-    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
+    config = OIDCClient.objects.get(identifier="test-admin-oidc")
 
     assert config.enabled
     assert config.oidc_rp_client_id == "client-id"
@@ -164,19 +161,19 @@ def test_configure_use_defaults(set_config_to_non_default_values, default_config
     assert config.oidc_rp_scopes_list == ["openid", "email", "profile"]
     assert config.oidc_rp_sign_algo == "HS256"
     assert config.oidc_rp_idp_sign_key == ""
-    assert config.oidc_provider_config.oidc_op_discovery_endpoint == ""
-    assert config.oidc_provider_config.oidc_op_jwks_endpoint == ""
+    assert config.oidc_provider.oidc_op_discovery_endpoint == ""
+    assert config.oidc_provider.oidc_op_jwks_endpoint == ""
 
     assert (
-        config.oidc_provider_config.oidc_op_authorization_endpoint
+        config.oidc_provider.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_provider_config.oidc_op_token_endpoint
+        config.oidc_provider.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_provider_config.oidc_op_user_endpoint
+        config.oidc_provider.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
     assert config.options["group_settings"]["claim_mapping"] == ["roles"]
@@ -206,24 +203,24 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
         AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
     )
 
-    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
+    config = OIDCClient.objects.get(identifier="test-admin-oidc")
 
     assert config.enabled
-    assert config.oidc_provider_config.oidc_op_discovery_endpoint == KEYCLOAK_BASE_URL
+    assert config.oidc_provider.oidc_op_discovery_endpoint == KEYCLOAK_BASE_URL
     assert (
-        config.oidc_provider_config.oidc_op_jwks_endpoint
+        config.oidc_provider.oidc_op_jwks_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/certs"
     )
     assert (
-        config.oidc_provider_config.oidc_op_authorization_endpoint
+        config.oidc_provider.oidc_op_authorization_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/auth"
     )
     assert (
-        config.oidc_provider_config.oidc_op_token_endpoint
+        config.oidc_provider.oidc_op_token_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/token"
     )
     assert (
-        config.oidc_provider_config.oidc_op_user_endpoint
+        config.oidc_provider.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
 
@@ -249,7 +246,7 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
 def test_configure_discovery_failure(
     requests_mock, discovery_endpoint_config_yml, mock_kwargs
 ):
-    OIDCConfig.objects.get_or_create(identifier="test-admin-oidc")
+    OIDCClient.objects.get_or_create(identifier="test-admin-oidc")
 
     requests_mock.get(
         f"{KEYCLOAK_BASE_URL}.well-known/openid-configuration",
@@ -261,9 +258,9 @@ def test_configure_discovery_failure(
             AdminOIDCConfigurationStep, yaml_source=discovery_endpoint_config_yml
         )
 
-    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
+    config = OIDCClient.objects.get(identifier="test-admin-oidc")
     assert not config.enabled
-    assert config.oidc_provider_config is None
+    assert config.oidc_provider is None
 
 
 @pytest.mark.django_db
@@ -280,30 +277,28 @@ def test_configure_fails_without_identifier(missing_identifier_yml):
 def test_multiple_providers_configured(multiple_providers_yml):
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=multiple_providers_yml)
 
-    provider_discovery = OIDCProviderConfig.objects.get(
-        identifier="test-provider-discovery"
-    )
+    provider_discovery = OIDCProvider.objects.get(identifier="test-provider-discovery")
     assert (
         provider_discovery.oidc_op_authorization_endpoint
         == "http://localhost:8080/realms/test/protocol/openid-connect/auth"
     )
 
-    provider_discovery = OIDCProviderConfig.objects.get(identifier="test-provider-full")
+    provider_discovery = OIDCProvider.objects.get(identifier="test-provider-full")
     assert (
         provider_discovery.oidc_op_authorization_endpoint
         == "http://localhost:8080/realms/test/protocol/openid-connect/auth"
     )
 
     assert (
-        OIDCConfig.objects.get(identifier="test-oidc-1").oidc_provider_config.identifier
+        OIDCClient.objects.get(identifier="test-oidc-1").oidc_provider.identifier
         == "test-provider-discovery"
     )
     assert (
-        OIDCConfig.objects.get(identifier="test-oidc-2").oidc_provider_config.identifier
+        OIDCClient.objects.get(identifier="test-oidc-2").oidc_provider.identifier
         == "test-provider-discovery"
     )
     assert (
-        OIDCConfig.objects.get(identifier="test-oidc-3").oidc_provider_config.identifier
+        OIDCClient.objects.get(identifier="test-oidc-3").oidc_provider.identifier
         == "test-provider-full"
     )
 
@@ -312,7 +307,7 @@ def test_multiple_providers_configured(multiple_providers_yml):
 def test_custom_options(custom_options_yml):
     execute_single_step(AdminOIDCConfigurationStep, yaml_source=custom_options_yml)
 
-    config = OIDCConfig.objects.get(identifier="test-admin-oidc")
+    config = OIDCClient.objects.get(identifier="test-admin-oidc")
 
     assert config.options["test"] == "test"
     assert config.options["this"]["is"] == "a nested option!"

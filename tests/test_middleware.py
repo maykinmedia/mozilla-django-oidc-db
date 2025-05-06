@@ -9,7 +9,7 @@ import pytest
 
 from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
-from mozilla_django_oidc_db.models import OIDCConfig
+from mozilla_django_oidc_db.models import OIDCClient
 
 from .utils import create_or_update_configuration
 
@@ -74,7 +74,7 @@ def config_factory(db):
 
 @pytest.mark.oidcconfig(enabled=False)
 def test_sessionrefresh_oidc_not_enabled(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     request_factory,
     session_refresh: SessionRefresh,
 ):
@@ -92,7 +92,7 @@ def test_sessionrefresh_oidc_not_enabled(
     oidc_rp_scopes_list=["openid", "email"],
 )
 def test_sessionrefresh_config_always_refreshed(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     request_factory,
     session_refresh: SessionRefresh,
     mocker,
@@ -175,7 +175,7 @@ def test_sessionfresh_selects_correct_backend_based_on_session_parameters(
     assert isinstance(result1, HttpResponseRedirect)
     assert f"https://mock-oidc-provider-{config_identifier}" in result1["Location"]
     query1 = parse_qs(urlparse(result1.url).query)
-    config = OIDCConfig.objects.get(identifier=config_identifier)
+    config = OIDCClient.objects.get(identifier=config_identifier)
 
     assert query1["client_id"] == [config.oidc_rp_client_id]
 

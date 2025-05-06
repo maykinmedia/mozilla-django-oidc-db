@@ -10,8 +10,8 @@ from mozilla_django_oidc.auth import OIDCAuthenticationBackend as UpstreamBacken
 
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.models import (
-    OIDCConfig,
-    OIDCProviderConfig,
+    OIDCClient,
+    OIDCProvider,
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
@@ -62,13 +62,13 @@ def test_settings_still_validated(settings, sign_alg: str):
     """
     Test that the upstream library settings checks are still performed.
     """
-    config = OIDCConfig.objects.get(identifier="test-oidc-not-configured")
-    oidc_provider = OIDCProviderConfig.objects.create(
+    config = OIDCClient.objects.get(identifier="test-oidc-not-configured")
+    oidc_provider = OIDCProvider.objects.create(
         identifier="test-not-configured-provider", oidc_op_jwks_endpoint=""
     )
     config.oidc_rp_sign_algo = sign_alg
     config.oidc_rp_idp_sign_key = ""
-    config.oidc_provider_config = oidc_provider
+    config.oidc_provider = oidc_provider
     config.save()
     backend = OIDCAuthenticationBackend()
     backend._config = config

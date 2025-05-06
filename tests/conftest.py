@@ -12,7 +12,7 @@ import pytest
 from tests.utils import create_or_update_configuration
 
 if TYPE_CHECKING:
-    from mozilla_django_oidc_db.models import OIDCConfig
+    from mozilla_django_oidc_db.models import OIDCClient
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
@@ -30,17 +30,17 @@ def mock_state_and_nonce(mocker):
 
 
 @pytest.fixture
-def disabled_config(request, db) -> Iterator[OIDCConfig]:
+def disabled_config(request, db) -> Iterator[OIDCClient]:
     """
     OIDC configuration with enabled=False.
 
     Use this fixture when you need a configuration that is currently disabled.
     """
-    from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
+    from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
     BASE = "https://mock-oidc-provider:9999"
 
-    oidc_provider_config, _ = OIDCProviderConfig.objects.update_or_create(
+    oidc_provider, _ = OIDCProvider.objects.update_or_create(
         identifier="test-oidc-provider",
         defaults={
             "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
@@ -51,11 +51,11 @@ def disabled_config(request, db) -> Iterator[OIDCConfig]:
         },
     )
 
-    config, _ = OIDCConfig.objects.update_or_create(
+    config, _ = OIDCClient.objects.update_or_create(
         identifier="test-oidc-disabled",
         defaults={
             "enabled": False,
-            "oidc_provider_config": oidc_provider_config,
+            "oidc_provider": oidc_provider,
         },
     )
 
@@ -63,7 +63,7 @@ def disabled_config(request, db) -> Iterator[OIDCConfig]:
 
 
 @pytest.fixture
-def dummy_config(request, db) -> Iterator[OIDCConfig]:
+def dummy_config(request, db) -> Iterator[OIDCClient]:
     """
     OIDC configuration for a fictious provider.
 
@@ -104,7 +104,7 @@ def dummy_config(request, db) -> Iterator[OIDCConfig]:
 
 
 @pytest.fixture
-def keycloak_config(request, db) -> Iterator[OIDCConfig]:
+def keycloak_config(request, db) -> Iterator[OIDCClient]:
     """
     Keycloak configuration for the provided docker-compose.yml setup.
 
@@ -119,10 +119,10 @@ def keycloak_config(request, db) -> Iterator[OIDCConfig]:
 
     """
     # local imports to so that `pytest --help` can load this file
-    from mozilla_django_oidc_db.forms import OIDCProviderConfigForm
+    from mozilla_django_oidc_db.forms import OIDCProviderForm
     from mozilla_django_oidc_db.models import get_default_scopes
 
-    endpoints = OIDCProviderConfigForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
+    endpoints = OIDCProviderForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
 
     marker = request.node.get_closest_marker("oidcconfig")
     overrides: dict[str, Any] = marker.kwargs if marker else {}

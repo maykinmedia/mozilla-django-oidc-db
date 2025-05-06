@@ -20,7 +20,7 @@ from mozilla_django_oidc.views import (
 from .config import get_setting_from_config, lookup_config, store_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from .exceptions import OIDCProviderOutage
-from .models import OIDCConfig
+from .models import OIDCClient
 from .registry import register as registry
 
 logger = logging.getLogger(__name__)
@@ -76,8 +76,7 @@ class OIDCCallbackView(View):
         store_config(request)
         configuration = lookup_config(request)
         plugin = registry[configuration.identifier]
-        view = plugin.callback_view.as_view()
-        return view(request)
+        return plugin.view(request)
 
 
 class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
@@ -166,6 +165,7 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
 
     The ``__init__`` method of the Django ``View`` will add attributes to the view for
     any args/kwargs passed during init. So the view will have an attribute ``identifier``.
+    Note that it only does it for attributes that are already defined as class attributes.
 
     These concrete views are intended to be wrapped by your own views so that you can
     supply the ``return_url`` parameter:
@@ -192,7 +192,7 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
     Specify this as a kwarg in the ``as_view(identifier=...)`` class method.
     """
 
-    allow_next_from_query = True
+    allow_next_from_query: bool = True
     """
     Specify if the url-to-redirect-to may be provided as a query string parameter.
 
@@ -210,7 +210,7 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
             return digid_init(request, return_url="/some-fixed-url")
     """
 
-    oidc_rp_scopes: str = None
+    oidc_rp_scopes: str = ""
     """
     OIDC scopes to include in the authentication request.
 
@@ -275,7 +275,7 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
         view.
         """
         if (config := getattr(self, "_config", None)) is None:
-            config = OIDCConfig.objects.get(identifier=self.identifier)
+            config = OIDCClient.objects.get(identifier=self.identifier)
             self._config = config
         return get_setting_from_config(config, attr, *args)
 
@@ -332,10 +332,10 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
         Add a keycloak identity provider hint if configured.
         """
         extra = super().get_extra_params(request)
-        if kc_idp_hint := self.get_settings("OIDC_KEYCLOAK_IDP_HINT", ""):
-            extra["kc_idp_hint"] = kc_idp_hint
         if self.oidc_rp_scopes:
             extra["scope"] = self.oidc_rp_scopes
+        if kc_idp_hint := self.get_settings("OIDC_KEYCLOAK_IDP_HINT", ""):
+            extra["kc_idp_hint"] = kc_idp_hint
         return extra
 
 

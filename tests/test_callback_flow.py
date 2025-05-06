@@ -9,7 +9,7 @@ import pytest
 from pytest_django.asserts import assertContains, assertRedirects
 
 from mozilla_django_oidc_db.models import (
-    OIDCConfig,
+    OIDCClient,
     UserInformationClaimsSources,
 )
 from mozilla_django_oidc_db.typing import JSONObject
@@ -49,7 +49,7 @@ def callback_client(callback_request: HttpRequest, client: Client) -> Client:
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_duplicate_email_unique_constraint_violated(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -99,7 +99,7 @@ def test_duplicate_email_unique_constraint_violated(
     },
 )
 def test_validation_error_during_authentication(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -136,7 +136,7 @@ def test_validation_error_during_authentication(
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_happy_flow(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -156,7 +156,7 @@ def test_happy_flow(
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_empty_claims_returned(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,
@@ -174,7 +174,7 @@ def test_empty_claims_returned(
 
 
 def test_tampering_with_parameters_invalid_state(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
 ):
@@ -188,7 +188,7 @@ def test_tampering_with_parameters_invalid_state(
 
 
 def test_invalid_reference_to_config_identifier(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
 ):
@@ -209,7 +209,7 @@ def test_invalid_reference_to_config_identifier(
 @pytest.mark.django_db
 @pytest.mark.oidcconfig(enabled=False, oidc_op_authorization_endpoint="bad")
 def test_wrong_config_model_used(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     auth_request: HttpRequest,
     client: Client,
 ):
@@ -237,7 +237,7 @@ def test_wrong_config_model_used(
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
 def test_error_first_cleared_after_succesful_login(
-    dummy_config: OIDCConfig,
+    dummy_config: OIDCClient,
     callback_request: HttpRequest,
     callback_client: Client,
     mock_auth_backend: MockBackend,

@@ -7,34 +7,34 @@ from django_setup_configuration.models import ConfigurationModel
 from pydantic import AnyUrl, Discriminator, Field, Tag
 from typing_extensions import Annotated
 
-from mozilla_django_oidc_db.models import OIDCConfig, OIDCProviderConfig
+from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
 EXAMPLE_REALM = "http://keycloak.local:8080/realms/test"
 
 
 class OIDCFullProviderConfig(ConfigurationModel):
     oidc_op_authorization_endpoint: AnyUrl = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_authorization_endpoint",
         examples=[f"{EXAMPLE_REALM}/openid-connect/auth"],
     )
     oidc_op_token_endpoint: AnyUrl = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_token_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/token"],
     )
     oidc_op_user_endpoint: AnyUrl = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_user_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/userinfo"],
     )
     oidc_op_logout_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_logout_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/logout"],
     )
     oidc_op_jwks_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_jwks_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/certs"],
     )
@@ -42,7 +42,7 @@ class OIDCFullProviderConfig(ConfigurationModel):
 
 class OIDCDiscoveryProviderConfig(ConfigurationModel):
     oidc_op_discovery_endpoint: AnyUrl = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "oidc_op_discovery_endpoint",
         examples=[f"{EXAMPLE_REALM}/"],
     )
@@ -70,7 +70,7 @@ OIDCProviderConfigUnion = Annotated[
 
 class OIDCConfigProviderModel(ConfigurationModel):
     identifier: str = DjangoModelRef(
-        OIDCProviderConfig,
+        OIDCProvider,
         "identifier",
         description="a unique identifier for this OIDC provider.",
         examples=["admin-oidc-provider"],
@@ -80,23 +80,23 @@ class OIDCConfigProviderModel(ConfigurationModel):
 
 class AdminOIDCConfigurationModelItem(ConfigurationModel):
     identifier: str = DjangoModelRef(
-        OIDCConfig,
+        OIDCClient,
         "identifier",
         description="a unique identifier for this configuration",
         examples=["admin-oidc"],
     )
 
-    enabled: bool = DjangoModelRef(OIDCConfig, "enabled", default=True)
-    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCConfig, "oidc_rp_scopes_list")
-    options: dict = DjangoModelRef(OIDCConfig, "options", default_factory=dict)
+    enabled: bool = DjangoModelRef(OIDCClient, "enabled", default=True)
+    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list")
+    options: dict = DjangoModelRef(OIDCClient, "options", default_factory=dict)
 
     endpoint_config: OIDCProviderConfigUnion | None = Field(
         description=_("Configuration for the OIDC Provider endpoints."),
         default=None,
         deprecated=True,
     )
-    oidc_provider_config_identifier: str = DjangoModelRef(
-        OIDCProviderConfig, "identifier", examples=["test-oidc-provider"], default=""
+    oidc_provider_identifier: str = DjangoModelRef(
+        OIDCProvider, "identifier", examples=["test-oidc-provider"], default=""
     )
 
     ## DEPRECATED FIELDS
@@ -157,7 +157,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
 
     class Meta:
         django_model_refs = {
-            OIDCConfig: [
+            OIDCClient: [
                 "oidc_rp_client_id",
                 "oidc_rp_client_secret",
                 "oidc_token_use_basic_auth",
@@ -180,6 +180,6 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
 
 class AdminOIDCConfigurationModel(ConfigurationModel):
     providers: list[OIDCConfigProviderModel] = Field(
-        default_factory=list, description=_("List of OIDC provider configurations")
+        default_factory=list, description=_("List of OIDC providers")
     )
     items: list[AdminOIDCConfigurationModelItem]

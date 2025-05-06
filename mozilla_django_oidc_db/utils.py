@@ -9,7 +9,7 @@ import requests
 from glom import Path, PathAccessError, assign, glom
 from requests.utils import _parse_content_type_header
 
-from .models import OIDCConfig
+from .models import OIDCClient
 from .typing import ClaimPath, JSONObject, JSONValue
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def extract_content_type(ct_header: str) -> str:
     return content_type
 
 
-def do_op_logout(config: OIDCConfig, id_token: str) -> None:
+def do_op_logout(config: OIDCClient, id_token: str) -> None:
     """
     Perform the logout with the OpenID Provider.
 
@@ -74,7 +74,7 @@ def do_op_logout(config: OIDCConfig, id_token: str) -> None:
        been tested with Keycloak, but the standard says nothing about server-to-server
        calls to log out a user.
     """
-    logout_endpoint = config.oidc_provider_config.oidc_op_logout_endpoint
+    logout_endpoint = config.oidc_provider.oidc_op_logout_endpoint
     if not logout_endpoint:
         return
 

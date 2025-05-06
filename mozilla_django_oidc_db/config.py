@@ -19,10 +19,10 @@ from mozilla_django_oidc.utils import import_from_settings
 from typing_extensions import Self, TypedDict, Unpack
 
 from .constants import CONFIG_IDENTIFIER_SESSION_KEY
-from .models import OIDCConfig
+from .models import OIDCClient
 
 
-def get_setting_from_config(config: OIDCConfig, attr: str, *args) -> Any:
+def get_setting_from_config(config: OIDCClient, attr: str, *args) -> Any:
     """
     Look up a setting from the config record or fall back to Django settings.
 
@@ -38,15 +38,13 @@ def get_setting_from_config(config: OIDCConfig, attr: str, *args) -> Any:
     """
     attr_lowercase = attr.lower()
 
-    if attr_lowercase == "oidc_op_auth_endpoint" and hasattr(
-        config.oidc_provider_config, "oidc_op_authorization_endpoint"
-    ):
-        return getattr(config.oidc_provider_config, "oidc_op_authorization_endpoint")
+    if attr_lowercase == "oidc_op_auth_endpoint":
+        return config.oidc_provider.oidc_op_authorization_endpoint
 
     if attr_lowercase.startswith("oidc_op") and hasattr(
-        config.oidc_provider_config, attr_lowercase
+        config.oidc_provider, attr_lowercase
     ):
-        return getattr(config.oidc_provider_config, attr_lowercase)
+        return getattr(config.oidc_provider, attr_lowercase)
 
     if hasattr(config, attr_lowercase):
         # Workaround for OIDC_RP_IDP_SIGN_KEY being an empty string by default.
@@ -140,21 +138,16 @@ def store_config(request: HttpRequest) -> None:
         config_identifier = _config
 
     try:
-        config = OIDCConfig.objects.select_related("oidc_provider_config").get(
+        config = OIDCClient.objects.select_related("oidc_provider").get(
             identifier=config_identifier
         )
-    except (ObjectDoesNotExist, MultipleObjectsReturned) as exc:
+    except (OIDCClient.DoesNotExist, MultipleObjectsReturned) as exc:
         raise BadRequest("Could not look up the referenced configuration.") from exc
 
-    # Spoofing is not possible since we store it in the server-side session, but there
-    # can still be all sorts of programmer mistakes.
-    if not isinstance(config, OIDCConfig):
-        raise BadRequest("Invalid config referenced.")
-
-    request._oidcdb_config = config
+    request._oidcdb_config = config  # type: ignore
 
 
-def lookup_config(request: HttpRequest) -> OIDCConfig:
+def lookup_config(request: HttpRequest) -> OIDCClient:
     # cache on request for optimized access -- preferred access
     if config := getattr(request, "_oidcdb_config", None):
         return config
@@ -167,10 +160,10 @@ def lookup_config(request: HttpRequest) -> OIDCConfig:
         raise BadRequest("The required config is not available on the session.")
 
     try:
-        config = OIDCConfig.objects.select_related("oidc_provider_config").get(
+        config = OIDCClient.objects.select_related("oidc_provider").get(
             identifier=config_identifier
         )
-    except (ObjectDoesNotExist, MultipleObjectsReturned) as exc:
+    except (OIDCClient.DoesNotExist, MultipleObjectsReturned) as exc:
         raise BadRequest("Could not look up the referenced configuration.") from exc
 
     return config

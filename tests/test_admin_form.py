@@ -9,8 +9,8 @@ import pytest
 import requests_mock
 from requests.exceptions import RequestException
 
-from mozilla_django_oidc_db.forms import OIDCProviderConfigForm
-from mozilla_django_oidc_db.models import OIDCConfig
+from mozilla_django_oidc_db.forms import OIDCProviderForm
+from mozilla_django_oidc_db.models import OIDCClient
 from tests.factories import UserFactory
 
 
@@ -20,7 +20,7 @@ def test_derive_endpoints_success():
         "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
     }
-    form = OIDCProviderConfigForm(data=form_data)
+    form = OIDCProviderForm(data=form_data)
 
     configuration = {
         "authorization_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/auth",
@@ -62,15 +62,15 @@ def test_derive_endpoints_extra_field():
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl/",
     }
 
-    class ExtendedOIDCProviderConfigForm(OIDCProviderConfigForm):
-        required_endpoints = OIDCProviderConfigForm.required_endpoints
+    class ExtendedOIDCProviderForm(OIDCProviderForm):
+        required_endpoints = OIDCProviderForm.required_endpoints
         # Define an extra field to derive from the configuration
         oidc_mapping = dict(
-            **OIDCProviderConfigForm.oidc_mapping,
+            **OIDCProviderForm.oidc_mapping,
             **{"logout_endpoint": "end_session_endpoint"},
         )
 
-    form = ExtendedOIDCProviderConfigForm(data=form_data)
+    form = ExtendedOIDCProviderForm(data=form_data)
 
     configuration = {
         "authorization_endpoint": "http://provider.com/auth/realms/master/protocol/openid-connect/auth",
@@ -101,7 +101,7 @@ def test_derive_endpoints_request_error(*m):
         "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
     }
-    form = OIDCProviderConfigForm(data=form_data)
+    form = OIDCProviderForm(data=form_data)
 
     form.is_valid()
 
@@ -119,7 +119,7 @@ def test_derive_endpoints_json_error(*m):
         "identifier": "test-tralala",
         "oidc_op_discovery_endpoint": "http://discovery-endpoint.nl",
     }
-    form = OIDCProviderConfigForm(data=form_data)
+    form = OIDCProviderForm(data=form_data)
 
     form.is_valid()
 
@@ -135,7 +135,7 @@ def test_no_discovery_endpoint_other_fields_required():
     form_data = {
         "identifier": "test-tralala",
     }
-    form = OIDCProviderConfigForm(data=form_data)
+    form = OIDCProviderForm(data=form_data)
 
     form.is_valid()
 
@@ -147,24 +147,24 @@ def test_no_discovery_endpoint_other_fields_required():
 
 
 def test_admin_form_readonly_access():
-    # Empty the base_fields, causing OIDCProviderConfigForm.fields to be empty
+    # Empty the base_fields, causing OIDCProviderForm.fields to be empty
     # as well, which is also the case for when users access the form with
     # read only access
-    OIDCProviderConfigForm.base_fields = {}
+    OIDCProviderForm.base_fields = {}
 
     # Form initialization should not raise any errors
-    OIDCProviderConfigForm()
+    OIDCProviderForm()
 
 
 @pytest.mark.django_db
 def test_get_custom_options_schema(client: Client):
-    config = OIDCConfig.objects.get(identifier="test-oidc")
+    config = OIDCClient.objects.get(identifier="test-oidc")
     user = UserFactory.create(is_superuser=True, is_staff=True)
     client.force_login(user)
 
     response = client.get(
         reverse(
-            "admin:mozilla_django_oidc_db_oidcconfig_change",
+            "admin:mozilla_django_oidc_db_oidcclient_change",
             kwargs={"object_id": config.pk},
         ),
     )

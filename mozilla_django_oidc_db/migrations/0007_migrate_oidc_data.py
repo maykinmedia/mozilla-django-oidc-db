@@ -9,14 +9,16 @@ from ..constants import (
 
 
 def move_data_backwards(apps, schema_editor):
-    OIDCConfig = apps.get_model("mozilla_django_oidc_db", "OIDCConfig")
+    OIDCClient = apps.get_model("mozilla_django_oidc_db", "OIDCClient")
     OpenIDConnectConfig = apps.get_model(
         "mozilla_django_oidc_db", "OpenIDConnectConfig"
     )
     Group = apps.get_model("auth", "Group")
 
     # There can be multiple configurations, but we pick one
-    new_config = OIDCConfig.objects.first()
+    new_config = OIDCClient.objects.filter(
+        identifier=OIDC_ADMIN_CONFIG_IDENTIFIER
+    ).first()
     if not new_config:
         return
 
@@ -33,17 +35,15 @@ def move_data_backwards(apps, schema_editor):
         oidc_rp_sign_algo=new_config.oidc_rp_sign_algo,
         oidc_rp_scopes_list=new_config.oidc_rp_scopes_list,
         oidc_op_discovery_endpoint=(
-            new_config.oidc_provider_config.oidc_op_discovery_endpoint
+            new_config.oidc_provider.oidc_op_discovery_endpoint
         ),
-        oidc_op_jwks_endpoint=new_config.oidc_provider_config.oidc_op_jwks_endpoint,
+        oidc_op_jwks_endpoint=new_config.oidc_provider.oidc_op_jwks_endpoint,
         oidc_op_authorization_endpoint=(
-            new_config.oidc_provider_config.oidc_op_authorization_endpoint
+            new_config.oidc_provider.oidc_op_authorization_endpoint
         ),
-        oidc_op_token_endpoint=new_config.oidc_provider_config.oidc_op_token_endpoint,
-        oidc_op_user_endpoint=new_config.oidc_provider_config.oidc_op_user_endpoint,
-        oidc_op_logout_endpoint=(
-            new_config.oidc_provider_config.oidc_op_logout_endpoint
-        ),
+        oidc_op_token_endpoint=new_config.oidc_provider.oidc_op_token_endpoint,
+        oidc_op_user_endpoint=new_config.oidc_provider.oidc_op_user_endpoint,
+        oidc_op_logout_endpoint=(new_config.oidc_provider.oidc_op_logout_endpoint),
         oidc_token_use_basic_auth=new_config.oidc_token_use_basic_auth,
         oidc_rp_idp_sign_key=new_config.oidc_rp_idp_sign_key,
         oidc_use_nonce=new_config.oidc_use_nonce,
@@ -70,8 +70,8 @@ def move_data_backwards(apps, schema_editor):
 
 
 def move_data_forward(apps, schema_editor):
-    OIDCConfig = apps.get_model("mozilla_django_oidc_db", "OIDCConfig")
-    OIDCProviderConfig = apps.get_model("mozilla_django_oidc_db", "OIDCProviderConfig")
+    OIDCClient = apps.get_model("mozilla_django_oidc_db", "OIDCClient")
+    OIDCProvider = apps.get_model("mozilla_django_oidc_db", "OIDCProvider")
     OpenIDConnectConfig = apps.get_model(
         "mozilla_django_oidc_db", "OpenIDConnectConfig"
     )
@@ -81,7 +81,7 @@ def move_data_forward(apps, schema_editor):
     if not old_config:
         return
 
-    oidc_provider_config = OIDCProviderConfig.objects.create(
+    oidc_provider = OIDCProvider.objects.create(
         identifier=OIDC_ADMIN_PROVIDER_CONFIG_IDENTIFIER,
         oidc_op_discovery_endpoint=(old_config.oidc_op_discovery_endpoint),
         oidc_op_jwks_endpoint=old_config.oidc_op_jwks_endpoint,
@@ -91,10 +91,10 @@ def move_data_forward(apps, schema_editor):
         oidc_op_logout_endpoint=old_config.oidc_op_logout_endpoint,
     )
 
-    OIDCConfig.objects.create(
+    OIDCClient.objects.create(
         identifier=OIDC_ADMIN_CONFIG_IDENTIFIER,
         enabled=old_config.enabled,
-        oidc_provider_config=oidc_provider_config,
+        oidc_provider=oidc_provider,
         oidc_rp_client_id=old_config.oidc_rp_client_id,
         oidc_rp_client_secret=old_config.oidc_rp_client_secret,
         oidc_rp_sign_algo=old_config.oidc_rp_sign_algo,

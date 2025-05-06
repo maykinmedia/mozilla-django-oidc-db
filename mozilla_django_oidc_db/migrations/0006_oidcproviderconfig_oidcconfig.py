@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="OIDCProviderConfig",
+            name="OIDCProvider",
             fields=[
                 (
                     "id",
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 (
                     "identifier",
                     models.SlugField(
-                        help_text="Unique identifier for a configuration of a OIDC provider.",
+                        help_text="Unique identifier of the OIDC provider.",
                         max_length=255,
                         unique=True,
                         verbose_name="identifier",
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                     "oidc_op_discovery_endpoint",
                     models.URLField(
                         blank=True,
-                        help_text="URL of your OpenID Connect provider discovery endpoint ending with a slash (`.well-known/...` will be added automatically). If this is provided, the remaining endpoints can be omitted, as they will be derived from this endpoint.",
+                        help_text="URL of your provider discovery endpoint ending with a slash (`.well-known/...` will be added automatically). If this is provided, the remaining endpoints can be omitted, as they will be derived from this endpoint.",
                         max_length=1000,
                         verbose_name="Discovery endpoint",
                     ),
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                     "oidc_op_jwks_endpoint",
                     models.URLField(
                         blank=True,
-                        help_text="URL of your OpenID Connect provider JSON Web Key Set endpoint. Required if `RS256` is used as signing algorithm.",
+                        help_text="URL of your provider JSON Web Key Set endpoint. Required if `RS256` is used as signing algorithm.",
                         max_length=1000,
                         verbose_name="JSON Web Key Set endpoint",
                     ),
@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                 (
                     "oidc_op_authorization_endpoint",
                     models.URLField(
-                        help_text="URL of your OpenID Connect provider authorization endpoint",
+                        help_text="URL of your provider authorization endpoint",
                         max_length=1000,
                         verbose_name="Authorization endpoint",
                     ),
@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 (
                     "oidc_op_token_endpoint",
                     models.URLField(
-                        help_text="URL of your OpenID Connect provider token endpoint",
+                        help_text="URL of your provider token endpoint",
                         max_length=1000,
                         verbose_name="Token endpoint",
                     ),
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
                 (
                     "oidc_op_user_endpoint",
                     models.URLField(
-                        help_text="URL of your OpenID Connect provider userinfo endpoint",
+                        help_text="URL of your provider userinfo endpoint.",
                         max_length=1000,
                         verbose_name="User endpoint",
                     ),
@@ -82,19 +82,19 @@ class Migration(migrations.Migration):
                     "oidc_op_logout_endpoint",
                     models.URLField(
                         blank=True,
-                        help_text="URL of your OpenID Connect provider logout endpoint",
+                        help_text="URL of your provider logout endpoint.",
                         max_length=1000,
                         verbose_name="Logout endpoint",
                     ),
                 ),
             ],
             options={
-                "verbose_name": "OIDC Provider configuration",
-                "verbose_name_plural": "OIDC Provider configurations",
+                "verbose_name": "OIDC Provider",
+                "verbose_name_plural": "OIDC Providers",
             },
         ),
         migrations.CreateModel(
-            name="OIDCConfig",
+            name="OIDCClient",
             fields=[
                 (
                     "id",
@@ -108,7 +108,7 @@ class Migration(migrations.Migration):
                 (
                     "identifier",
                     models.SlugField(
-                        help_text="Unique identifier for a configuration.",
+                        help_text="Unique identifier for the client.",
                         max_length=255,
                         unique=True,
                         verbose_name="identifier",
@@ -118,24 +118,24 @@ class Migration(migrations.Migration):
                     "enabled",
                     models.BooleanField(
                         default=False,
-                        help_text="Indicates whether OpenID Connect for authentication/authorization is enabled",
-                        verbose_name="enable",
+                        help_text="The client must be enabled before users can authenticate through it.",
+                        verbose_name="enabled",
                     ),
                 ),
                 (
                     "oidc_rp_client_id",
                     models.CharField(
-                        help_text="OpenID Connect client ID provided by the OIDC Provider",
+                        help_text="Client ID provided by the OIDC Provider",
                         max_length=1000,
-                        verbose_name="OpenID Connect client ID",
+                        verbose_name="Client ID",
                     ),
                 ),
                 (
                     "oidc_rp_client_secret",
                     models.CharField(
-                        help_text="OpenID Connect secret provided by the OIDC Provider",
+                        help_text="Secret provided by the OIDC Provider",
                         max_length=1000,
-                        verbose_name="OpenID Connect secret",
+                        verbose_name="Secret",
                     ),
                 ),
                 (
@@ -151,13 +151,13 @@ class Migration(migrations.Migration):
                     "oidc_rp_scopes_list",
                     django_jsonform.models.fields.ArrayField(
                         base_field=models.CharField(
-                            max_length=50, verbose_name="OpenID Connect scope"
+                            max_length=50, verbose_name="Scope"
                         ),
                         blank=True,
                         default=mozilla_django_oidc_db.models.get_default_scopes,
-                        help_text="OpenID Connect scopes that are requested during login",
+                        help_text="Scopes that are requested during login",
                         size=None,
-                        verbose_name="OpenID Connect scopes",
+                        verbose_name="Scopes",
                     ),
                 ),
                 (
@@ -181,7 +181,7 @@ class Migration(migrations.Migration):
                     "oidc_use_nonce",
                     models.BooleanField(
                         default=True,
-                        help_text="Controls whether the OpenID Connect client uses nonce verification",
+                        help_text="Controls whether the client uses nonce verification",
                         verbose_name="Use nonce",
                     ),
                 ),
@@ -189,7 +189,7 @@ class Migration(migrations.Migration):
                     "oidc_nonce_size",
                     models.PositiveIntegerField(
                         default=32,
-                        help_text="Sets the length of the random string used for OpenID Connect nonce verification",
+                        help_text="Sets the length of the random string used for nonce verification",
                         verbose_name="Nonce size",
                     ),
                 ),
@@ -197,7 +197,7 @@ class Migration(migrations.Migration):
                     "oidc_state_size",
                     models.PositiveIntegerField(
                         default=32,
-                        help_text="Sets the length of the random string used for OpenID Connect state verification",
+                        help_text="Sets the length of the random string used for state verification",
                         verbose_name="State size",
                     ),
                 ),
@@ -240,19 +240,19 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "oidc_provider_config",
+                    "oidc_provider",
                     models.ForeignKey(
-                        help_text="Specifies which OIDC Provider configuration to use.",
+                        help_text="Specifies which OIDC Provider to use.",
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
-                        to="mozilla_django_oidc_db.oidcproviderconfig",
-                        verbose_name="OIDC Provider configuration",
+                        to="mozilla_django_oidc_db.oidcprovider",
+                        verbose_name="OIDC Provider",
                     ),
                 ),
             ],
             options={
-                "verbose_name": "OIDC configuration",
-                "verbose_name_plural": "OIDC configurations",
+                "verbose_name": "OIDC client",
+                "verbose_name_plural": "OIDC clients",
             },
         ),
     ]

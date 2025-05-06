@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from mozilla_django_oidc_db.models import (
-    OIDCConfig,
+    OIDCClient,
     UserInformationClaimsSources,
 )
 
@@ -50,7 +50,7 @@ def test_client_id_secret_full_flow(
 
 @pytest.mark.vcr
 def test_credentials_in_basic_auth_header(
-    keycloak_config: OIDCConfig,
+    keycloak_config: OIDCClient,
     mock_state_and_nonce,
     client,
     django_user_model,
@@ -95,7 +95,7 @@ def test_credentials_in_basic_auth_header(
     userinfo_claims_source=UserInformationClaimsSources.userinfo_endpoint,
 )
 def test_return_jwt_from_userinfo_endpoint(
-    keycloak_config: OIDCConfig,
+    keycloak_config: OIDCClient,
     mock_state_and_nonce,
     client,
     django_user_model,
