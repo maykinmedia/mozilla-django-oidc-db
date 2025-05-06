@@ -12,6 +12,21 @@ class OIDCTestPlugin(OIDCAdminPlugin):
     def validate_settings(self) -> None:
         pass
 
+    def get_schema(self):
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Options",
+            "description": "OIDC Configuration options.",
+            "type": "object",
+            "additionalProperties": True,
+            "properties": {
+                "custom-option-key": {
+                    "description": "A custom property",
+                    "type": "string",
+                }
+            },
+        }
+
 
 @register("test-oidc-not-configured")
 class OIDCTestNotConfiguredPlugin(OIDCAdminPlugin):

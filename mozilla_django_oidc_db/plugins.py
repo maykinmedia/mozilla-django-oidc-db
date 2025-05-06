@@ -37,6 +37,9 @@ class OIDCBasePlugin:
     def verify_claims(self, claims: JSONObject) -> bool:
         raise NotImplementedError
 
+    def get_schema(self) -> JSONObject:
+        raise NotImplementedError
+
     def validate_settings(self) -> None:
         raise NotImplementedError
 
@@ -267,3 +270,6 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         #   desired group names, as the latter only reflects the default groups + groups in
         #   the claims
         user.groups.set(existing_groups)
+
+    def get_schema(self):
+        return ADMIN_OPTIONS_SCHEMA

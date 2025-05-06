@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField, JSONField
 
-from .schemas import ADMIN_OPTIONS_SCHEMA
+from .registry import register as registry
 
 
 # Removed. But left here so that proxy models that in the migrations have
@@ -14,6 +14,11 @@ from .schemas import ADMIN_OPTIONS_SCHEMA
 class OpenIDConnectConfig(models.Model):
     class Meta:
         managed = False
+
+
+def get_options_schema(instance: "OIDCConfig") -> JSONField:
+    plugin = registry[instance.identifier]
+    return plugin.get_schema()
 
 
 class UserInformationClaimsSources(models.TextChoices):
@@ -225,7 +230,7 @@ class OIDCConfig(models.Model):
     options = JSONField(
         _("options"),
         help_text=_("Options relevant for a specific Identity Provider."),
-        schema=ADMIN_OPTIONS_SCHEMA,
+        schema=get_options_schema,
         default=dict,
     )
 

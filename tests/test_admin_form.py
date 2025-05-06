@@ -155,6 +155,7 @@ def test_admin_form_readonly_access():
     # Form initialization should not raise any errors
     OIDCProviderConfigForm()
 
+
 @pytest.mark.django_db
 def test_get_custom_options_schema(client: Client):
     config = OIDCConfig.objects.get(identifier="test-oidc")
@@ -163,7 +164,7 @@ def test_get_custom_options_schema(client: Client):
 
     response = client.get(
         reverse(
-            "admin:mozilla_django_oidc_db_oidcclient_change",
+            "admin:mozilla_django_oidc_db_oidcconfig_change",
             kwargs={"object_id": config.pk},
         ),
     )
@@ -193,4 +194,3 @@ def test_clean_when_disabled_skips_endpoint_validation():
 
     assert is_valid
     assert "oidc_op_authorization_endpoint" not in form.errors
-    

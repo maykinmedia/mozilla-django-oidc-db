@@ -60,6 +60,16 @@ class OIDCConfigAdmin(admin.ModelAdmin):
     ) -> bool:
         return False
 
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj, change, **kwargs)
+
+        # The JSON schema for the `options` field needs to be deduced from the instance.
+        # django_jsonform field passes the instance to the callable to get the schema
+        # if the attribute `instance` is present on the widget instance
+        form.base_fields["options"].widget.instance = obj
+
+        return form
+
 
 @admin.register(OIDCProviderConfig)
 class OIDCProviderConfigAdmin(admin.ModelAdmin):
