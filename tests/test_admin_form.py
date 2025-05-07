@@ -17,6 +17,7 @@ from mozilla_django_oidc_db.models import (
 @pytest.mark.django_db
 def test_derive_endpoints_success():
     form_data = {
+        "enabled": True,
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
@@ -67,6 +68,7 @@ def test_derive_endpoints_success():
 @pytest.mark.django_db
 def test_derive_endpoints_extra_field():
     form_data = {
+        "enabled": True,
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
@@ -115,6 +117,7 @@ def test_derive_endpoints_extra_field():
 @patch("requests.get", side_effect=RequestException)
 def test_derive_endpoints_request_error(*m):
     form_data = {
+        "enabled": True,
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
@@ -141,6 +144,7 @@ def test_derive_endpoints_request_error(*m):
 @patch("requests.get", side_effect=JSONDecodeError("error", "test", 1))
 def test_derive_endpoints_json_error(*m):
     form_data = {
+        "enabled": True,
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
@@ -166,6 +170,7 @@ def test_derive_endpoints_json_error(*m):
 
 def test_no_discovery_endpoint_other_fields_required():
     form_data = {
+        "enabled": True,
         "oidc_rp_client_id": "clientid",
         "oidc_rp_client_secret": "secret",
         "oidc_rp_sign_algo": "RS256",
