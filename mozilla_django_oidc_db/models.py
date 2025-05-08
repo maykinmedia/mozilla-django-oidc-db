@@ -250,7 +250,13 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
     username_claim = ClaimField(
         verbose_name=_("username claim"),
         default=ClaimFieldDefault("sub"),
-        help_text=_("The name of the OIDC claim that is used as the username"),
+        help_text=_(
+            "The name of the OIDC claim that is used as the username. "
+            "To access nested claims, use a list of keys that will be joined with a dot. "
+            "For example, ['userinfo', 'email'] accesses the claim {'userinfo': {'email': 'foo@bar.com'}}. "
+            "To access claims with dots in the name, you can specify the name as such. "
+            "For example, ['userinfo.email'] accesses the claim {'userinfo.email': 'foo@bar.com'}"
+        ),
     )
 
     claim_mapping = JSONField(
@@ -264,6 +270,10 @@ class OpenIDConnectConfig(OpenIDConnectConfigBase):
         default=ClaimFieldDefault("roles"),
         help_text=_(
             "The name of the OIDC claim that holds the values to map to local user groups."
+            "To access nested claims, use a list of keys that will be joined with a dot. "
+            "For example, ['userinfo', 'groups'] accesses the claim {'userinfo': {'groups': ['admin', 'user']}}. "
+            "To access claims with dots in the name, you can specify the name as such. "
+            "For example, ['userinfo.groups'] accesses the claim {'userinfo.groups': ['admin', 'user']}."
         ),
         blank=True,
     )
