@@ -201,3 +201,26 @@ def test_admin_form_readonly_access():
 
     # Form initialization should not raise any errors
     form = OpenIDConnectConfigForm()
+
+
+def test_clean_when_disabled_skips_endpoint_validation():
+    form_data = {
+        "enabled": False,
+        "oidc_rp_client_id": "clientid",
+        "oidc_rp_client_secret": "secret",
+        "oidc_rp_sign_algo": "RS256",
+        "claim_mapping": get_claim_mapping(),
+        "groups_claim": ["roles"],
+        "sync_groups_glob_pattern": "*",
+        "username_claim": ["sub"],
+        "oidc_nonce_size": 32,
+        "oidc_state_size": 32,
+        "userinfo_claims_source": UserInformationClaimsSources.id_token,
+    }
+
+    form = OpenIDConnectConfigForm(data=form_data)
+
+    is_valid = form.is_valid()
+
+    assert is_valid
+    assert "oidc_op_authorization_endpoint" not in form.errors
