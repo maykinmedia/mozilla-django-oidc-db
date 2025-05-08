@@ -63,9 +63,10 @@ def assert_full_values(identifier):
     ]
     assert config.options["group_settings"]["make_users_staff"]
     assert config.options["group_settings"]["superuser_group_names"] == ["superuser"]
-    assert not config.oidc_use_nonce
-    assert config.oidc_nonce_size == 48
-    assert config.oidc_state_size == 48
+    assert not config.oidc_provider.oidc_use_nonce
+    assert config.oidc_provider.oidc_nonce_size == 48
+    assert config.oidc_provider.oidc_state_size == 48
+    assert config.oidc_provider.oidc_op_authorization_endpoint
     assert config.userinfo_claims_source == UserInformationClaimsSources.id_token
 
 
@@ -137,9 +138,10 @@ def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
     ]
     assert not config.options["group_settings"]["make_users_staff"]
     assert config.options["group_settings"]["superuser_group_names"] == ["poweruser"]
-    assert config.oidc_use_nonce
-    assert config.oidc_nonce_size == 64
-    assert config.oidc_state_size == 64
+    assert not config.oidc_provider.oidc_use_nonce
+    assert config.oidc_provider.oidc_nonce_size == 64
+    assert config.oidc_provider.oidc_state_size == 64
+    assert config.oidc_provider.oidc_token_use_basic_auth
     assert (
         config.userinfo_claims_source == UserInformationClaimsSources.userinfo_endpoint
     )
@@ -159,7 +161,7 @@ def test_configure_use_defaults(set_config_to_non_default_values, default_config
     assert config.oidc_rp_client_id == "client-id"
     assert config.oidc_rp_client_secret == "secret"
     assert config.oidc_rp_scopes_list == ["openid", "email", "profile"]
-    assert config.oidc_rp_sign_algo == "HS256"
+    assert config.oidc_rp_sign_algo == "RS256"
     assert config.oidc_rp_idp_sign_key == ""
     assert config.oidc_provider.oidc_op_discovery_endpoint == ""
     assert config.oidc_provider.oidc_op_jwks_endpoint == ""
@@ -188,9 +190,10 @@ def test_configure_use_defaults(set_config_to_non_default_values, default_config
     assert config.options["group_settings"]["default_groups"] == []
     assert not config.options["group_settings"]["make_users_staff"]
     assert config.options["group_settings"]["superuser_group_names"] == []
-    assert config.oidc_use_nonce
-    assert config.oidc_nonce_size == 32
-    assert config.oidc_state_size == 32
+    assert config.oidc_provider.oidc_use_nonce
+    assert config.oidc_provider.oidc_nonce_size == 32
+    assert config.oidc_provider.oidc_state_size == 32
+    assert not config.oidc_provider.oidc_token_use_basic_auth
     assert (
         config.userinfo_claims_source == UserInformationClaimsSources.userinfo_endpoint
     )
@@ -223,6 +226,10 @@ def test_configure_use_discovery_endpoint(discovery_endpoint_config_yml):
         config.oidc_provider.oidc_op_user_endpoint
         == f"{KEYCLOAK_BASE_URL}protocol/openid-connect/userinfo"
     )
+    assert config.oidc_provider.oidc_use_nonce
+    assert config.oidc_provider.oidc_nonce_size == 32
+    assert config.oidc_provider.oidc_state_size == 32
+    assert not config.oidc_provider.oidc_token_use_basic_auth
 
 
 @pytest.mark.django_db
@@ -282,6 +289,10 @@ def test_multiple_providers_configured(multiple_providers_yml):
         provider_discovery.oidc_op_authorization_endpoint
         == "http://localhost:8080/realms/test/protocol/openid-connect/auth"
     )
+    assert not provider_discovery.oidc_use_nonce
+    assert provider_discovery.oidc_nonce_size == 64
+    assert provider_discovery.oidc_state_size == 64
+    assert provider_discovery.oidc_token_use_basic_auth
 
     provider_discovery = OIDCProvider.objects.get(identifier="test-provider-full")
     assert (
@@ -301,6 +312,10 @@ def test_multiple_providers_configured(multiple_providers_yml):
         OIDCClient.objects.get(identifier="test-oidc-3").oidc_provider.identifier
         == "test-provider-full"
     )
+    assert not provider_discovery.oidc_use_nonce
+    assert provider_discovery.oidc_nonce_size == 48
+    assert provider_discovery.oidc_state_size == 48
+    assert provider_discovery.oidc_token_use_basic_auth
 
 
 @pytest.mark.django_db

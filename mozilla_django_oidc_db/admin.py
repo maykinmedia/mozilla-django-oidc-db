@@ -40,9 +40,6 @@ class OIDCClientAdmin(admin.ModelAdmin):
             _("Advanced settings"),
             {
                 "fields": (
-                    "oidc_use_nonce",
-                    "oidc_nonce_size",
-                    "oidc_state_size",
                     "userinfo_claims_source",
                     "oidc_keycloak_idp_hint",
                 ),

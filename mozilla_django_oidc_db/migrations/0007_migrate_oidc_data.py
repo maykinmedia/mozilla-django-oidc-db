@@ -30,10 +30,7 @@ def move_data_backwards(apps, schema_editor):
 
     old_config = OpenIDConnectConfig.objects.create(
         enabled=new_config.enabled,
-        oidc_rp_client_id=new_config.oidc_rp_client_id,
-        oidc_rp_client_secret=new_config.oidc_rp_client_secret,
-        oidc_rp_sign_algo=new_config.oidc_rp_sign_algo,
-        oidc_rp_scopes_list=new_config.oidc_rp_scopes_list,
+        # Provider settings
         oidc_op_discovery_endpoint=(
             new_config.oidc_provider.oidc_op_discovery_endpoint
         ),
@@ -44,11 +41,16 @@ def move_data_backwards(apps, schema_editor):
         oidc_op_token_endpoint=new_config.oidc_provider.oidc_op_token_endpoint,
         oidc_op_user_endpoint=new_config.oidc_provider.oidc_op_user_endpoint,
         oidc_op_logout_endpoint=(new_config.oidc_provider.oidc_op_logout_endpoint),
-        oidc_token_use_basic_auth=new_config.oidc_token_use_basic_auth,
+        oidc_token_use_basic_auth=new_config.oidc_provider.oidc_token_use_basic_auth,
+        oidc_use_nonce=new_config.oidc_provider.oidc_use_nonce,
+        oidc_nonce_size=new_config.oidc_provider.oidc_nonce_size,
+        oidc_state_size=new_config.oidc_provider.oidc_state_size,
+        # Client settings
+        oidc_rp_client_id=new_config.oidc_rp_client_id,
+        oidc_rp_client_secret=new_config.oidc_rp_client_secret,
+        oidc_rp_sign_algo=new_config.oidc_rp_sign_algo,
+        oidc_rp_scopes_list=new_config.oidc_rp_scopes_list,
         oidc_rp_idp_sign_key=new_config.oidc_rp_idp_sign_key,
-        oidc_use_nonce=new_config.oidc_use_nonce,
-        oidc_nonce_size=new_config.oidc_nonce_size,
-        oidc_state_size=new_config.oidc_state_size,
         oidc_keycloak_idp_hint=new_config.oidc_keycloak_idp_hint,
         userinfo_claims_source=new_config.userinfo_claims_source,
         username_claim=username_claim_mapping,
@@ -89,6 +91,10 @@ def move_data_forward(apps, schema_editor):
         oidc_op_token_endpoint=old_config.oidc_op_token_endpoint,
         oidc_op_user_endpoint=old_config.oidc_op_user_endpoint,
         oidc_op_logout_endpoint=old_config.oidc_op_logout_endpoint,
+        oidc_token_use_basic_auth=old_config.oidc_token_use_basic_auth,
+        oidc_use_nonce=old_config.oidc_use_nonce,
+        oidc_nonce_size=old_config.oidc_nonce_size,
+        oidc_state_size=old_config.oidc_state_size,
     )
 
     OIDCClient.objects.create(
@@ -100,10 +106,6 @@ def move_data_forward(apps, schema_editor):
         oidc_rp_sign_algo=old_config.oidc_rp_sign_algo,
         oidc_rp_scopes_list=old_config.oidc_rp_scopes_list,
         oidc_rp_idp_sign_key=old_config.oidc_rp_idp_sign_key,
-        oidc_token_use_basic_auth=old_config.oidc_token_use_basic_auth,
-        oidc_use_nonce=old_config.oidc_use_nonce,
-        oidc_nonce_size=old_config.oidc_nonce_size,
-        oidc_state_size=old_config.oidc_state_size,
         oidc_keycloak_idp_hint=old_config.oidc_keycloak_idp_hint,
         userinfo_claims_source=old_config.userinfo_claims_source,
         options={
@@ -130,7 +132,10 @@ def move_data_forward(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("mozilla_django_oidc_db", "0006_oidcproviderconfig_oidcconfig"),
+        (
+            "mozilla_django_oidc_db",
+            "0006_oidcprovider_oidcclient",
+        ),
     ]
 
     operations = [

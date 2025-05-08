@@ -27,6 +27,10 @@ class OIDCProviderForm(forms.ModelForm):
             "oidc_op_token_endpoint",
             "oidc_op_user_endpoint",
             "oidc_op_logout_endpoint",
+            "oidc_token_use_basic_auth",
+            "oidc_use_nonce",
+            "oidc_nonce_size",
+            "oidc_state_size",
         )
 
     def __init__(self, *args, **kwargs):

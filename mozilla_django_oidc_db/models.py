@@ -100,12 +100,42 @@ class OIDCProvider(models.Model):
         blank=True,
     )
 
+    # Advanced settings
+    oidc_token_use_basic_auth = models.BooleanField(
+        _("Use Basic auth for token endpoint"),
+        default=False,
+        help_text=_(
+            "If enabled, the client ID and secret are sent in the HTTP Basic auth "
+            "header when obtaining the access token. Otherwise, they are sent in the "
+            "request body.",
+        ),
+        blank=True,
+    )
+    oidc_use_nonce = models.BooleanField(
+        _("Use nonce"),
+        help_text=_("Controls whether the client uses nonce verification"),
+        default=True,
+        blank=True,
+    )
+    oidc_nonce_size = models.PositiveIntegerField(
+        _("Nonce size"),
+        help_text=_("Sets the length of the random string used for nonce verification"),
+        default=32,
+        blank=True,
+    )
+    oidc_state_size = models.PositiveIntegerField(
+        _("State size"),
+        help_text=_("Sets the length of the random string used for state verification"),
+        default=32,
+        blank=True,
+    )
+
     class Meta:
         verbose_name = _("OIDC Provider")
         verbose_name_plural = _("OIDC Providers")
 
     def __str__(self):
-        return _("OIDC Provider %(identifier)s") % {"identifier": self.identifier}
+        return _("OIDC Provider %(identifier)s").format(identifier=self.identifier)
 
 
 class OIDCClient(models.Model):
@@ -150,18 +180,18 @@ class OIDCClient(models.Model):
         max_length=1000,
         help_text=_("Secret provided by the OIDC Provider"),
     )
-    oidc_rp_sign_algo = models.CharField(
-        _("OpenID sign algorithm"),
-        max_length=50,
-        help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
-        default="HS256",
-    )
     oidc_rp_scopes_list = ArrayField(
         verbose_name=_("Scopes"),
         base_field=models.CharField(_("Scope"), max_length=50),
         default=get_default_scopes,
         blank=True,
         help_text=_("Scopes that are requested during login"),
+    )
+    oidc_rp_sign_algo = models.CharField(
+        _("OpenID sign algorithm"),
+        max_length=50,
+        help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
+        default="RS256",
     )
     oidc_rp_idp_sign_key = models.CharField(
         _("Sign key"),
@@ -171,32 +201,6 @@ class OIDCClient(models.Model):
             "Should be the signing key in PEM or DER format."
         ),
         blank=True,
-    )
-    oidc_token_use_basic_auth = models.BooleanField(
-        _("Use Basic auth for token endpoint"),
-        default=False,
-        help_text=_(
-            "If enabled, the client ID and secret are sent in the HTTP Basic auth "
-            "header when obtaining the access token. Otherwise, they are sent in the "
-            "request body.",
-        ),
-    )
-
-    # Advanced settings
-    oidc_use_nonce = models.BooleanField(
-        _("Use nonce"),
-        help_text=_("Controls whether the client uses nonce verification"),
-        default=True,
-    )
-    oidc_nonce_size = models.PositiveIntegerField(
-        _("Nonce size"),
-        help_text=_("Sets the length of the random string used for nonce verification"),
-        default=32,
-    )
-    oidc_state_size = models.PositiveIntegerField(
-        _("State size"),
-        help_text=_("Sets the length of the random string used for state verification"),
-        default=32,
     )
 
     # Keycloak specific config
@@ -242,7 +246,7 @@ class OIDCClient(models.Model):
         verbose_name_plural = _("OIDC clients")
 
     def __str__(self):
-        return _("OIDC client %(identifier)s") % {"identifier": self.identifier}
+        return _("OIDC client %(identifier)s").format(identifier=self.identifier)
 
     @property
     def oidc_rp_scopes(self) -> str:

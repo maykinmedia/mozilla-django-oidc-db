@@ -9,6 +9,7 @@ from django.test import RequestFactory
 
 import pytest
 
+from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from tests.utils import create_or_update_configuration
 
 if TYPE_CHECKING:
@@ -62,14 +63,7 @@ def disabled_config(request, db) -> Iterator[OIDCClient]:
     yield config
 
 
-@pytest.fixture
-def dummy_config(request, db) -> Iterator[OIDCClient]:
-    """
-    OIDC configuration for a fictious provider.
-
-    The URLs here are made up. Use this fixture when the actual provider authentication
-    aspect is irrelevant.
-    """
+def _get_data_for_config(request: HttpRequest) -> dict[str, Any]:
     marker = request.node.get_closest_marker("oidcconfig")
     overrides: dict[str, Any] = marker.kwargs if marker else {}
     BASE = "https://mock-oidc-provider:9999"
@@ -97,8 +91,35 @@ def dummy_config(request, db) -> Iterator[OIDCClient]:
         },
         **overrides,
     }
+    return fields
 
+
+@pytest.fixture
+def dummy_config(request, db) -> Iterator[OIDCClient]:
+    """
+    OIDC configuration for a fictious provider.
+
+    The URLs here are made up. Use this fixture when the actual provider authentication
+    aspect is irrelevant.
+    """
+    fields = _get_data_for_config(request)
     config = create_or_update_configuration("test-oidc-provider", "test-oidc", fields)
+
+    yield config
+
+
+@pytest.fixture
+def filled_admin_config(request, db) -> Iterator[OIDCClient]:
+    """
+    Admin OIDC configuration for a fictious provider.
+
+    The URLs here are made up. Use this fixture when the actual provider authentication
+    aspect is irrelevant, but you need to use the "admin-oidc" configuration
+    """
+    fields = _get_data_for_config(request)
+    config = create_or_update_configuration(
+        "admin-oidc-provider", OIDC_ADMIN_CONFIG_IDENTIFIER, fields
+    )
 
     yield config
 

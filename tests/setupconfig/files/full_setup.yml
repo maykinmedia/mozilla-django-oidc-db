@@ -18,7 +18,6 @@ oidc_db_config_admin_auth:
         oidc_op_user_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/userinfo
         oidc_op_jwks_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/certs
         oidc_op_logout_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/logout
-    oidc_token_use_basic_auth: True
     username_claim:
     - claim_name
     groups_claim:
@@ -34,6 +33,7 @@ oidc_db_config_admin_auth:
     make_users_staff: true
     superuser_group_names:
     - superuser
+    oidc_token_use_basic_auth: true
     oidc_use_nonce: false
     oidc_nonce_size: 48
     oidc_state_size: 48

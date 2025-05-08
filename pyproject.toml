@@ -44,7 +44,7 @@ Changelog = "https://github.com/maykinmedia/mozilla-django-oidc-db/blob/master/C
 
 [project.optional-dependencies]
 setup-configuration = [
-    "django-setup-configuration>=0.6.0",
+    "django-setup-configuration>=0.8.0",
 ]
 tests = [
     "psycopg2",

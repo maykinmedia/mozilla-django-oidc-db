@@ -8,6 +8,7 @@ from django.urls import reverse
 
 import pytest
 
+from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
@@ -15,7 +16,7 @@ from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 @pytest.mark.oidcconfig(
     oidc_op_authorization_endpoint="http://localhost:8080/openid-connect/auth"
 )
-def test_default_config_flow(dummy_config, client):
+def test_default_config_flow(filled_admin_config, client):
     start_url = reverse("oidc_authentication_init")
     assert start_url == "/oidc/authenticate/"
 
@@ -31,7 +32,7 @@ def test_default_config_flow(dummy_config, client):
     # introspect state
     state_key = parse_qs(parsed_url.query)["state"][0]
     state = client.session["oidc_states"][state_key]
-    assert state["config_identifier"] == "test-oidc"
+    assert state["config_identifier"] == OIDC_ADMIN_CONFIG_IDENTIFIER
     # upstream library
     assert client.session["oidc_login_next"] == "/admin/"
     # our own addition
@@ -39,7 +40,7 @@ def test_default_config_flow(dummy_config, client):
 
 
 @pytest.mark.oidcconfig(oidc_keycloak_idp_hint="keycloak-idp2")
-def test_keycloak_idp_hint_via_config(dummy_config, settings, client):
+def test_keycloak_idp_hint_via_config(filled_admin_config, settings, client):
     settings.OIDC_KEYCLOAK_IDP_HINT = "keycloak-idp1"
     start_url = reverse("oidc_authentication_init")
 
@@ -54,7 +55,7 @@ def test_keycloak_idp_hint_via_config(dummy_config, settings, client):
 
 @pytest.mark.oidcconfig(check_op_availability=True)
 def test_check_idp_availability_not_available(
-    dummy_config, settings, client, requests_mock
+    filled_admin_config, settings, client, requests_mock
 ):
     requests_mock.get("https://mock-oidc-provider:9999/oidc/auth", status_code=503)
     start_url = reverse("oidc_authentication_init")
@@ -65,7 +66,7 @@ def test_check_idp_availability_not_available(
 
 @pytest.mark.oidcconfig(check_op_availability=True)
 def test_check_idp_availability_available(
-    dummy_config, settings, client, requests_mock
+    filled_admin_config, settings, client, requests_mock
 ):
     requests_mock.get("https://mock-oidc-provider:9999/oidc/auth", status_code=400)
     start_url = reverse("oidc_authentication_init")

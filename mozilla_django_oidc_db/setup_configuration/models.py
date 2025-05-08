@@ -77,6 +77,16 @@ class OIDCConfigProviderModel(ConfigurationModel):
     )
     endpoint_config: OIDCProviderConfigUnion
 
+    class Meta:
+        django_model_refs = {
+            OIDCProvider: [
+                "oidc_token_use_basic_auth",
+                "oidc_use_nonce",
+                "oidc_nonce_size",
+                "oidc_state_size",
+            ]
+        }
+
 
 class AdminOIDCConfigurationModelItem(ConfigurationModel):
     identifier: str = DjangoModelRef(
@@ -87,7 +97,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     )
 
     enabled: bool = DjangoModelRef(OIDCClient, "enabled", default=True)
-    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list")
+    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list", default=['openid', 'email', 'profile'])
     options: dict = DjangoModelRef(OIDCClient, "options", default_factory=dict)
 
     endpoint_config: OIDCProviderConfigUnion | None = Field(
@@ -109,7 +119,34 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
         description=_("Mapping from User model field names to a path in the claim."),
         deprecated=True,
     )
-
+    oidc_token_use_basic_auth: bool = Field(
+        default=False,
+        description=_(
+            "If enabled, the client ID and secret are sent in the HTTP Basic auth "
+            "header when obtaining the access token. Otherwise, they are sent in the "
+            "request body."
+        ),
+        deprecated=True,
+    )
+    oidc_use_nonce: bool = Field(
+        default=True,
+        description=_("Controls whether the client uses nonce verification"),
+        deprecated=True,
+    )
+    oidc_nonce_size: int = Field(
+        default=32,
+        description=_(
+            "Sets the length of the random string used for nonce verification"
+        ),
+        deprecated=True,
+    )
+    oidc_state_size: int = Field(
+        default=32,
+        description=_(
+            "Sets the length of the random string used for state verification"
+        ),
+        deprecated=True,
+    )
     # Arrays are overridden to make the typing simpler (the underlying Django field is an ArrayField, which is non-standard)
     username_claim: list[str] = Field(
         default_factory=lambda: ["sub"],
@@ -117,7 +154,6 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
         deprecated=True,
         examples=[["nested", "username", "claim"]],
     )
-
     groups_claim: list[str] = Field(
         default_factory=lambda: ["roles"],
         description=_("Path in the claims to the value with group names."),
@@ -160,12 +196,8 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
             OIDCClient: [
                 "oidc_rp_client_id",
                 "oidc_rp_client_secret",
-                "oidc_token_use_basic_auth",
                 "oidc_rp_sign_algo",
                 "oidc_rp_idp_sign_key",
-                "oidc_use_nonce",
-                "oidc_nonce_size",
-                "oidc_state_size",
                 "oidc_keycloak_idp_hint",
                 "userinfo_claims_source",
             ]

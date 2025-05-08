@@ -63,6 +63,10 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
         identifier = f"{config_model.identifier}-provider"
         settings_provider = {
             "identifier": identifier,
+            "oidc_token_use_basic_auth": config_model.oidc_token_use_basic_auth,
+            "oidc_use_nonce": config_model.oidc_use_nonce,
+            "oidc_nonce_size": config_model.oidc_nonce_size,
+            "oidc_state_size": config_model.oidc_state_size,
             **self._get_endpoints(config_model.endpoint_config),
         }
 
@@ -101,11 +105,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             "oidc_rp_client_secret": config_model.oidc_rp_client_secret,
             "oidc_rp_sign_algo": config_model.oidc_rp_sign_algo,
             "oidc_rp_scopes_list": config_model.oidc_rp_scopes_list,
-            "oidc_token_use_basic_auth": config_model.oidc_token_use_basic_auth,
             "oidc_rp_idp_sign_key": config_model.oidc_rp_idp_sign_key,
-            "oidc_use_nonce": config_model.oidc_use_nonce,
-            "oidc_nonce_size": config_model.oidc_nonce_size,
-            "oidc_state_size": config_model.oidc_state_size,
             "oidc_keycloak_idp_hint": config_model.oidc_keycloak_idp_hint,
             "userinfo_claims_source": config_model.userinfo_claims_source,
             "oidc_provider": provider,
@@ -153,6 +153,10 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             instance=provider,
             data={
                 "identifier": provider_config_model.identifier,
+                "oidc_token_use_basic_auth": provider_config_model.oidc_token_use_basic_auth,
+                "oidc_use_nonce": provider_config_model.oidc_use_nonce,
+                "oidc_nonce_size": provider_config_model.oidc_nonce_size,
+                "oidc_state_size": provider_config_model.oidc_state_size,
                 **self._get_endpoints(provider_config_model.endpoint_config),
             },
         )

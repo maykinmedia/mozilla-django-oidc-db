@@ -77,6 +77,10 @@ def set_config_to_non_default_values():
         # Set some non-default values
         oidc_op_discovery_endpoint="http://localhost:8080/whatever",
         oidc_op_jwks_endpoint="http://localhost:8080/whatever",
+        oidc_use_nonce=False,
+        oidc_nonce_size=64,
+        oidc_state_size=64,
+        oidc_token_use_basic_auth=True,
     )
     config, _ = OIDCClient.objects.update_or_create(
         identifier="test-admin-oidc",
@@ -95,9 +99,6 @@ def set_config_to_non_default_values():
             ],
             "oidc_rp_sign_algo": "M1911",
             "oidc_rp_idp_sign_key": "name",
-            "oidc_use_nonce": True,
-            "oidc_nonce_size": 64,
-            "oidc_state_size": 64,
             "userinfo_claims_source": UserInformationClaimsSources.userinfo_endpoint,
             "options": {
                 "user_settings": {
