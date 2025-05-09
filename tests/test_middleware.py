@@ -7,10 +7,11 @@ from django.urls import reverse
 
 import pytest
 
-from mozilla_django_oidc_db.constants import CONFIG_CLASS_SESSION_KEY
+from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
-from mozilla_django_oidc_db.models import OpenIDConnectConfig, OpenIDConnectConfigBase
-from testapp.models import AnotherEmptyConfig, EmptyConfig
+from mozilla_django_oidc_db.models import OIDCClient
+
+from .utils import create_or_update_configuration
 
 
 @pytest.fixture(scope="session")
@@ -33,15 +34,11 @@ def session_refresh(dummy_view):
 
 @pytest.fixture()
 def request_factory(rf: RequestFactory, session_middleware):
-    def _factory(
-        config_class: type[OpenIDConnectConfigBase] | None = None, *, path: str = ""
-    ):
+    def _factory(config_identifier: str = "", *, path: str = ""):
         request = rf.get(path or "/")
         session_middleware(request)
         session = request.session
-        session[CONFIG_CLASS_SESSION_KEY] = (
-            config_class or OpenIDConnectConfig
-        )._meta.label
+        session[CONFIG_IDENTIFIER_SESSION_KEY] = config_identifier
         session.save()
         return request
 
@@ -50,12 +47,13 @@ def request_factory(rf: RequestFactory, session_middleware):
 
 @pytest.fixture()
 def config_factory(db):
-    def _factory(cls: type[OpenIDConnectConfigBase], /, **overrides):
-        BASE = f"https://mock-oidc-provider-{cls._meta.model_name}:9999"
+    def _factory(config_identifier: str, /, **overrides):
+        BASE = f"https://mock-oidc-provider-{config_identifier}:9999"
 
-        config, _ = cls.objects.update_or_create(
-            pk=cls.singleton_instance_id,
-            defaults={
+        config = create_or_update_configuration(
+            f"{config_identifier}-provider",
+            config_identifier,
+            {
                 "enabled": True,
                 "oidc_rp_client_id": "fake",
                 "oidc_rp_client_secret": "even-faker",
@@ -68,8 +66,6 @@ def config_factory(db):
                 **overrides,
             },
         )
-        # in case caching is setup, ensure that it is invalidated
-        config.save()
 
         return config
 
@@ -78,11 +74,11 @@ def config_factory(db):
 
 @pytest.mark.oidcconfig(enabled=False)
 def test_sessionrefresh_oidc_not_enabled(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCClient,
     request_factory,
     session_refresh: SessionRefresh,
 ):
-    request = request_factory(dummy_config)
+    request = request_factory(dummy_config.identifier)
 
     # Running the middleware should return None, since OIDC is disabled
     result = session_refresh(request)
@@ -96,7 +92,7 @@ def test_sessionrefresh_oidc_not_enabled(
     oidc_rp_scopes_list=["openid", "email"],
 )
 def test_sessionrefresh_config_always_refreshed(
-    dummy_config: OpenIDConnectConfig,
+    dummy_config: OIDCClient,
     request_factory,
     session_refresh: SessionRefresh,
     mocker,
@@ -105,7 +101,7 @@ def test_sessionrefresh_config_always_refreshed(
     Middleware should refresh the config on every call
     """
     mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
-    request = request_factory()
+    request = request_factory(dummy_config.identifier)
 
     result1 = session_refresh(request)
     assert isinstance(result1, HttpResponseRedirect)
@@ -138,7 +134,7 @@ def test_sessionrefresh_config_use_defaults(
     settings.OIDC_AUTHENTICATION_CALLBACK_URL = "admin:index"
     mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
 
-    request = request_factory(dummy_config.__class__)
+    request = request_factory(dummy_config.identifier)
 
     result = session_refresh(request)
 
@@ -150,46 +146,50 @@ def test_sessionrefresh_config_use_defaults(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "config_cls",
+    "config_identifier",
     (
-        EmptyConfig,
-        AnotherEmptyConfig,
+        "test-oidc-not-configured",
+        "test-oidc-another-not-configured",
     ),
 )
 def test_sessionfresh_selects_correct_backend_based_on_session_parameters(
-    config_cls,
+    config_identifier,
     config_factory,
     request_factory,
     session_refresh: SessionRefresh,
     mocker,
 ):
-    config_factory(EmptyConfig, enabled=True, oidc_rp_client_id="empty-config")
     config_factory(
-        AnotherEmptyConfig, enabled=True, oidc_rp_client_id="another-empty-config"
+        "test-oidc-not-configured", enabled=True, oidc_rp_client_id="empty-config"
+    )
+    config_factory(
+        "test-oidc-another-not-configured",
+        enabled=True,
+        oidc_rp_client_id="another-empty-config",
     )
     mocker.patch.object(session_refresh, "is_refreshable_url", return_value=True)
-    request = request_factory(config_cls)
+    request = request_factory(config_identifier)
 
     result1 = session_refresh(request)
+
     assert isinstance(result1, HttpResponseRedirect)
-    assert (
-        f"https://mock-oidc-provider-{config_cls._meta.model_name}"
-        in result1["Location"]
-    )
+    assert f"https://mock-oidc-provider-{config_identifier}" in result1["Location"]
     query1 = parse_qs(urlparse(result1.url).query)
-    assert query1["client_id"] == [config_cls.get_solo().oidc_rp_client_id]
+    config = OIDCClient.objects.get(identifier=config_identifier)
+
+    assert query1["client_id"] == [config.oidc_rp_client_id]
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "config_cls",
+    "config_identifier",
     (
-        EmptyConfig,
-        AnotherEmptyConfig,
+        "test-oidc-not-configured",
+        "test-oidc-another-not-configured",
     ),
 )
 def test_sessionfresh_adds_config_specific_callback_url_to_exempt_urls(
-    config_cls,
+    config_identifier,
     config_factory,
     request_factory,
     session_refresh: SessionRefresh,
@@ -200,11 +200,15 @@ def test_sessionfresh_adds_config_specific_callback_url_to_exempt_urls(
         def is_authenticated(self):
             return True
 
-    config_factory(EmptyConfig, enabled=True)
-    config_factory(AnotherEmptyConfig, enabled=True)
-    callback_url = reverse(config_cls.get_solo().oidc_authentication_callback_url)
+    config_factory("test-oidc-not-configured", enabled=True)
+    config_factory(
+        "test-oidc-another-not-configured",
+        enabled=True,
+    )
 
-    request = request_factory(config_cls, path=callback_url)
+    callback_url = reverse("oidc_authentication_callback")
+
+    request = request_factory(config_identifier, path=callback_url)
     request.user = MockUser()
     session_refresh._set_config_from_request(request)
 

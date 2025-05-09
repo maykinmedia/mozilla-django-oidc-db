@@ -1,10 +1,10 @@
 import pytest
 
 from mozilla_django_oidc_db.models import (
-    OpenIDConnectConfig,
+    OIDCClient,
+    OIDCProvider,
     UserInformationClaimsSources,
 )
-from mozilla_django_oidc_db.utils import get_groups_by_name
 
 """
 Key cloak credentials are setup for the keycloak docker-compose.yml.
@@ -53,49 +53,70 @@ def missing_identifier_yml():
     return "tests/setupconfig/files/missing_identifier.yml"
 
 
+@pytest.fixture()
+def multiple_providers_yml():
+    return "tests/setupconfig/files/multiple_providers.yml"
+
+
+@pytest.fixture()
+def custom_options_yml():
+    return "tests/setupconfig/files/custom_options.yml"
+
+
 @pytest.fixture
 def set_config_to_non_default_values():
     """
     Set the current config to non-default values.
     """
+    config_provider = OIDCProvider.objects.create(
+        identifier="test-admit-oidc-provider",
+        # Will be always overwritten
+        oidc_op_authorization_endpoint="http://localhost:8080/whatever",
+        oidc_op_token_endpoint="http://localhost:8080/whatever",
+        oidc_op_user_endpoint="http://localhost:8080/whatever",
+        # Set some non-default values
+        oidc_op_discovery_endpoint="http://localhost:8080/whatever",
+        oidc_op_jwks_endpoint="http://localhost:8080/whatever",
+        oidc_use_nonce=False,
+        oidc_nonce_size=64,
+        oidc_state_size=64,
+        oidc_token_use_basic_auth=True,
+    )
+    config, _ = OIDCClient.objects.update_or_create(
+        identifier="test-admin-oidc",
+        defaults={
+            # Will be always overwritten
+            "oidc_rp_client_id": "different-client-id",
+            "oidc_rp_client_secret": "different-secret",
+            # Set some non-default values
+            "enabled": False,
+            "oidc_provider": config_provider,
+            "oidc_rp_scopes_list": [
+                "not_open_id",
+                "not_email",
+                "not_profile",
+                "not_extra_scope",
+            ],
+            "oidc_rp_sign_algo": "M1911",
+            "oidc_rp_idp_sign_key": "name",
+            "userinfo_claims_source": UserInformationClaimsSources.userinfo_endpoint,
+            "options": {
+                "user_settings": {
+                    "claim_mappings": {
+                        "username": ["claim_title"],
+                        "first_title": ["given_title"],
+                    }
+                },
+                "group_settings": {
+                    "claim_mapping": ["groups_claim_title"],
+                    "sync": True,
+                    "sync_pattern": "not_local.groups.*",
+                    "make_users_staff": False,
+                    "superuser_group_names": ["poweruser"],
+                    "default_groups": ["OldAdmin", "OldUser"],
+                },
+            },
+        },
+    )
 
-    config = OpenIDConnectConfig.get_solo()
-
-    # Will be always overwritten
-    config.oidc_rp_client_id = "different-client-id"
-    config.oidc_rp_client_secret = "different-secret"
-    config.oidc_op_authorization_endpoint = "http://localhost:8080/whatever"
-    config.oidc_op_token_endpoint = "http://localhost:8080/whatever"
-    config.oidc_op_user_endpoint = "http://localhost:8080/whatever"
-
-    # Set some non-default values
-    config.oidc_op_discovery_endpoint = "http://localhost:8080/whatever"
-    config.enabled = False
-
-    config.oidc_rp_scopes_list = [
-        "not_open_id",
-        "not_email",
-        "not_profile",
-        "not_extra_scope",
-    ]
-    config.oidc_rp_sign_algo = "M1911"
-    config.oidc_rp_idp_sign_key = "name"
-    config.oidc_op_jwks_endpoint = "http://localhost:8080/whatever"
-    config.username_claim = ["claim_title"]
-    config.groups_claim = ["groups_claim_title"]
-    config.claim_mapping = {"first_title": ["given_title"]}
-    config.sync_groups = True
-    config.sync_groups_glob_pattern = "not_local.groups.*"
-
-    config.make_users_staff = False
-    config.superuser_group_names = ["poweruser"]
-    config.oidc_use_nonce = True
-    config.oidc_nonce_size = 64
-    config.oidc_state_size = 64
-    config.userinfo_claims_source = UserInformationClaimsSources.userinfo_endpoint
-
-    config.default_groups.set(get_groups_by_name(["OldAdmin", "OldUser"], "*", True))
-
-    config.save()
-
-    assert config.default_groups.all().count() == 2
+    assert len(config.options["group_settings"]["default_groups"]) == 2

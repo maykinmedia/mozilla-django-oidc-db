@@ -1,22 +1,30 @@
 from django.contrib import admin
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
-from solo.admin import SingletonModelAdmin
-
-from .forms import OpenIDConnectConfigForm
-from .models import OpenIDConnectConfig
+from .forms import OIDCProviderForm
+from .models import OIDCClient, OIDCProvider
 
 
-@admin.register(OpenIDConnectConfig)
-class OpenIDConnectConfigAdmin(SingletonModelAdmin):
-    form = OpenIDConnectConfigForm
+@admin.register(OIDCClient)
+class OIDCClientAdmin(admin.ModelAdmin):
+    list_display = (
+        "identifier",
+        "oidc_rp_client_id",
+        "enabled",
+    )
+    search_fields = ("identifier", "oidc_provider__identifier", "oidc_rp_client_id")
     fieldsets = (
         (
             _("Activation"),
             {"fields": ("enabled",)},
         ),
         (
-            _("Common settings"),
+            _("OIDC Provider"),
+            {"fields": ("oidc_provider", "check_op_availability")},
+        ),
+        (
+            _("Relying Party settings"),
             {
                 "fields": (
                     "oidc_rp_client_id",
@@ -27,50 +35,13 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
                 )
             },
         ),
-        (
-            _("Endpoints"),
-            {
-                "fields": (
-                    "oidc_op_discovery_endpoint",
-                    "oidc_op_jwks_endpoint",
-                    "oidc_op_authorization_endpoint",
-                    "oidc_op_token_endpoint",
-                    "oidc_token_use_basic_auth",
-                    "oidc_op_user_endpoint",
-                    "oidc_op_logout_endpoint",
-                )
-            },
-        ),
-        (
-            _("User profile"),
-            {
-                "fields": (
-                    "username_claim",
-                    "groups_claim",
-                    "claim_mapping",
-                    "sync_groups",
-                    "sync_groups_glob_pattern",
-                    "default_groups",
-                    "make_users_staff",
-                    "superuser_group_names",
-                )
-            },
-        ),
-        (
-            _("Keycloak specific settings"),
-            {
-                "fields": ("oidc_keycloak_idp_hint",),
-                "classes": ["collapse in"],
-            },
-        ),
+        (_("Custom settings"), {"fields": ("options",)}),
         (
             _("Advanced settings"),
             {
                 "fields": (
-                    "oidc_use_nonce",
-                    "oidc_nonce_size",
-                    "oidc_state_size",
                     "userinfo_claims_source",
+                    "oidc_keycloak_idp_hint",
                 ),
                 "classes": [
                     "collapse in",
@@ -78,4 +49,28 @@ class OpenIDConnectConfigAdmin(SingletonModelAdmin):
             },
         ),
     )
-    filter_horizontal = ("default_groups",)
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def has_delete_permission(
+        self, request: HttpRequest, obj: OIDCClient = None
+    ) -> bool:
+        return False
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj, change, **kwargs)
+
+        # The JSON schema for the `options` field needs to be deduced from the instance.
+        # django_jsonform field passes the instance to the callable to get the schema
+        # if the attribute `instance` is present on the widget instance
+        form.base_fields["options"].widget.instance = obj
+
+        return form
+
+
+@admin.register(OIDCProvider)
+class OIDCProviderAdmin(admin.ModelAdmin):
+    list_display = ("identifier",)
+    search_fields = ("identifier",)
+    form = OIDCProviderForm

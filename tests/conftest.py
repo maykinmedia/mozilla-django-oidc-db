@@ -9,8 +9,11 @@ from django.test import RequestFactory
 
 import pytest
 
+from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
+from tests.utils import create_or_update_configuration
+
 if TYPE_CHECKING:
-    from mozilla_django_oidc_db.models import OpenIDConnectConfig
+    from mozilla_django_oidc_db.models import OIDCClient
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
@@ -28,46 +31,101 @@ def mock_state_and_nonce(mocker):
 
 
 @pytest.fixture
-def dummy_config(request, db) -> Iterator[OpenIDConnectConfig]:
+def disabled_config(request, db) -> Iterator[OIDCClient]:
     """
-    OIDC Provider configuration for a fictious provider.
+    OIDC configuration with enabled=False.
 
-    The URLs here are made up. Use this fixture when the actual provider authentication
-    aspect is irrelevant.
+    Use this fixture when you need a configuration that is currently disabled.
     """
-    # local imports to so that `pytest --help` can load this file
-    from mozilla_django_oidc_db.models import OpenIDConnectConfig
+    from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
-    marker = request.node.get_closest_marker("oidcconfig")
-    overrides: dict[str, Any] = marker.kwargs if marker else {}
     BASE = "https://mock-oidc-provider:9999"
 
-    config, _ = OpenIDConnectConfig.objects.update_or_create(
-        pk=OpenIDConnectConfig.singleton_instance_id,
+    oidc_provider, _ = OIDCProvider.objects.update_or_create(
+        identifier="test-oidc-provider",
         defaults={
-            "enabled": True,
-            "oidc_rp_client_id": "fake",
-            "oidc_rp_client_secret": "even-faker",
-            "oidc_rp_sign_algo": "RS256",
             "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
             "oidc_op_jwks_endpoint": f"{BASE}/oidc/jwks",
             "oidc_op_authorization_endpoint": f"{BASE}/oidc/auth",
             "oidc_op_token_endpoint": f"{BASE}/oidc/token",
             "oidc_op_user_endpoint": f"{BASE}/oidc/user",
-            "sync_groups": False,
-            **overrides,
         },
     )
-    # in case caching is setup, ensure that it is invalidated
-    config.save()
+
+    config, _ = OIDCClient.objects.update_or_create(
+        identifier="test-oidc-disabled",
+        defaults={
+            "enabled": False,
+            "oidc_provider": oidc_provider,
+        },
+    )
 
     yield config
 
-    OpenIDConnectConfig.clear_cache()
+
+def _get_data_for_config(request: HttpRequest) -> dict[str, Any]:
+    marker = request.node.get_closest_marker("oidcconfig")
+    overrides: dict[str, Any] = marker.kwargs if marker else {}
+    BASE = "https://mock-oidc-provider:9999"
+
+    fields = {
+        # Provider config
+        "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
+        "oidc_op_jwks_endpoint": f"{BASE}/oidc/jwks",
+        "oidc_op_authorization_endpoint": f"{BASE}/oidc/auth",
+        "oidc_op_token_endpoint": f"{BASE}/oidc/token",
+        "oidc_op_user_endpoint": f"{BASE}/oidc/user",
+        # Config
+        "enabled": True,
+        "oidc_rp_client_id": "fake",
+        "oidc_rp_client_secret": "even-faker",
+        "oidc_rp_sign_algo": "RS256",
+        "options": {
+            "user_settings": {
+                "claim_mappings": {
+                    "username": ["sub"],
+                    "email": ["email"],
+                }
+            },
+            "groups_settings": {"make_users_staff": True, "sync": False},
+        },
+        **overrides,
+    }
+    return fields
 
 
 @pytest.fixture
-def keycloak_config(request, db) -> Iterator[OpenIDConnectConfig]:
+def dummy_config(request, db) -> Iterator[OIDCClient]:
+    """
+    OIDC configuration for a fictious provider.
+
+    The URLs here are made up. Use this fixture when the actual provider authentication
+    aspect is irrelevant.
+    """
+    fields = _get_data_for_config(request)
+    config = create_or_update_configuration("test-oidc-provider", "test-oidc", fields)
+
+    yield config
+
+
+@pytest.fixture
+def filled_admin_config(request, db) -> Iterator[OIDCClient]:
+    """
+    Admin OIDC configuration for a fictious provider.
+
+    The URLs here are made up. Use this fixture when the actual provider authentication
+    aspect is irrelevant, but you need to use the "admin-oidc" configuration
+    """
+    fields = _get_data_for_config(request)
+    config = create_or_update_configuration(
+        "admin-oidc-provider", OIDC_ADMIN_CONFIG_IDENTIFIER, fields
+    )
+
+    yield config
+
+
+@pytest.fixture
+def keycloak_config(request, db) -> Iterator[OIDCClient]:
     """
     Keycloak configuration for the provided docker-compose.yml setup.
 
@@ -82,33 +140,42 @@ def keycloak_config(request, db) -> Iterator[OpenIDConnectConfig]:
 
     """
     # local imports to so that `pytest --help` can load this file
-    from mozilla_django_oidc_db.forms import OpenIDConnectConfigForm
-    from mozilla_django_oidc_db.models import OpenIDConnectConfig, get_default_scopes
+    from mozilla_django_oidc_db.forms import OIDCProviderForm
+    from mozilla_django_oidc_db.models import get_default_scopes
 
-    endpoints = OpenIDConnectConfigForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
+    endpoints = OIDCProviderForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
 
     marker = request.node.get_closest_marker("oidcconfig")
     overrides: dict[str, Any] = marker.kwargs if marker else {}
 
-    config, _ = OpenIDConnectConfig.objects.update_or_create(
-        pk=OpenIDConnectConfig.singleton_instance_id,
-        defaults={
-            "enabled": True,
-            "oidc_rp_client_id": "testid",
-            "oidc_rp_client_secret": "7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I",
-            "oidc_rp_sign_algo": "RS256",
-            **endpoints,
-            "oidc_rp_scopes_list": get_default_scopes() + ["bsn", "kvk"],
-            "sync_groups": False,
-            **overrides,
+    fields = {
+        **endpoints,
+        "enabled": True,
+        "oidc_rp_client_id": "testid",
+        "oidc_rp_client_secret": "7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I",
+        "oidc_rp_sign_algo": "RS256",
+        **endpoints,
+        "oidc_rp_scopes_list": get_default_scopes() + ["bsn", "kvk"],
+        "sync_groups": False,
+        "options": {
+            "user_settings": {
+                "claim_mappings": {
+                    "username": ["sub"],
+                    "email": ["email"],
+                }
+            },
+            "groups_settings": {"make_users_staff": True, "sync": False},
         },
+        **overrides,
+    }
+    config = create_or_update_configuration(
+        "test-provider-keycloak", "test-keycloak", fields
     )
-    # in case caching is setup, ensure that it is invalidated
-    config.save()
+    config = create_or_update_configuration(
+        "test-provider-keycloak", "test-keycloak-custom", fields
+    )
 
     yield config
-
-    OpenIDConnectConfig.clear_cache()
 
 
 @pytest.fixture
@@ -136,10 +203,10 @@ def callback_request(
     A django request primed by an OIDC auth request flow, ready for the callback flow.
     """
     from mozilla_django_oidc_db.config import store_config
-    from mozilla_django_oidc_db.views import OIDCAuthenticationRequestView
+    from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
     # set a default in case no marker is provided
-    init_view = OIDCAuthenticationRequestView.as_view()
+    init_view = OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc")
 
     marker = request.node.get_closest_marker("callback_request")
     if marker and (_init_view := marker.kwargs.get("init_view")):

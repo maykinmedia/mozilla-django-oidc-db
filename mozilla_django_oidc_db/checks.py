@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.checks import CheckMessage, Error, Warning, register
 from django.utils.module_loading import import_string
 
-from .views import OIDCCallbackView, OIDCInit
+from .views import OIDCAuthenticationRequestInitView, OIDCCallbackView
 
 
 def _do_check(
@@ -41,15 +41,15 @@ def check_authenticate_class(
         "'settings.OIDC_AUTHENTICATE_CLASS' must be a string that can be imported.",
         hint=(
             "Use 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestView' or a "
-            "subclass of 'mozilla_django_oidc_db.views.OIDCInit'."
+            "subclass of 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView'."
         ),
         id="mozilla_django_oidc_db.E001",
     )
     subclass_warning = Warning(
-        "'settings.OIDC_AUTHENTICATE_CLASS' should be a subclass of 'OIDCInit'.",
+        "'settings.OIDC_AUTHENTICATE_CLASS' should be a subclass of 'OIDCAuthenticationRequestInitView'.",
         hint=(
             "Use 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestView' or a "
-            "subclass of 'mozilla_django_oidc_db.views.OIDCInit'."
+            "subclass of 'mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView'."
         ),
         id="mozilla_django_oidc_db.W001",
     )
@@ -58,7 +58,7 @@ def check_authenticate_class(
         app_configs,
         settings.OIDC_AUTHENTICATE_CLASS,
         type_error=type_error,
-        subclass_reference=OIDCInit,
+        subclass_reference=OIDCAuthenticationRequestInitView,
         subclass_warning=subclass_warning,
     )
 

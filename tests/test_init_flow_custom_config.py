@@ -1,5 +1,5 @@
 """
-Test the init flow through a custom view and config.
+Test the init flow.
 """
 
 from urllib.parse import parse_qs, urlsplit
@@ -9,15 +9,23 @@ from django.core.exceptions import DisallowedRedirect
 import pytest
 
 from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
-from mozilla_django_oidc_db.views import OIDCInit
-
-from .custom_config import CustomConfig, oidc_init
+from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
 pytestmark = [pytest.mark.django_db]
 
+init_view = OIDCAuthenticationRequestInitView.as_view(
+    identifier="test-oidc", allow_next_from_query=False
+)
 
-def test_redirects_to_oidc_provider(auth_request):
-    response = oidc_init(auth_request, return_url="/fixed-next")
+
+@pytest.mark.oidcconfig(
+    enabled=True,
+    oidc_rp_client_id="fixed_client_id",
+    oidc_rp_client_secret="supersecret",
+    oidc_op_authorization_endpoint="https://example.com/oidc/auth",
+)
+def test_redirects_to_oidc_provider(dummy_config, auth_request):
+    response = init_view(auth_request, return_url="/fixed-next")
 
     assert response.status_code == 302
     parsed_url = urlsplit(response.url)
@@ -28,16 +36,17 @@ def test_redirects_to_oidc_provider(auth_request):
     # introspect state
     state_key = parse_qs(parsed_url.query)["state"][0]
     state = auth_request.session["oidc_states"][state_key]
-    assert state["config_class"] == "mozilla_django_oidc_db.CustomConfig"
+    assert state["config_identifier"] == "test-oidc"
     # upstream library
     assert auth_request.session["oidc_login_next"] == "/fixed-next"
     # our own addition
     assert auth_request.session["oidc-db_redirect_next"] == "/fixed-next"
 
 
-def test_suspicious_return_url(auth_request):
+@pytest.mark.oidcconfig()
+def test_suspicious_return_url(dummy_config, auth_request):
     with pytest.raises(DisallowedRedirect):
-        oidc_init(auth_request, return_url="http://evil.com/steal-my-data")
+        init_view(auth_request, return_url="http://evil.com/steal-my-data")
 
 
 @pytest.mark.parametrize(
@@ -48,23 +57,23 @@ def test_suspicious_return_url(auth_request):
         {"return_url": None},
     ),
 )
-def test_forgotten_return_url(auth_request, get_kwargs):
+@pytest.mark.oidcconfig()
+def test_forgotten_return_url(dummy_config, auth_request, get_kwargs):
     with pytest.raises(ValueError):
-        oidc_init(auth_request, **get_kwargs)
+        init_view(auth_request, **get_kwargs)
 
 
-class IDPCheckInitView(OIDCInit):
+class IDPCheckInitView(OIDCAuthenticationRequestInitView):
     def check_idp_availability(self) -> None:
         raise OIDCProviderOutage("The internet is bwoken.")
 
 
 oidc_init_with_idp_check = IDPCheckInitView.as_view(
-    config_class=CustomConfig, allow_next_from_query=True
+    identifier="test-oidc", allow_next_from_query=True
 )
 
 
-def test_idp_check_mechanism(auth_request, settings):
-    settings.OIDCDB_CHECK_IDP_AVAILABILITY = True
-
+@pytest.mark.oidcconfig(check_op_availability=True)
+def test_idp_check_mechanism(dummy_config, auth_request, settings):
     with pytest.raises(OIDCProviderOutage):
         oidc_init_with_idp_check(auth_request)

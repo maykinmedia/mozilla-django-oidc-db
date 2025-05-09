@@ -1,7 +1,10 @@
 from contextlib import nullcontext
 
+from glom import assign
 from pyquery import PyQuery as pq
 from requests import Session
+
+from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
 
 def keycloak_login(
@@ -46,3 +49,55 @@ def keycloak_login(
         )
 
         return redirect_uri
+
+
+def create_or_update_configuration(
+    identifier_provider: str, identifier_config: str, data: dict
+) -> OIDCClient:
+    """Create or update a OIDCClient and OIDCProvider.
+
+    The fields for the OIDCProvider are extracted from data and used to create/update the provider configuration.
+    Then the fields for the OIDCClient are extracted and used to create/update the configuration. The foreign key
+    to the provider will point to the just created/updated provider.
+
+    It is possible to provide an extra field in the ``data`` dict called ``extra_options``. This is a dict with as key
+    a dotted path for within the ``options`` field of the configuration, and as value the value to use for the specified field.
+    For example, if ``extra_options`` is ``{"user_settings.claim_mappings.username": ["sub", "blob"]}``, then the configuration
+    will have an options field:
+
+    .. code:: python
+
+       {
+            "user_settings": {
+                "claim_mappings": {
+                    "username": ["sub", "blob"]
+                }
+            }
+       }
+
+
+    """
+
+    oidc_provider_fields = [field.name for field in OIDCProvider._meta.fields]
+    fields_provider = {
+        key: value for key, value in data.items() if key in oidc_provider_fields
+    }
+    oidc_provider, _ = OIDCProvider.objects.update_or_create(
+        identifier=identifier_provider,
+        defaults=fields_provider,
+    )
+
+    oidc_config_fields = [field.name for field in OIDCClient._meta.fields]
+    fields_config = {
+        key: value for key, value in data.items() if key in oidc_config_fields
+    }
+    config, _ = OIDCClient.objects.update_or_create(
+        identifier=identifier_config,
+        defaults=fields_config,
+    )
+    config.oidc_provider = oidc_provider
+    for path, value in data.get("extra_options", {}).items():
+        assign(config.options, path, value)
+    config.save()
+
+    return config
