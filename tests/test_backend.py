@@ -71,7 +71,7 @@ def test_settings_still_validated(settings, sign_alg: str):
     config.oidc_provider = oidc_provider
     config.save()
     backend = OIDCAuthenticationBackend()
-    backend._config = config
+    backend.config = config
 
     with pytest.raises(ImproperlyConfigured):
         setting = backend.OIDC_RP_CLIENT_ID  # the exact setting doesn't matter
@@ -102,7 +102,7 @@ def test_settings_still_validated(settings, sign_alg: str):
 def test_obfuscates_sensitive_claims(dummy_config, caplog):
     caplog.set_level(logging.DEBUG, logger="mozilla_django_oidc_db.plugins")
     backend = OIDCAuthenticationBackend()
-    backend._config = dummy_config
+    backend.config = dummy_config
 
     claims_ok = backend.verify_claims(
         {

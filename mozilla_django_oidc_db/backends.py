@@ -14,6 +14,7 @@ from mozilla_django_oidc.auth import OIDCAuthenticationBackend as BaseBackend
 from typing_extensions import override
 
 from .config import dynamic_setting, get_setting_from_config, lookup_config
+from .exceptions import MissingInitialisation
 from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
 from .registry import register as registry
@@ -44,6 +45,7 @@ class OIDCAuthenticationBackend(BaseBackend):
     """
 
     request: HttpRequest | None = None  # set during the authenticate call
+    config: OIDCClient | None = None  # set during the authenticate call
 
     # These should be functionaly equivalent to
     # :class:`mozilla_django_oidc.auth.OIDCAuthenticationBackend`.
@@ -69,18 +71,6 @@ class OIDCAuthenticationBackend(BaseBackend):
         # AbstractUser.
         self.UserModel = cast(AbstractUser, get_user_model())
 
-    @property
-    def config(self) -> OIDCClient:
-        if (configuration := getattr(self, "_config", None)) is None:
-            assert getattr(self, "request") is not None, (
-                "The request must be loaded from the authenticate entrypoint. It looks like "
-                "you're trying to access configuration before this was called."
-            )
-
-            configuration = lookup_config(self.request)
-            self._config = configuration
-        return self._config
-
     @override
     def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
         """
@@ -91,11 +81,16 @@ class OIDCAuthenticationBackend(BaseBackend):
         requested setting is defined there or not. If not, it is taken from the Django
         settings.
         """
-        configuration = self.config
         self._validate_settings()
-        return get_setting_from_config(configuration, attr, *args)
+        return get_setting_from_config(self.config, attr, *args)
 
     def _validate_settings(self):
+        if not self.config:
+            raise MissingInitialisation(
+                "The configuration must be loaded from the authenticate entrypoint. It looks like "
+                "you're trying to access configuration before this was called."
+            )
+
         plugin = registry[self.config.identifier]
         plugin.validate_settings()
 
@@ -125,7 +120,9 @@ class OIDCAuthenticationBackend(BaseBackend):
         if request is None:
             return None
 
+        self.config: OIDCClient = lookup_config(request)
         self.request = request
+
         # Check if this backend should be considered to authenticate the user.
         is_candidate = self._check_candidate_backend()
         if not is_candidate:
@@ -137,7 +134,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         # Store the config class identifier on the user, so that we can store this in the user's
         # session after they have been successfully authenticated (by listening to the `user_logged_in` signal)
         if user:
-            user._oidcdb_config_identifier = self._config.identifier  # type: ignore
+            user._oidcdb_config_identifier = self.config.identifier  # type: ignore
 
         return user
 

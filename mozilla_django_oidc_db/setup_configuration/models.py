@@ -97,7 +97,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     )
 
     enabled: bool = DjangoModelRef(OIDCClient, "enabled", default=True)
-    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list", default=['openid', 'email', 'profile'])
+    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list")
     options: dict = DjangoModelRef(OIDCClient, "options", default_factory=dict)
 
     endpoint_config: OIDCProviderConfigUnion | None = Field(

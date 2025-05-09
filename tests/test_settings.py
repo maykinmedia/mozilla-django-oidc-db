@@ -7,6 +7,7 @@ import pytest
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
 from mozilla_django_oidc_db.config import lookup_config
 from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
+from mozilla_django_oidc_db.exceptions import MissingInitialisation
 from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OIDCClient
 from testapp.views import PreConfiguredOIDCAuthenticationRequestView
@@ -27,7 +28,7 @@ from testapp.views import PreConfiguredOIDCAuthenticationRequestView
 def test_backend_without_initialization_request_raises(setting: str):
     backend = OIDCAuthenticationBackend()
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(MissingInitialisation):
         getattr(backend, setting)
 
 
@@ -58,7 +59,7 @@ def test_backend_reads_settings_from_model(
     dummy_config, callback_request, setting: str, expected: Any
 ):
     backend = OIDCAuthenticationBackend()
-    backend._config = lookup_config(callback_request)
+    backend.config = lookup_config(callback_request)
 
     value = getattr(backend, setting)
 

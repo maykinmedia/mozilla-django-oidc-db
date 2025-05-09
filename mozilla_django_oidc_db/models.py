@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from django.core.exceptions import (
+    BadRequest,
+    MultipleObjectsReturned,
+)
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -138,6 +142,16 @@ class OIDCProvider(models.Model):
         return _("OIDC Provider %(identifier)s").format(identifier=self.identifier)
 
 
+class OIDCClientManager(models.Manager):
+    def resolve(self, identifier: str) -> OIDCClient:
+        try:
+            return OIDCClient.objects.select_related("oidc_provider").get(
+                identifier=identifier
+            )
+        except (OIDCClient.DoesNotExist, MultipleObjectsReturned) as exc:
+            raise BadRequest("Could not look up the referenced configuration.") from exc
+
+
 class OIDCClient(models.Model):
     """
     Hold the client configuration for the Relying Party (RP).
@@ -240,6 +254,8 @@ class OIDCClient(models.Model):
         schema=get_options_schema,
         default=dict,
     )
+
+    objects = OIDCClientManager()
 
     class Meta:
         verbose_name = _("OIDC client")

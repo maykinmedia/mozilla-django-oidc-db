@@ -11,7 +11,6 @@ from typing import Any, Generic, Protocol, TypeVar, overload
 from django.core.exceptions import (
     BadRequest,
     MultipleObjectsReturned,
-    ObjectDoesNotExist,
 )
 from django.http import HttpRequest
 
@@ -137,14 +136,7 @@ def store_config(request: HttpRequest) -> None:
     ):
         config_identifier = _config
 
-    try:
-        config = OIDCClient.objects.select_related("oidc_provider").get(
-            identifier=config_identifier
-        )
-    except (OIDCClient.DoesNotExist, MultipleObjectsReturned) as exc:
-        raise BadRequest("Could not look up the referenced configuration.") from exc
-
-    request._oidcdb_config = config  # type: ignore
+    request._oidcdb_config = OIDCClient.objects.resolve(config_identifier)  # type: ignore
 
 
 def lookup_config(request: HttpRequest) -> OIDCClient:
@@ -159,11 +151,4 @@ def lookup_config(request: HttpRequest) -> OIDCClient:
     if (config_identifier := session.get(CONFIG_IDENTIFIER_SESSION_KEY)) is None:
         raise BadRequest("The required config is not available on the session.")
 
-    try:
-        config = OIDCClient.objects.select_related("oidc_provider").get(
-            identifier=config_identifier
-        )
-    except (OIDCClient.DoesNotExist, MultipleObjectsReturned) as exc:
-        raise BadRequest("Could not look up the referenced configuration.") from exc
-
-    return config
+    return OIDCClient.objects.resolve(config_identifier)
