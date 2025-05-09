@@ -15,6 +15,9 @@ from mozilla_django_oidc_db.setup_configuration.models import (
 )
 
 
+# TODO: We now have a single step that supports the yaml files used in versions <= 0.23.0 and >0.23.0.
+# When we drop compatibility, this should be refactor to have two steps: one for the provider and
+# one for the client models.
 class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationModel]):
     """
     Configure the necessary settings to enable OpenID Connect authentication for admin users.

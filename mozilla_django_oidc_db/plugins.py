@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
@@ -14,7 +15,7 @@ from django.views import View
 from glom import Path, glom
 
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import MissingIdentifierClaim
+from .exceptions import MissingIdentifierClaim, OIDCPluginImproperlyConfigured
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
@@ -27,40 +28,67 @@ logger = logging.getLogger(__name__)
 missing = object()
 
 
-class OIDCBasePlugin:
+class OIDCBasePlugin(ABC):
     callback_view: View
     schema: JSONObject
 
     def __init__(self, identifier: str):
         self.identifier = identifier
 
+        if self.callback_view is None:
+            raise OIDCPluginImproperlyConfigured(
+                "The plugin should define a callback view."
+            )
+
     def get_config(self) -> OIDCClient:
-        return OIDCClient.objects.get(identifier=self.identifier)
+        return OIDCClient.objects.resolve(self.identifier)
 
+    @abstractmethod
     def verify_claims(self, claims: JSONObject) -> bool:
-        raise NotImplementedError
+        """Verify the provided claims to decide if authentication should be allowed."""
+        ...
 
+    @abstractmethod
     def get_schema(self) -> JSONObject:
-        raise NotImplementedError
+        """Get the JSON schema of the ``options`` field on the :class:`~mozilla_django_oidc_db.models.OIDCClient` model."""
+        ...
 
+    @abstractmethod
     def validate_settings(self) -> None:
-        raise NotImplementedError
+        """Check the validity of the settings in the provider and client configuration."""
+        ...
 
-    # TODO Figure out if needed
-    def get_username(self, claims: JSONObject) -> str:
-        raise NotImplementedError
-
+    @abstractmethod
     def filter_users_by_claims(self, claims: JSONObject) -> QuerySet[AnyUser]:
-        raise NotImplementedError
+        """Return all users matching the specified subject."""
+        ...
 
+    @abstractmethod
     def create_user(self, claims: JSONObject) -> AnyUser:
-        raise NotImplementedError
+        """Return object for a newly created user account."""
+        ...
 
+    @abstractmethod
     def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
-        raise NotImplementedError
+        """
+        Update existing user with new claims, if necessary save, and return user.
+        """
+        ...
 
-    def view(request: HttpRequest) -> HttpResponse:
-        raise NotImplementedError
+    @abstractmethod
+    def view(self, request: HttpRequest) -> HttpResponse:
+        """Return an HttpResponse based on the callback view specified on the plugin.
+
+        For example, for class based views:
+
+        .. code:: python
+
+           def view(self, request: HttpRequest) -> HttpResponse:
+               view = self.callback_view.as_view()
+               return view(request)
+
+        """
+        ...
 
 
 @register(OIDC_ADMIN_CONFIG_IDENTIFIER)
@@ -158,7 +186,7 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         Update existing user with new claims, if necessary save, and return user.
 
         This method checks dynamic settings, which are provided by our
-        :class:`~mozilla_django_oidc_db.models.OpenIDConnectConfig` model. If the
+        :class:`~mozilla_django_oidc_db.models.OIDCClient` model. If the
         respective fields do not exist on the config model being used, you must make
         sure they exist as Django settings.
         """
@@ -277,7 +305,7 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         #   the claims
         user.groups.set(existing_groups)
 
-    def get_schema(self):
+    def get_schema(self) -> JSONObject:
         return ADMIN_OPTIONS_SCHEMA
 
     def view(self, request: HttpRequest) -> HttpResponse:
