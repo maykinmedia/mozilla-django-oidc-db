@@ -7,6 +7,7 @@ import requests
 
 from mozilla_django_oidc_db.models import (
     OIDCClient,
+    OIDCProvider,
     UserInformationClaimsSources,
 )
 
@@ -56,8 +57,11 @@ def test_credentials_in_basic_auth_header(
     django_user_model,
     vcr,
 ):
-    keycloak_config.oidc_token_use_basic_auth = True
-    keycloak_config.save()
+    assert keycloak_config.oidc_provider
+
+    provider = keycloak_config.oidc_provider
+    provider.oidc_token_use_basic_auth = True
+    provider.save()
 
     django_login_response = client.get(reverse("login-keycloak"))
     # simulate login to Keycloak
