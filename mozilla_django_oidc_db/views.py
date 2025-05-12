@@ -76,7 +76,7 @@ class OIDCCallbackView(View):
         store_config(request)
         configuration = lookup_config(request)
         plugin = registry[configuration.identifier]
-        return plugin.view(request)
+        return plugin.handle_callback(request)
 
 
 class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):

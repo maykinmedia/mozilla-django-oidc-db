@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
@@ -29,7 +30,7 @@ missing = object()
 
 
 class OIDCBasePlugin(ABC):
-    callback_view: View
+    callback_view: View | Callable
     schema: JSONObject
 
     def __init__(self, identifier: str):
@@ -76,7 +77,7 @@ class OIDCBasePlugin(ABC):
         ...
 
     @abstractmethod
-    def view(self, request: HttpRequest) -> HttpResponse:
+    def handle_callback(self, request: HttpRequest) -> HttpResponse:
         """Return an HttpResponse based on the callback view specified on the plugin.
 
         For example, for class based views:
@@ -93,7 +94,7 @@ class OIDCBasePlugin(ABC):
 
 @register(OIDC_ADMIN_CONFIG_IDENTIFIER)
 class OIDCAdminPlugin(OIDCBasePlugin):
-    callback_view = AdminCallbackView
+    callback_view: View = AdminCallbackView  # type: ignore
     schema = ADMIN_OPTIONS_SCHEMA
 
     def verify_claims(self, claims: JSONObject) -> bool:
@@ -308,6 +309,6 @@ class OIDCAdminPlugin(OIDCBasePlugin):
     def get_schema(self) -> JSONObject:
         return ADMIN_OPTIONS_SCHEMA
 
-    def view(self, request: HttpRequest) -> HttpResponse:
+    def handle_callback(self, request: HttpRequest) -> HttpResponse:
         view = self.callback_view.as_view()
         return view(request)

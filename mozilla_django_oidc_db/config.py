@@ -45,6 +45,14 @@ def get_setting_from_config(config: OIDCClient, attr: str, *args) -> Any:
     ):
         return getattr(config.oidc_provider, attr_lowercase)
 
+    if attr_lowercase in [
+        "oidc_token_use_basic_auth",
+        "oidc_use_nonce",
+        "oidc_nonce_size",
+        "oidc_state_size",
+    ]:
+        return getattr(config.oidc_provider, attr_lowercase)
+
     if hasattr(config, attr_lowercase):
         # Workaround for OIDC_RP_IDP_SIGN_KEY being an empty string by default.
         # mozilla-django-oidc explicitly checks if `OIDC_RP_IDP_SIGN_KEY` is not `None`
@@ -136,7 +144,7 @@ def store_config(request: HttpRequest) -> None:
     ):
         config_identifier = _config
 
-    request._oidcdb_config = OIDCClient.objects.resolve(config_identifier)  # type: ignore
+    request._oidcdb_config: OIDC = OIDCClient.objects.resolve(config_identifier)  # type: ignore
 
 
 def lookup_config(request: HttpRequest) -> OIDCClient:

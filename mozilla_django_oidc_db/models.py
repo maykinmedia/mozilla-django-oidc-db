@@ -12,6 +12,7 @@ from typing_extensions import deprecated
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
 from .registry import register as registry
+from .typing import JSONObject
 
 
 @deprecated(
@@ -23,7 +24,7 @@ class OpenIDConnectConfig(models.Model):
         managed = False
 
 
-def get_options_schema(instance: "OIDCClient") -> JSONField:
+def get_options_schema(instance: "OIDCClient") -> JSONObject:
     plugin = registry[instance.identifier]
     return plugin.get_schema()
 
@@ -139,7 +140,7 @@ class OIDCProvider(models.Model):
         verbose_name_plural = _("OIDC Providers")
 
     def __str__(self):
-        return _("OIDC Provider %(identifier)s").format(identifier=self.identifier)
+        return _("OIDC Provider {identifier}").format(identifier=self.identifier)
 
 
 class OIDCClientManager(models.Manager):
@@ -262,7 +263,7 @@ class OIDCClient(models.Model):
         verbose_name_plural = _("OIDC clients")
 
     def __str__(self):
-        return _("OIDC client %(identifier)s").format(identifier=self.identifier)
+        return _("OIDC client {identifier}").format(identifier=self.identifier)
 
     @property
     def oidc_rp_scopes(self) -> str:

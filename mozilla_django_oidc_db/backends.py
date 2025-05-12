@@ -166,6 +166,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         #
         # Specifying the preferred format in the ``Accept`` header does not work with
         # Keycloak, as it depends on the client settings.
+        assert self.config.oidc_provider
         user_response = requests.get(
             self.config.oidc_provider.oidc_op_user_endpoint,
             headers={
