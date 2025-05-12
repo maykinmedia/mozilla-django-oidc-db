@@ -270,4 +270,4 @@ class OIDCClient(models.Model):
         """
         Scopes should be formatted as a string with spaces
         """
-        return " ".join(self.oidc_rp_scopes_list)
+        return " ".join(self.oidc_rp_scopes_list)  # type: ignore

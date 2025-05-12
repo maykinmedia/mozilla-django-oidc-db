@@ -23,12 +23,11 @@ To re-record the cassettes:
 
 * Ensure that you are running Keycloak locally as described in the ``docker/README.md`` file.
 * Delete the existing cassettes.
-* In the tox.ini file, add ``--record-mode=all`` to the pytest command:
+* Run the tox tests with the option ``--record-mode=rewrite``:
 
 .. code:: bash
 
-    pytest tests --record-mode=all \
-        ...
+    tox -- --record-mode=rewrite
 
 
 ==================

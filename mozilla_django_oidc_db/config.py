@@ -10,7 +10,6 @@ from typing import Any, Generic, Protocol, TypeVar, overload
 
 from django.core.exceptions import (
     BadRequest,
-    MultipleObjectsReturned,
 )
 from django.http import HttpRequest
 

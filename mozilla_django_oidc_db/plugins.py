@@ -2,25 +2,20 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import (
-    AbstractUser,
-)
+from django.contrib.auth.models import AbstractUser, AnonymousUser, UserManager
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
-from django.views import View
 
 from glom import Path, glom
 
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import MissingIdentifierClaim, OIDCPluginImproperlyConfigured
+from .exceptions import MissingIdentifierClaim
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
-from .typing import AnyUser, ClaimPath, JSONObject
+from .typing import ClaimPath, JSONObject
 from .utils import get_groups_by_name, obfuscate_claims
 from .views import AdminCallbackView
 
@@ -30,16 +25,10 @@ missing = object()
 
 
 class OIDCBasePlugin(ABC):
-    callback_view: View | Callable
     schema: JSONObject
 
     def __init__(self, identifier: str):
         self.identifier = identifier
-
-        if self.callback_view is None:
-            raise OIDCPluginImproperlyConfigured(
-                "The plugin should define a callback view."
-            )
 
     def get_config(self) -> OIDCClient:
         return OIDCClient.objects.resolve(self.identifier)
@@ -60,13 +49,18 @@ class OIDCBasePlugin(ABC):
         ...
 
     @abstractmethod
-    def filter_users_by_claims(self, claims: JSONObject) -> QuerySet[AnyUser]:
+    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
         ...
 
     @abstractmethod
-    def create_user(self, claims: JSONObject) -> AnyUser:
-        """Return object for a newly created user account."""
+    def create_user(self, claims: JSONObject) -> AbstractUser | AnonymousUser:
+        """Create an authenticated user.
+
+        This returns either a User if we need to have a new user created.
+        Otherwise, for application that don't need to create a new user whenever there is a login,
+        an AnonymousUser is returned.
+        """
         ...
 
     @abstractmethod
@@ -92,9 +86,11 @@ class OIDCBasePlugin(ABC):
         ...
 
 
+admin_callback_view = AdminCallbackView.as_view()
+
+
 @register(OIDC_ADMIN_CONFIG_IDENTIFIER)
 class OIDCAdminPlugin(OIDCBasePlugin):
-    callback_view: View = AdminCallbackView  # type: ignore
     schema = ADMIN_OPTIONS_SCHEMA
 
     def verify_claims(self, claims: JSONObject) -> bool:
@@ -153,7 +149,7 @@ class OIDCAdminPlugin(OIDCBasePlugin):
             msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
             raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
-    def filter_users_by_claims(self, claims: JSONObject) -> QuerySet[AbstractUser]:
+    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
         UserModel = get_user_model()
 
@@ -310,5 +306,4 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         return ADMIN_OPTIONS_SCHEMA
 
     def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        view = self.callback_view.as_view()
-        return view(request)
+        return admin_callback_view(request)

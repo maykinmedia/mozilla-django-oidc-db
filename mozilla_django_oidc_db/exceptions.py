@@ -13,7 +13,3 @@ class MissingIdentifierClaim(Exception):
 
 class MissingInitialisation(Exception):
     pass
-
-
-class OIDCPluginImproperlyConfigured(Exception):
-    pass

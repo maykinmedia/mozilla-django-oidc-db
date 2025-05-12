@@ -5,7 +5,10 @@ from typing import Any, cast
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
+    AbstractBaseUser,
     AbstractUser,
+    AnonymousUser,
+    UserManager,
 )
 from django.http import HttpRequest
 
@@ -18,7 +21,7 @@ from .exceptions import MissingInitialisation
 from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
 from .registry import register as registry
-from .typing import AnyUser, JSONObject
+from .typing import JSONObject
 from .utils import extract_content_type
 
 logger = logging.getLogger(__name__)
@@ -107,7 +110,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         request: HttpRequest | None,
         nonce: str | None = None,
         code_verifier: str | None = None,
-    ) -> AnyUser | None:
+    ) -> AnonymousUser | AbstractBaseUser | None:
         """
         Authenticate the user with OIDC *iff* the conditions are met.
 
@@ -204,12 +207,18 @@ class OIDCAuthenticationBackend(BaseBackend):
                 )
 
     @override
-    def filter_users_by_claims(self, claims: JSONObject):
+    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         plugin = registry[self.config.identifier]
         return plugin.filter_users_by_claims(claims)
 
     @override
-    def create_user(self, claims: JSONObject) -> AnyUser:
+    def create_user(self, claims: JSONObject) -> AnonymousUser | AbstractUser:  # type: ignore (parent function returns only an AbstractUser)
+        """Create an authenticated user.
+
+        This returns either a User if we need to have a new user created.
+        Otherwise, for application that don't need to create a new user whenever there is a login,
+        an AnonymousUser is returned.
+        """
         plugin = registry[self.config.identifier]
         return plugin.create_user(claims)
 
