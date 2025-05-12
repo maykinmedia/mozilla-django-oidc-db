@@ -16,6 +16,21 @@ Then, you need to set the following environment variables:
 * ``PGPORT``
 * ``PGHOST``
 
+VCR
+===
+
+To re-record the cassettes:
+
+* Ensure that you are running Keycloak locally as described in the ``docker/README.md`` file.
+* Delete the existing cassettes.
+* In the tox.ini file, add ``--record-mode=all`` to the pytest command:
+
+.. code:: bash
+
+    pytest tests --record-mode=all \
+        ...
+
+
 ==================
 Running dev server
 ==================
