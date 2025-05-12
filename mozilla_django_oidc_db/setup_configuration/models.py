@@ -1,53 +1,55 @@
 from typing import Literal, Union
 
+from django.utils.translation import gettext_lazy as _
+
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
 from pydantic import AnyUrl, Discriminator, Field, Tag
 from typing_extensions import Annotated
 
-from mozilla_django_oidc_db.models import OpenIDConnectConfig
+from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
 EXAMPLE_REALM = "http://keycloak.local:8080/realms/test"
 
 
-class OIDCFullEndpointConfig(ConfigurationModel):
+class OIDCFullProviderConfig(ConfigurationModel):
     oidc_op_authorization_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_authorization_endpoint",
         examples=[f"{EXAMPLE_REALM}/openid-connect/auth"],
     )
     oidc_op_token_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_token_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/token"],
     )
     oidc_op_user_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_user_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/userinfo"],
     )
     oidc_op_logout_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_logout_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/logout"],
     )
     oidc_op_jwks_endpoint: AnyUrl | Literal[""] = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_jwks_endpoint",
         examples=[f"{EXAMPLE_REALM}/protocol/openid-connect/certs"],
     )
 
 
-class OIDCDiscoveryEndpoint(ConfigurationModel):
+class OIDCDiscoveryProviderConfig(ConfigurationModel):
     oidc_op_discovery_endpoint: AnyUrl = DjangoModelRef(
-        OpenIDConnectConfig,
+        OIDCProvider,
         "oidc_op_discovery_endpoint",
         examples=[f"{EXAMPLE_REALM}/"],
     )
 
 
-def get_endpoint_endpoint_model(endpoint_data):
-
+def get_provider_config_model(endpoint_data):
+    """Get which configuration model to use for the OIDC provider"""
     if isinstance(endpoint_data, dict):
         discovery_endpoint = endpoint_data.get("oidc_op_discovery_endpoint")
     else:
@@ -57,67 +59,147 @@ def get_endpoint_endpoint_model(endpoint_data):
     return "all"
 
 
-EndpointConfigUnion = Annotated[
+OIDCProviderConfigUnion = Annotated[
     Union[
-        Annotated[OIDCFullEndpointConfig, Tag("all")],
-        Annotated[OIDCDiscoveryEndpoint, Tag("discovery")],
+        Annotated[OIDCFullProviderConfig, Tag("all")],
+        Annotated[OIDCDiscoveryProviderConfig, Tag("discovery")],
     ],
-    Discriminator(get_endpoint_endpoint_model),
+    Discriminator(get_provider_config_model),
 ]
 
 
+class OIDCConfigProviderModel(ConfigurationModel):
+    identifier: str = DjangoModelRef(
+        OIDCProvider,
+        "identifier",
+        description="a unique identifier for this OIDC provider.",
+        examples=["admin-oidc-provider"],
+    )
+    endpoint_config: OIDCProviderConfigUnion
+
+    class Meta:
+        django_model_refs = {
+            OIDCProvider: [
+                "oidc_token_use_basic_auth",
+                "oidc_use_nonce",
+                "oidc_nonce_size",
+                "oidc_state_size",
+            ]
+        }
+
+
 class AdminOIDCConfigurationModelItem(ConfigurationModel):
-    # Currently unused because we use a SingletonModel, but this will be relevant in the
-    # future
-    identifier: str = Field(
+    identifier: str = DjangoModelRef(
+        OIDCClient,
+        "identifier",
         description="a unique identifier for this configuration",
         examples=["admin-oidc"],
     )
 
-    # Change default to True
-    enabled: bool = DjangoModelRef(OpenIDConnectConfig, "enabled", default=True)
+    enabled: bool = DjangoModelRef(OIDCClient, "enabled", default=True)
+    oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list")
+    options: dict = DjangoModelRef(OIDCClient, "options", default_factory=dict)
 
-    # Json
-    claim_mapping: dict = DjangoModelRef(OpenIDConnectConfig, "claim_mapping")
+    endpoint_config: OIDCProviderConfigUnion | None = Field(
+        description=_("Configuration for the OIDC Provider endpoints."),
+        default=None,
+        deprecated=True,
+    )
+    oidc_provider_identifier: str = DjangoModelRef(
+        OIDCProvider, "identifier", examples=["test-oidc-provider"], default=""
+    )
 
+    ## DEPRECATED FIELDS
+    claim_mapping: dict = Field(
+        default_factory=lambda: {
+            "email": ["email"],
+            "first_name": ["given_name"],
+            "last_name": ["family_name"],
+        },
+        description=_("Mapping from User model field names to a path in the claim."),
+        deprecated=True,
+    )
+    oidc_token_use_basic_auth: bool = Field(
+        default=False,
+        description=_(
+            "If enabled, the client ID and secret are sent in the HTTP Basic auth "
+            "header when obtaining the access token. Otherwise, they are sent in the "
+            "request body."
+        ),
+        deprecated=True,
+    )
+    oidc_use_nonce: bool = Field(
+        default=True,
+        description=_("Controls whether the client uses nonce verification"),
+        deprecated=True,
+    )
+    oidc_nonce_size: int = Field(
+        default=32,
+        description=_(
+            "Sets the length of the random string used for nonce verification"
+        ),
+        deprecated=True,
+    )
+    oidc_state_size: int = Field(
+        default=32,
+        description=_(
+            "Sets the length of the random string used for state verification"
+        ),
+        deprecated=True,
+    )
     # Arrays are overridden to make the typing simpler (the underlying Django field is an ArrayField, which is non-standard)
-    username_claim: list[str] = DjangoModelRef(
-        OpenIDConnectConfig,
-        "username_claim",
+    username_claim: list[str] = Field(
+        default_factory=lambda: ["sub"],
+        description=_("Path in the claims to the value to use as username."),
+        deprecated=True,
         examples=[["nested", "username", "claim"]],
     )
-    groups_claim: list[str] = DjangoModelRef(OpenIDConnectConfig, "groups_claim")
-    superuser_group_names: list[str] = DjangoModelRef(
-        OpenIDConnectConfig, "superuser_group_names", examples=[["superusers"]]
+    groups_claim: list[str] = Field(
+        default_factory=lambda: ["roles"],
+        description=_("Path in the claims to the value with group names."),
+        deprecated=True,
+        examples=[["nested", "group", "claim"]],
     )
-    default_groups: list[str] = DjangoModelRef(
-        OpenIDConnectConfig,
-        "default_groups",
+    superuser_group_names: list[str] = Field(
+        default_factory=list,
+        description=_("Superuser group names"),
+        deprecated=True,
+        examples=[["superusers"]],
+    )
+    default_groups: list[str] = Field(
+        default_factory=list,
+        description=_("Default group names"),
+        deprecated=True,
         examples=[["read-only-users"]],
-        default=list,
     )
-    oidc_rp_scopes_list: list[str] = DjangoModelRef(
-        OpenIDConnectConfig, "oidc_rp_scopes_list"
+    sync_groups: bool = Field(
+        description=_("Whether to sync local groups"),
+        deprecated=True,
+        examples=[True],
+        default=True,
     )
-
-    endpoint_config: EndpointConfigUnion
+    sync_groups_glob_pattern: str = Field(
+        description=_("Pattern that the group names to sync should follow."),
+        deprecated=True,
+        examples=["*"],
+        default="*",
+    )
+    make_users_staff: bool = Field(
+        description=_("Whether to make the users staff."),
+        deprecated=True,
+        examples=[False],
+        default=False,
+    )
 
     class Meta:
         django_model_refs = {
-            OpenIDConnectConfig: [
+            OIDCClient: [
                 "oidc_rp_client_id",
                 "oidc_rp_client_secret",
-                "oidc_token_use_basic_auth",
                 "oidc_rp_sign_algo",
                 "oidc_rp_idp_sign_key",
-                "oidc_use_nonce",
-                "oidc_nonce_size",
-                "oidc_state_size",
                 "oidc_keycloak_idp_hint",
                 "userinfo_claims_source",
-                "sync_groups",
-                "sync_groups_glob_pattern",
-                "make_users_staff",
             ]
         }
         extra_kwargs = {
@@ -129,4 +211,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
 
 
 class AdminOIDCConfigurationModel(ConfigurationModel):
+    providers: list[OIDCConfigProviderModel] = Field(
+        default_factory=list, description=_("List of OIDC providers")
+    )
     items: list[AdminOIDCConfigurationModelItem]

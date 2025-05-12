@@ -1,5 +1,5 @@
 import logging
-from typing import Any, ClassVar, Generic, TypeVar, cast
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib import admin
@@ -14,12 +14,14 @@ from django.views.generic import TemplateView
 import requests
 from mozilla_django_oidc.views import (
     OIDCAuthenticationCallbackView as BaseOIDCCallbackView,
-    OIDCAuthenticationRequestView as BaseOIDCInitView,
+    OIDCAuthenticationRequestView as BaseOIDCAuthRequestInitView,
 )
 
 from .config import get_setting_from_config, lookup_config, store_config
+from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from .exceptions import OIDCProviderOutage
-from .models import OpenIDConnectConfig, OpenIDConnectConfigBase
+from .models import OIDCClient
+from .registry import register as registry
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +60,13 @@ class OIDCCallbackView(View):
     Route to the appropriate callback request handler.
 
     When a callback request is received, the state contains information about the
-    configuration class/model to be applied. A particular config_class may require
+    configuration model to use. A particular configuration may require
     certain view behaviour. This view acts as a centralized entrypoint so that there
     is only a single callback endpoint required. It ensures that the configuration
     is extracted from the request.
     """
 
-    def get(self, request: HttpRequest) -> HttpResponseBase:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         """
         Extract the state from the request parameters and persist it.
 
@@ -72,10 +74,9 @@ class OIDCCallbackView(View):
         and the downstream views.
         """
         store_config(request)
-        config_class = lookup_config(request)
-        config = cast(OpenIDConnectConfigBase, config_class.get_solo())
-        view_function = config.get_callback_view()
-        return view_function(request)
+        configuration = lookup_config(request)
+        plugin = registry[configuration.identifier]
+        return plugin.handle_callback(request)
 
 
 class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
@@ -90,13 +91,10 @@ class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
         For the duration of the request, the configuration instance is cached on the
         view.
         """
-        if (config := getattr(self, "_config", None)) is None:
-            config_class = lookup_config(self.request)
-            # django-solo and type checking is challenging, but a new release is on the
-            # way and should fix that :fingers_crossed:
-            config = cast(OpenIDConnectConfigBase, config_class.get_solo())
-            self._config = config
-        return get_setting_from_config(config, attr, *args)
+        if (configuration := getattr(self, "_config", None)) is None:
+            configuration = lookup_config(self.request)
+            self._config = configuration
+        return get_setting_from_config(configuration, attr, *args)
 
 
 class AdminCallbackView(OIDCAuthenticationCallbackView):
@@ -106,7 +104,7 @@ class AdminCallbackView(OIDCAuthenticationCallbackView):
 
     failure_url = reverse_lazy("admin-oidc-error")
 
-    def get(self, request: HttpRequest):
+    def get(self, request: HttpRequest, *args, **kwargs):
         try:
             # ensure errors don't lead to half-created users
             with transaction.atomic():
@@ -148,25 +146,26 @@ class AdminLoginFailure(TemplateView):
         return context
 
 
-T = TypeVar("T", bound=OpenIDConnectConfigBase)
-
-
-class OIDCInit(Generic[T], BaseOIDCInitView):
+class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
     """
     A 'view' to start an OIDC authentication flow.
 
-    This view class is parametrized with the config model/class to retrieve the
-    specific configuration, such as the identity provider endpoint to redirect the
-    user to.
+    This view class is parametrized with the identifier of the config model, so that
+    the specific configuration can be retrieved and settings such as the identity provider endpoint
+    to redirect the user to can be obtained.
 
     This view is not necessarily meant to be exposed directly via a URL pattern, but
     rather specific views are to be created from it, e.g.:
 
     .. code-block:: python
 
-        >>> digid_init = OIDCInit.as_view(config_class=OpenIDConnectPublicConfig)
+        >>> digid_init = OIDCAuthenticationRequestInitView.as_view(identifier="digid-oidc")
         >>> redirect_response = digid_init(request)
         # Redirect to some keycloak instance, for example.
+
+    The ``__init__`` method of the Django ``View`` will add attributes to the view for
+    any args/kwargs passed during init. So the view will have an attribute ``identifier``.
+    Note that it only does it for attributes that are already defined as class attributes.
 
     These concrete views are intended to be wrapped by your own views so that you can
     supply the ``return_url`` parameter:
@@ -186,12 +185,11 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
       exception is raised. Note that your own code needs to handle this appropriately!
     """
 
-    _config: T
-    config_class: ClassVar[type[OpenIDConnectConfigBase]] = OpenIDConnectConfigBase
+    identifier: str = ""
     """
-    The config model/class to get the endpoints/credentials from.
+    The identifier of the config model to get the settings from.
 
-    Specify this as a kwarg in the ``as_view(config_class=...)`` class method.
+    Specify this as a kwarg in the ``as_view(identifier=...)`` class method.
     """
 
     allow_next_from_query: bool = True
@@ -204,27 +202,27 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
 
     .. code-block:: python
 
-        digid_init = OIDCInit.as_view(
-            config_class=OpenIDConnectPublicConfig, allow_next_from_query=False
+        digid_init = OIDCAuthenticationRequestInitView.as_view(
+            identifier="config-identifier", allow_next_from_query=False
         )
 
         def my_digid_login(request):
             return digid_init(request, return_url="/some-fixed-url")
     """
 
-    def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
-        """
-        Look up the request setting from the database config.
+    oidc_rp_scopes: str = ""
+    """
+    OIDC scopes to include in the authentication request.
 
-        For the duration of the request, the configuration instance is cached on the
-        view.
-        """
-        if (config := getattr(self, "_config", None)) is None:
-            # django-solo and type checking is challenging, but a new release is on the
-            # way and should fix that :fingers_crossed:
-            config = cast(T, self.config_class.get_solo())
-            self._config = config
-        return get_setting_from_config(config, attr, *args)
+    If not specified, the scopes specified in the configuration will be used.
+
+    .. code-block:: python
+
+        oidc_init = OIDCAuthenticationRequestInitView.as_view(
+            identifier="test-oidc", 
+            oidc_rp_scopes="email"
+        )
+    """
 
     def get(
         self, request: HttpRequest, return_url: str = "", *args, **kwargs
@@ -232,7 +230,7 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
         if not self.allow_next_from_query:
             self._validate_return_url(request, return_url=return_url)
 
-        if self.get_settings("OIDCDB_CHECK_IDP_AVAILABILITY", False):
+        if self.get_settings("check_op_availability", False):
             self.check_idp_availability()
 
         response = super().get(request, *args, **kwargs)
@@ -252,7 +250,7 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
         # it's easiest to just override the session key with the correct value.
         request.session["oidc_login_next"] = return_url
 
-        # Store which config class to use in the state. We can not simply pass this as
+        # Store the config identifier to use in the state. We can not simply pass this as
         # a querystring parameter appended to redirect_uri, as these are likely to be
         # strictly validated. We must grab the state from the redirect Location.
         # This config reference is later used in the authentication callback view and
@@ -261,14 +259,25 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
         state_params: list[str] = query["state"]
         assert len(state_params) == 1, "Expected only a single state parameter"
         state_key = state_params[0]
-        options = self.config_class._meta
 
         # update the state. the parent class caused the session to be marked as modified,
         # so django's middleware will take care of persisting this to the session backend.
         state = request.session["oidc_states"][state_key]
-        state["config_class"] = f"{options.app_label}.{options.object_name}"
+        state["config_identifier"] = self.identifier
 
         return response
+
+    def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
+        """
+        Look up the request setting from the database config.
+
+        For the duration of the request, the configuration instance is cached on the
+        view.
+        """
+        if (config := getattr(self, "_config", None)) is None:
+            config = OIDCClient.objects.get(identifier=self.identifier)
+            self._config = config
+        return get_setting_from_config(config, attr, *args)
 
     @staticmethod
     def _validate_return_url(request: HttpRequest, return_url: str) -> None:
@@ -298,7 +307,7 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
 
         The default implementation checks if the endpoint has a status code < 401.
         """
-        endpoint = self.OIDC_OP_AUTH_ENDPOINT
+        endpoint = self.get_settings("OIDC_OP_AUTH_ENDPOINT")
         try:
             # Verify that the identity provider endpoint can be reached. This is where
             # the user ultimately gets redirected to.
@@ -323,12 +332,14 @@ class OIDCInit(Generic[T], BaseOIDCInitView):
         Add a keycloak identity provider hint if configured.
         """
         extra = super().get_extra_params(request)
+        if self.oidc_rp_scopes:
+            extra["scope"] = self.oidc_rp_scopes
         if kc_idp_hint := self.get_settings("OIDC_KEYCLOAK_IDP_HINT", ""):
             extra["kc_idp_hint"] = kc_idp_hint
         return extra
 
 
-class OIDCAuthenticationRequestView(OIDCInit[OpenIDConnectConfig]):
+class OIDCAuthenticationRequestView(OIDCAuthenticationRequestInitView):
     """
     Start an OIDC authentication flow.
 
@@ -342,5 +353,5 @@ class OIDCAuthenticationRequestView(OIDCInit[OpenIDConnectConfig]):
         )
     """
 
-    config_class = OpenIDConnectConfig
+    identifier = OIDC_ADMIN_CONFIG_IDENTIFIER
     allow_next_from_query = True

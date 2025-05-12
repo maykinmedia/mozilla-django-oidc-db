@@ -6,10 +6,10 @@ from django.utils.translation import gettext_lazy as _
 import requests
 
 from .constants import OIDC_MAPPING, OPEN_ID_CONFIG_PATH
-from .models import OpenIDConnectConfig
+from .models import OIDCProvider
 
 
-class OpenIDConnectConfigForm(forms.ModelForm):
+class OIDCProviderForm(forms.ModelForm):
     required_endpoints = [
         "oidc_op_authorization_endpoint",
         "oidc_op_token_endpoint",
@@ -18,8 +18,20 @@ class OpenIDConnectConfigForm(forms.ModelForm):
     oidc_mapping = OIDC_MAPPING
 
     class Meta:
-        model = OpenIDConnectConfig
-        fields = "__all__"
+        model = OIDCProvider
+        fields = (
+            "identifier",
+            "oidc_op_discovery_endpoint",
+            "oidc_op_jwks_endpoint",
+            "oidc_op_authorization_endpoint",
+            "oidc_op_token_endpoint",
+            "oidc_op_user_endpoint",
+            "oidc_op_logout_endpoint",
+            "oidc_token_use_basic_auth",
+            "oidc_use_nonce",
+            "oidc_nonce_size",
+            "oidc_state_size",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,31 +58,29 @@ class OpenIDConnectConfigForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        enabled = cleaned_data.get("enabled", False)
-        if enabled:
-            discovery_endpoint = cleaned_data.get("oidc_op_discovery_endpoint")
+        discovery_endpoint = cleaned_data.get("oidc_op_discovery_endpoint")
 
-            # Derive the endpoints from the discovery endpoint
-            if discovery_endpoint:
-                try:
-                    endpoints = self.get_endpoints_from_discovery(discovery_endpoint)
-                    cleaned_data.update(**endpoints)
-                except (
-                    requests.exceptions.RequestException,
-                    json.decoder.JSONDecodeError,
-                ):
-                    raise forms.ValidationError(
-                        {
-                            "oidc_op_discovery_endpoint": _(
-                                "Something went wrong while retrieving the configuration."
-                            )
-                        }
-                    )
-            else:
-                # Verify that the required endpoints were derived from the
-                # discovery endpoint
-                for field in self.required_endpoints:
-                    if not cleaned_data.get(field):
-                        self.add_error(field, _("This field is required."))
+        # Derive the endpoints from the discovery endpoint
+        if discovery_endpoint:
+            try:
+                endpoints = self.get_endpoints_from_discovery(discovery_endpoint)
+                cleaned_data.update(**endpoints)
+            except (
+                requests.exceptions.RequestException,
+                json.decoder.JSONDecodeError,
+            ):
+                raise forms.ValidationError(
+                    {
+                        "oidc_op_discovery_endpoint": _(
+                            "Something went wrong while retrieving the configuration."
+                        )
+                    }
+                )
+        else:
+            # Verify that the required endpoints were derived from the
+            # discovery endpoint
+            for field in self.required_endpoints:
+                if not cleaned_data.get(field):
+                    self.add_error(field, _("This field is required."))
 
         return cleaned_data

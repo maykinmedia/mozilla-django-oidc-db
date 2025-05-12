@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 from django.urls import reverse
 
@@ -11,7 +11,7 @@ from .config import (
     get_setting_from_config,
     lookup_config,
 )
-from .models import OpenIDConnectConfigBase
+from .models import OIDCClient
 
 
 class SessionRefresh(BaseSessionRefresh):
@@ -19,7 +19,8 @@ class SessionRefresh(BaseSessionRefresh):
     Refresh stale sessions based on a config dynamically resolved from the session.
     """
 
-    _config: OpenIDConnectConfigBase
+    _config: OIDCClient
+
     OIDC_EXEMPT_URLS = dynamic_setting[list[str]](default=[])
     OIDC_OP_AUTHORIZATION_ENDPOINT = dynamic_setting[str]()
     OIDC_RP_CLIENT_ID = dynamic_setting[str]()
@@ -53,12 +54,7 @@ class SessionRefresh(BaseSessionRefresh):
         return get_setting_from_config(config, attr, *args)
 
     def _set_config_from_request(self, request):
-        config_class = lookup_config(request)
-
-        # django-solo and type checking is challenging, but a new release is on the
-        # way and should fix that :fingers_crossed:
-        config = cast(OpenIDConnectConfigBase, config_class.get_solo())
-        self._config = config
+        self._config = lookup_config(request)
 
     def process_request(self, request):
         try:

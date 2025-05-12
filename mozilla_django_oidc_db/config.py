@@ -8,24 +8,25 @@ settings that are still defined in the django settings layer.
 
 from typing import Any, Generic, Protocol, TypeVar, overload
 
-from django.apps import apps
-from django.core.exceptions import BadRequest
+from django.core.exceptions import (
+    BadRequest,
+)
 from django.http import HttpRequest
 
 from mozilla_django_oidc.utils import import_from_settings
 from typing_extensions import Self, TypedDict, Unpack
 
-from .constants import CONFIG_CLASS_SESSION_KEY
-from .models import OpenIDConnectConfigBase
+from .constants import CONFIG_IDENTIFIER_SESSION_KEY
+from .models import OIDCClient
 
 
-def get_setting_from_config(config: OpenIDConnectConfigBase, attr: str, *args) -> Any:
+def get_setting_from_config(config: OIDCClient, attr: str, *args) -> Any:
     """
     Look up a setting from the config record or fall back to Django settings.
 
     Django settings are defined as ``OIDC_SOME_SETTING``, in upper case, while our
     model fields typically match the name, but in lower case. So, we look up if the
-    requested setting exists as an attribut on the configuration instance and use that
+    requested setting exists as an attribute on the configuration instance and use that
     when provided, otherwise we fall back to the django settings module.
 
     .. note:: A setting may also be defined as a (calculated) property of some kind on
@@ -34,6 +35,23 @@ def get_setting_from_config(config: OpenIDConnectConfigBase, attr: str, *args) -
        ``config._meta.get_field(some_field)``.
     """
     attr_lowercase = attr.lower()
+
+    if attr_lowercase == "oidc_op_auth_endpoint":
+        return config.oidc_provider.oidc_op_authorization_endpoint
+
+    if attr_lowercase.startswith("oidc_op") and hasattr(
+        config.oidc_provider, attr_lowercase
+    ):
+        return getattr(config.oidc_provider, attr_lowercase)
+
+    if attr_lowercase in [
+        "oidc_token_use_basic_auth",
+        "oidc_use_nonce",
+        "oidc_nonce_size",
+        "oidc_state_size",
+    ]:
+        return getattr(config.oidc_provider, attr_lowercase)
+
     if hasattr(config, attr_lowercase):
         # Workaround for OIDC_RP_IDP_SIGN_KEY being an empty string by default.
         # mozilla-django-oidc explicitly checks if `OIDC_RP_IDP_SIGN_KEY` is not `None`
@@ -110,51 +128,34 @@ def store_config(request: HttpRequest) -> None:
     mozilla-django-oidc's callback view deletes the state key after it has validated it,
     so our :func:`lookup_config` cannot extract it from the session anymore.
     """
-    # Attempt to retrieve the config_class from the session, this only works for users
+    # Attempt to retrieve the config_identifier from the session, this only works for users
     # that are actually logged in as Django users
-    # The config_class key is added to the state in the OIDCInit.get method.
-    # TODO: verify that the state query param is present for error flows! Need to check
-    # the OAUTH2 spec for this, but according to ChatGeePeeTee if the request contains
-    # it, the callback must have it too.
-    config_class = ""
+    # The config_identifier key is added to the state in the OIDCAuthenticationRequestInitView.get method.
+    # The state parameter is present in the error flow if it was present in the Authorization request: https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2.1
+    config_identifier = ""
     state_key = request.GET.get("state")
     if state_key and state_key in (states := request.session.get("oidc_states", [])):
         state = states[state_key]
-        config_class = state.get("config_class", "")
+        config_identifier = state.get("config_identifier", "")
 
-    if not config_class and (
-        _config := request.session.get(CONFIG_CLASS_SESSION_KEY, "")
+    if not config_identifier and (
+        _config := request.session.get(CONFIG_IDENTIFIER_SESSION_KEY, "")
     ):
-        config_class = _config
+        config_identifier = _config
 
-    try:
-        config = apps.get_model(config_class)
-    except (LookupError, ValueError) as exc:
-        raise BadRequest("Could not look up the referenced config.") from exc
-
-    # Spoofing is not possible since we store it in the server-side session, but there
-    # can still be all sorts of programmer mistakes.
-    if not issubclass(config, OpenIDConnectConfigBase):
-        raise BadRequest("Invalid config referenced.")
-
-    request._oidcdb_config_class = config  # type: ignore
+    request._oidcdb_config: OIDC = OIDCClient.objects.resolve(config_identifier)  # type: ignore
 
 
-def lookup_config(request: HttpRequest) -> type[OpenIDConnectConfigBase]:
+def lookup_config(request: HttpRequest) -> OIDCClient:
     # cache on request for optimized access -- preferred access
-    if config := getattr(request, "_oidcdb_config_class", None):
+    if config := getattr(request, "_oidcdb_config", None):
         return config
 
     # if not cached, try to reconstruct from session
     if (session := getattr(request, "session", None)) is None:
         raise BadRequest("No session present on request")
 
-    if (config_class := session.get(CONFIG_CLASS_SESSION_KEY)) is None:
+    if (config_identifier := session.get(CONFIG_IDENTIFIER_SESSION_KEY)) is None:
         raise BadRequest("The required config is not available on the session.")
 
-    try:
-        config = apps.get_model(config_class)
-    except (LookupError, ValueError) as exc:
-        raise BadRequest("Could not look up the referenced config.") from exc
-
-    return config
+    return OIDCClient.objects.resolve(config_identifier)

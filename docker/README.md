@@ -4,7 +4,7 @@ The `import/realm.json` is loaded when the Keycloak service is spun up through
 docker-compose. In the top-level directory:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 You can now log in via `http://localhost:8080` with the `admin`/`admin` credentials.
