@@ -33,9 +33,26 @@ class OIDCBasePlugin(ABC):
     def get_config(self) -> OIDCClient:
         return OIDCClient.objects.resolve(self.identifier)
 
-    @abstractmethod
     def verify_claims(self, claims: JSONObject) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
+        assert claims, "Empty claims should have been blocked earlier"
+
+        sensitive_claims = self.get_sensitive_claims()
+
+        obfuscated_claims = obfuscate_claims(claims, sensitive_claims)
+
+        logger.debug("OIDC claims received: %s", obfuscated_claims)
+
+        return self.are_claims_valid(claims)
+
+    @abstractmethod
+    def get_sensitive_claims(self) -> list[list[str]]:
+        """Get a list of paths to the values in the claim that are considered sensitive"""
+        ...
+
+    @abstractmethod
+    def are_claims_valid(self, claims: JSONObject) -> bool:
+        """Check if the claims are valid."""
         ...
 
     @abstractmethod
@@ -43,10 +60,20 @@ class OIDCBasePlugin(ABC):
         """Get the JSON schema of the ``options`` field on the :class:`~mozilla_django_oidc_db.models.OIDCClient` model."""
         ...
 
-    @abstractmethod
     def validate_settings(self) -> None:
         """Check the validity of the settings in the provider and client configuration."""
-        ...
+        config = self.get_config()
+
+        if (
+            config.oidc_rp_sign_algo.startswith("RS")
+            or config.oidc_rp_sign_algo.startswith("ES")
+        ) and (
+            config.oidc_rp_idp_sign_key == ""
+            and config.oidc_provider
+            and config.oidc_provider.oidc_op_jwks_endpoint == ""
+        ):
+            msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
+            raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
     @abstractmethod
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
@@ -79,8 +106,7 @@ class OIDCBasePlugin(ABC):
         .. code:: python
 
            def view(self, request: HttpRequest) -> HttpResponse:
-               view = self.callback_view.as_view()
-               return view(request)
+               return return admin_callback_view(request)
 
         """
         ...
@@ -93,10 +119,7 @@ admin_callback_view = AdminCallbackView.as_view()
 class OIDCAdminPlugin(OIDCBasePlugin):
     schema = ADMIN_OPTIONS_SCHEMA
 
-    def verify_claims(self, claims: JSONObject) -> bool:
-        """Verify the provided claims to decide if authentication should be allowed."""
-        assert claims, "Empty claims should have been blocked earlier"
-
+    def get_sensitive_claims(self) -> list[list[str]]:
         config = self.get_config()
 
         sensitive_claims = config.options["user_settings"].get("sensitive_claims", [])
@@ -104,11 +127,9 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         sensitive_claims.append(
             config.options["user_settings"]["claim_mappings"]["username"]
         )
+        return sensitive_claims
 
-        obfuscated_claims = obfuscate_claims(claims, sensitive_claims)
-
-        logger.debug("OIDC claims received: %s", obfuscated_claims)
-
+    def are_claims_valid(self, claims: JSONObject) -> bool:
         # check if we have an identifier
         try:
             self.get_username(claims, raise_on_empty=True)
@@ -133,21 +154,6 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         if raise_on_empty and not unique_id:
             raise MissingIdentifierClaim(claim_bits=claim_bits)
         return unique_id
-
-    def validate_settings(self):
-        # Equivalent of checks in upstream __init__ method
-        config = self.get_config()
-
-        if (
-            config.oidc_rp_sign_algo.startswith("RS")
-            or config.oidc_rp_sign_algo.startswith("ES")
-        ) and (
-            config.oidc_rp_idp_sign_key == ""
-            and config.oidc_provider
-            and config.oidc_provider.oidc_op_jwks_endpoint == ""
-        ):
-            msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
-            raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
