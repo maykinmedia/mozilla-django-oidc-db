@@ -79,8 +79,7 @@ class OIDCBasePlugin(ABC):
         .. code:: python
 
            def view(self, request: HttpRequest) -> HttpResponse:
-               view = self.callback_view.as_view()
-               return view(request)
+               return return admin_callback_view(request)
 
         """
         ...
@@ -133,21 +132,6 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         if raise_on_empty and not unique_id:
             raise MissingIdentifierClaim(claim_bits=claim_bits)
         return unique_id
-
-    def validate_settings(self):
-        # Equivalent of checks in upstream __init__ method
-        config = self.get_config()
-
-        if (
-            config.oidc_rp_sign_algo.startswith("RS")
-            or config.oidc_rp_sign_algo.startswith("ES")
-        ) and (
-            config.oidc_rp_idp_sign_key == ""
-            and config.oidc_provider
-            and config.oidc_provider.oidc_op_jwks_endpoint == ""
-        ):
-            msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
-            raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
