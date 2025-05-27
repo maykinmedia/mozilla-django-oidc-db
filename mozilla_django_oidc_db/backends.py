@@ -17,7 +17,7 @@ from mozilla_django_oidc.auth import OIDCAuthenticationBackend as BaseBackend
 from typing_extensions import override
 
 from .config import dynamic_setting, get_setting_from_config, lookup_config
-from .exceptions import MissingInitialisation
+from .exceptions import ConsciouslyNotImplemented, MissingInitialisation
 from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
 from .registry import register as registry
@@ -84,10 +84,6 @@ class OIDCAuthenticationBackend(BaseBackend):
         requested setting is defined there or not. If not, it is taken from the Django
         settings.
         """
-        self._validate_settings()
-        return get_setting_from_config(self.config, attr, *args)
-
-    def _validate_settings(self):
         if not self.config:
             raise MissingInitialisation(
                 "The configuration must be loaded from the authenticate entrypoint. It looks like "
@@ -96,6 +92,8 @@ class OIDCAuthenticationBackend(BaseBackend):
 
         plugin = registry[self.config.identifier]
         plugin.validate_settings()
+
+        return plugin.get_setting(attr, *args)
 
     def _check_candidate_backend(self) -> bool:
         return self.get_settings("enabled")
@@ -226,3 +224,16 @@ class OIDCAuthenticationBackend(BaseBackend):
     def update_user(self, user: AbstractUser, claims: JSONObject):
         plugin = registry[self.config.identifier]
         return plugin.update_user(user, claims)
+
+    @override
+    def get_or_create_user(self, access_token: str, id_token: str, payload: JSONObject) -> AnonymousUser | AbstractUser | None:  # type: ignore (parent function returns only an AbstractUser | None)
+        """Get or create a user based on the tokens received."""
+        plugin = registry[self.config.identifier]
+        assert isinstance(self.request, HttpRequest)
+
+        try:
+            return plugin.get_or_create_user(
+                access_token, id_token, payload, self.request
+            )
+        except ConsciouslyNotImplemented:
+            return super().get_or_create_user(access_token, id_token, payload)

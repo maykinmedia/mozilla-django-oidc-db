@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, AnonymousUser, UserManager
@@ -10,8 +11,9 @@ from django.http import HttpRequest, HttpResponse
 
 from glom import Path, glom
 
+from .config import get_setting_from_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import MissingIdentifierClaim
+from .exceptions import ConsciouslyNotImplemented, MissingIdentifierClaim
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
@@ -33,6 +35,13 @@ class OIDCBasePlugin(ABC):
     def get_config(self) -> OIDCClient:
         return OIDCClient.objects.resolve(self.identifier)
 
+    def get_setting(self, attr: str, *args) -> Any:
+        """Return the requested setting."""
+
+        config = self.get_config()
+
+        return get_setting_from_config(config, attr, *args)
+
     @abstractmethod
     def verify_claims(self, claims: JSONObject) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
@@ -52,6 +61,22 @@ class OIDCBasePlugin(ABC):
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
         ...
+
+    def get_or_create_user(
+        self,
+        access_token: str,
+        id_token: str,
+        payload: JSONObject,
+        request: HttpRequest,
+    ) -> AnonymousUser | AbstractUser | None:
+        """Get or create a user based on the user information in the access token or the user info endpoint.
+
+        Override this method if you want to override the behaviour of the method ``get_or_create_user`` of
+        :class:`mozilla_django_oidc.auth.OIDCAuthenticationBackend`.
+        If this method raises ``ConsciouslyNotImplemented``, the method ``get_or_create_user`` of
+        :class:`mozilla_django_oidc.auth.OIDCAuthenticationBackend` will be executed.
+        """
+        raise ConsciouslyNotImplemented
 
     @abstractmethod
     def create_user(self, claims: JSONObject) -> AbstractUser | AnonymousUser:
@@ -132,6 +157,21 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         if raise_on_empty and not unique_id:
             raise MissingIdentifierClaim(claim_bits=claim_bits)
         return unique_id
+
+    def validate_settings(self):
+        # Equivalent of checks in upstream __init__ method
+        config = self.get_config()
+
+        if (
+            config.oidc_rp_sign_algo.startswith("RS")
+            or config.oidc_rp_sign_algo.startswith("ES")
+        ) and (
+            config.oidc_rp_idp_sign_key == ""
+            and config.oidc_provider
+            and config.oidc_provider.oidc_op_jwks_endpoint == ""
+        ):
+            msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
+            raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
