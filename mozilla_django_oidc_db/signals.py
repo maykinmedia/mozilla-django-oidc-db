@@ -20,7 +20,9 @@ def populate_oidc_config_models(sender, **kwargs) -> None:
     See which OIDC plugins are registered and make sure that the corresponding configuration model exists in the
     database.
     """
-    apps = kwargs["apps"]
+    if not (apps := kwargs.get("apps")):
+        return
+
     OIDCClient = apps.get_model("mozilla_django_oidc_db", "OIDCClient")
 
     for unique_identifier, plugin in registry.items():
