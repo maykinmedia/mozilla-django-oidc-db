@@ -104,7 +104,7 @@ class OIDCBasePlugin(ABC):
         .. code:: python
 
            def view(self, request: HttpRequest) -> HttpResponse:
-               return return admin_callback_view(request)
+               return admin_callback_view(request)
 
         """
         ...
@@ -222,6 +222,10 @@ class OIDCAdminPlugin(OIDCBasePlugin):
         ].items():
             if model_field == "username":
                 # We do not update the username
+                continue
+
+            # If no path is specified to a claim, skip it.
+            if not claim_bits:
                 continue
 
             value = glom(claims, Path(*claim_bits), default=missing)
