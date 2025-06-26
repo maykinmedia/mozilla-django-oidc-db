@@ -114,6 +114,7 @@ def move_data_forward(apps, schema_editor):
                     "username": old_config.username_claim,
                     **old_config.claim_mapping,
                 },
+                "username_case_sensitive": True,
             },
             "groups_settings": {
                 "claim_mapping": old_config.groups_claim,
