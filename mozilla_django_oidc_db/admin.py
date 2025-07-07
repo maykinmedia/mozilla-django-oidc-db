@@ -54,7 +54,7 @@ class OIDCClientAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(
-        self, request: HttpRequest, obj: OIDCClient = None
+        self, request: HttpRequest, obj: OIDCClient | None = None
     ) -> bool:
         return False
 
