@@ -107,7 +107,9 @@ Add the login link to your templates:
 
 .. code-block:: django
 
-    {# TODO: expose admin_oidc_client via template tag #}
+    {% load mozilla_django_oidc_db %}
+
+    {% get_oidc_admin_client as admin_oidc_client %}
     {% if admin_oidc_client.enabled %}
     <div class="submit-row">
         <a href="{% url 'oidc_authentication_init' %}">{% trans "Login with OIDC" %}</a>
@@ -149,9 +151,9 @@ For more information about the discovery endpoint, refer to the the `OIDC spec`_
 Custom username claim
 ---------------------
 
-The name of the claim that is used for the ``User.username`` property
-can be configured via the admin (**Username claim**). By default, the username is derived from the ``sub`` claim that
-is returned by the OIDC provider.
+The path to the claim value that is used for the ``User.username`` property
+can be configured via the admin **OIDCClient** > **admin-oidc**, under the field 
+**options** > **user_settings** > **claim_mappings** > **username**. 
 
 If the desired claim is nested in one or more objects, you can specify the segments
 of the path:
@@ -187,8 +189,8 @@ can be retrieved with:
 User profile
 ------------
 
-In order to set other attributes on the ``User`` object, a **Claim mapping**
-can be specified via the admin. This maps the names of claims returned by the OIDC provider to
+In order to set other attributes on the ``User`` object, these can also be specified in the **options** > **user_settings** > **claim_mappings** setting.
+This maps the paths to the claim values returned by the OIDC provider to
 fields on the ``User`` model, and whenever a ``User`` is created/updated, these
 fields will be set to the values of these claims.
 
@@ -206,49 +208,46 @@ Assigning users to groups
 -------------------------
 
 When users are created/updated, they can be automatically assigned to ``Groups``
-by setting the appropriate value for **Groups claim**, which is the name of the claim that
-contains the groups the user is assigned to by the OIDC provider. If **Synchronize groups** is
+by setting the appropriate value for **options** > **groups_settings** > **claim_mapping**, which is the path to the claim value that
+contains the groups the user is assigned to by the OIDC provider. If **options** > **groups_settings** > **sync** is
 enabled, local Django user groups will be created for group names present in the groups claim, if they do not exist yet locally.
 
-Additionally, a **Groups glob pattern** can be supplied to only sync groups with
+Additionally, a **options** > **groups_settings** > **sync_pattern** can be supplied to only sync groups with
 specific names (default ``*``, to match all groups).
 
 .. note::
     The names of the groups in the environment of the OIDC provider must match *exactly*
     with the names of the ``Groups`` in Django for this to work.
 
-In order to assign specific Django groups to *every* OIDC authenticated user, the **Default groups** option can be used.
+In order to assign specific Django groups to *every* OIDC authenticated user, the 
+**options** > **groups_settings** > **default_groups** option can be used.
 
 User permissions
 ----------------
 
-If the **Make users staff** is enabled, *every* OIDC authenticated user will automatically be made a staff user,
+If the **options** > **groups_settings** > **make_users_staff** is enabled, *every* OIDC authenticated user will automatically be made a staff user,
 allowing them to login to the admin interface.
 
-In order to promote OIDC authenticated users to superusers, the **Superuser group names** option can be used. This
+In order to promote OIDC authenticated users to superusers, the **options** > **groups_settings** > **superuser_group_names** option can be used. This
 takes a list of group names and will set ``is_superuser`` to ``True`` if an authenticated user
-has at least one of these groups in their **Groups claim**. If a user does not have any of these
-groups in their **Groups claim**, ``is_superuser`` will be set to ``False`` for that user.
+has at least one of these groups in their groups claim. If a user does not have any of these
+groups in their groups claim, ``is_superuser`` will be set to ``False`` for that user.
 
 .. note::
-    If **Superuser group names** is left empty, the superuser status of users will never be altered upon login,
+    If **superuser_group_names** is left empty, the superuser status of users will never be altered upon login,
     allowing for manual management of superusers.
 
 Claim obfuscation
 -----------------
 
-By default, the received claims will be logged when verifying them during the authentication process.
+The :class:`~mozilla_django_oidc_db.plugins.OIDCAdminPlugin` method ``verify_claims`` 
+logs the received claims. 
+
 In order to not log information from sensitive claims (identifiers, etc.),
-claims can be obfuscated by setting ``OIDCAuthenticationBackend.sensitive_claim_names``
-or overriding ``OIDCAuthenticationBackend.get_sensitive_claim_names``.
-By default, the configured ``OIDCAuthenticationBackend.config_identifier_field`` will be obfuscated.
+claims can be obfuscated by setting in the admin the field **options** > **user_settings** > **sensitive_claims**.
+This field should contain the path to the claim values that are sensitive. The username claim is considered
+sensitive by default.
 
-Customizing the configuration
------------------------------
-
-The database-stored configuration class can easily be extended by inheriting from the
-``OpenIDConnectConfigBase`` class and then setting the ``OIDCAuthenticationRequestView.config_class``
-and ``OIDCAuthenticationBackend.config_class`` to be this new class.
 
 .. _mozilla-django-oidc settings documentation: https://mozilla-django-oidc.readthedocs.io/en/stable/settings.html
 

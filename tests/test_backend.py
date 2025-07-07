@@ -652,7 +652,7 @@ def test_init_does_not_perform_config_io(mocker):
 
     This test will fail if IO is performed in one of two ways:
 
-    * assertion fails because get_solo was called
+    * assertion fails because get_setting_from_config was called
     * pytest will complain about database access which is forbidden because there is
       no pytest.mark.django_db present (deliberately)
     """
