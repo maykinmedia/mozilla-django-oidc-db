@@ -9,7 +9,7 @@ mozilla-django-oidc, the upstream library) provides OpenID Connect configuration
 to authenticate Django (admin) users. The default claim mapping and settings gravitate
 towards staff users.
 
-However, the generic mechanism of using database-backend configuration for one or more
+However, the generic mechanism of using a database-backed configuration for one or more
 OpenID Connect identity providers can be used much more broadly, and it doesn't even
 have to manage Django user instances at all.
 
@@ -18,48 +18,29 @@ We offer flexibility through a generic configuration mechanism.
 .. versionadded:: 0.17.0
     The generic configuration mechanism was added.
 
+.. versionadded:: 0.24.0
+    The models were refactored to no longer be solo-models.
+
 
 Models
 ======
 
-We provide an abstract base model :class:`~mozilla_django_oidc_db.models.OpenIDConnectConfigBase`.
+We provide a model :class:`~mozilla_django_oidc_db.models.OIDCClient`.
 
 This makes some of the upstream library settings dynamic rather than having to specify
-them as Django settings. Our :class:`~mozilla_django_oidc_db.models.OpenIDConnectConfig`
-model is a concrete model based on it, which provides some additional configuration
-aspects, such as claim mapping, specifying the username claim...
+them as Django settings. The :class:`~mozilla_django_oidc_db.models.OIDCClient` has a JSON field ``options`` that can be used
+to specify any configuration that is specific to an OIDC Identity Provider.
 
-If you want to bring your own configuration, we recommend to subclass
+If you want to bring your own configuration, you should create a new :class:`~mozilla_django_oidc_db.models.OIDCClient`
+and a corresponding plugin that should implement the interface specified by either the 
+:class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPluginProtocol` or the :class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPluginProtocol`.
+The plugin should be registered with the same identifier as the corresponding :class:`~mozilla_django_oidc_db.models.OIDCClient`.
+You can inherit from the :class:`~mozilla_django_oidc_db.plugins.BaseOIDCPlugin` to inherit some
+of the base plugin behaviour.
+
 :class:`~mozilla_django_oidc_db.models.OpenIDConnectConfigBase` in a similar way. You
 can then define model fields or properties on your own model that correspond to the
 lowercased setting name, for example:
-
-.. code-block:: python
-
-    from mozilla_django_oidc_db.fields import ClaimField
-    from mozilla_django_oidc_db.models import (
-        OpenIDConnectConfigBase,
-        UserInformationClaimsSources,
-    )
-
-
-    class CustomConfig(OpenIDConnectConfigBase):
-        oidcdb_username_claim = ClaimField(
-            verbose_name=_("username claim"),
-            default=get_default_username_claim,
-            help_text=_("The name of the OIDC claim that is used as the username"),
-        )
-
-        @property
-        def oidcdb_userinfo_claims_source(self):
-            return UserInformationClaimsSources.id_token
-
-
-For different purposes/flows, you can set up different configuration models.
-
-.. note:: In the future, we will likely change from configuration classes/models to
-   a single model with multiple instances, each holding their specific configuration
-   values.
 
 
 OIDC flow initialization
