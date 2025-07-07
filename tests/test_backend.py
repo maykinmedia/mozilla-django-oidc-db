@@ -657,7 +657,7 @@ def test_init_does_not_perform_config_io(mocker):
       no pytest.mark.django_db present (deliberately)
     """
     m_get_setting = mocker.patch(
-        "mozilla_django_oidc_db.backends.get_setting_from_config"
+        "mozilla_django_oidc_db.config.get_setting_from_config"
     )
 
     # instantiate
