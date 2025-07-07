@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
-from typing import Any
+from abc import abstractmethod
+from typing import Any, Protocol, TypeAlias, runtime_checkable
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, AnonymousUser, UserManager
@@ -13,7 +13,7 @@ from glom import Path, glom
 
 from .config import get_setting_from_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import ConsciouslyNotImplemented, MissingIdentifierClaim
+from .exceptions import MissingIdentifierClaim
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
@@ -26,21 +26,13 @@ logger = logging.getLogger(__name__)
 missing = object()
 
 
-class OIDCBasePlugin(ABC):
+class OIDCBasePluginProtocol(Protocol):
+    identifier: str
     schema: JSONObject
 
-    def __init__(self, identifier: str):
-        self.identifier = identifier
+    def get_config(self) -> OIDCClient: ...
 
-    def get_config(self) -> OIDCClient:
-        return OIDCClient.objects.resolve(self.identifier)
-
-    def get_setting(self, attr: str, *args) -> Any:
-        """Return the requested setting."""
-
-        config = self.get_config()
-
-        return get_setting_from_config(config, attr, *args)
+    def get_setting(self, attr: str, *args) -> Any: ...
 
     @abstractmethod
     def verify_claims(self, claims: JSONObject) -> bool:
@@ -62,44 +54,9 @@ class OIDCBasePlugin(ABC):
         """Return all users matching the specified subject."""
         ...
 
-    def get_or_create_user(
-        self,
-        access_token: str,
-        id_token: str,
-        payload: JSONObject,
-        request: HttpRequest,
-    ) -> AnonymousUser | AbstractUser | None:
-        """Get or create a user based on the user information in the access token or the user info endpoint.
-
-        Override this method if you want to override the behaviour of the method ``get_or_create_user`` of
-        :class:`mozilla_django_oidc.auth.OIDCAuthenticationBackend`.
-        If this method raises ``ConsciouslyNotImplemented``, the method ``get_or_create_user`` of
-        :class:`mozilla_django_oidc.auth.OIDCAuthenticationBackend` will be executed.
-        """
-        raise ConsciouslyNotImplemented
-
-    @abstractmethod
-    def create_user(self, claims: JSONObject) -> AbstractUser | AnonymousUser:
-        """Create an authenticated user.
-
-        This returns either a User if we need to have a new user created.
-        Otherwise, for application that don't need to create a new user whenever there is a login,
-        an AnonymousUser is returned.
-        """
-        ...
-
-    @abstractmethod
-    def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
-        """
-        Update existing user with new claims, if necessary save, and return user.
-        """
-        ...
-
     @abstractmethod
     def handle_callback(self, request: HttpRequest) -> HttpResponse:
         """Return an HttpResponse based on the callback view specified on the plugin.
-
-        For example, for class based views:
 
         .. code:: python
 
@@ -110,11 +67,45 @@ class OIDCBasePlugin(ABC):
         ...
 
 
+class BaseOIDCPlugin:
+    def __init__(self, identifier: str):
+        self.identifier = identifier
+
+    def get_config(self) -> OIDCClient:
+        return OIDCClient.objects.resolve(self.identifier)
+
+    def get_setting(self, attr: str, *args) -> Any:
+        config = self.get_config()
+
+        return get_setting_from_config(config, attr, *args)
+
+
+@runtime_checkable
+class AnonymousUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
+    def get_or_create_user(
+        self,
+        access_token: str,
+        id_token: str,
+        payload: JSONObject,
+        request: HttpRequest,
+    ) -> AnonymousUser | None: ...
+
+
+@runtime_checkable
+class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
+    def create_user(self, claims: JSONObject) -> AbstractUser: ...
+
+    def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser: ...
+
+
+OIDCPlugin: TypeAlias = AbstractUserOIDCPluginProtocol | AnonymousUserOIDCPluginProtocol
+
+
 admin_callback_view = AdminCallbackView.as_view()
 
 
 @register(OIDC_ADMIN_CONFIG_IDENTIFIER)
-class OIDCAdminPlugin(OIDCBasePlugin):
+class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
     schema = ADMIN_OPTIONS_SCHEMA
 
     def verify_claims(self, claims: JSONObject) -> bool:

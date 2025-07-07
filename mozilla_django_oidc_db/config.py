@@ -37,6 +37,7 @@ def get_setting_from_config(config: OIDCClient, attr: str, *args) -> Any:
     attr_lowercase = attr.lower()
 
     if attr_lowercase == "oidc_op_auth_endpoint":
+        assert config.oidc_provider
         return config.oidc_provider.oidc_op_authorization_endpoint
 
     if attr_lowercase.startswith("oidc_op") and hasattr(

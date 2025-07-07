@@ -13,7 +13,3 @@ class MissingIdentifierClaim(Exception):
 
 class MissingInitialisation(Exception):
     pass
-
-
-class ConsciouslyNotImplemented(Exception):
-    pass

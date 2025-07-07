@@ -16,10 +16,11 @@ import requests
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend as BaseBackend
 from typing_extensions import override
 
-from .config import dynamic_setting, get_setting_from_config, lookup_config
-from .exceptions import ConsciouslyNotImplemented, MissingInitialisation
+from .config import dynamic_setting, lookup_config
+from .exceptions import MissingInitialisation
 from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
+from .plugins import AbstractUserOIDCPluginProtocol, AnonymousUserOIDCPluginProtocol
 from .registry import register as registry
 from .typing import JSONObject
 from .utils import extract_content_type
@@ -121,7 +122,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         if request is None:
             return None
 
-        self.config: OIDCClient = lookup_config(request)
+        self.config = lookup_config(request)
         self.request = request
 
         # Check if this backend should be considered to authenticate the user.
@@ -210,19 +211,19 @@ class OIDCAuthenticationBackend(BaseBackend):
         return plugin.filter_users_by_claims(claims)
 
     @override
-    def create_user(self, claims: JSONObject) -> AnonymousUser | AbstractUser:  # type: ignore (parent function returns only an AbstractUser)
-        """Create an authenticated user.
+    def create_user(self, claims: JSONObject) -> AbstractUser:
+        """Create an authenticated user."""
 
-        This returns either a User if we need to have a new user created.
-        Otherwise, for application that don't need to create a new user whenever there is a login,
-        an AnonymousUser is returned.
-        """
         plugin = registry[self.config.identifier]
+
+        assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
         return plugin.create_user(claims)
 
     @override
     def update_user(self, user: AbstractUser, claims: JSONObject):
         plugin = registry[self.config.identifier]
+
+        assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
         return plugin.update_user(user, claims)
 
     @override
@@ -231,9 +232,11 @@ class OIDCAuthenticationBackend(BaseBackend):
         plugin = registry[self.config.identifier]
         assert isinstance(self.request, HttpRequest)
 
-        try:
+        if hasattr(plugin, "get_or_create_user"):
+            assert isinstance(plugin, AnonymousUserOIDCPluginProtocol)
+
             return plugin.get_or_create_user(
                 access_token, id_token, payload, self.request
             )
-        except ConsciouslyNotImplemented:
-            return super().get_or_create_user(access_token, id_token, payload)
+
+        return super().get_or_create_user(access_token, id_token, payload)
