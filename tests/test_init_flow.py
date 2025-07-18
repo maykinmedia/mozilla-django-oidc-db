@@ -4,12 +4,16 @@ Test the OIDC Authenticaton Request flow with our custom views.
 
 from urllib.parse import parse_qs, urlsplit
 
+from django.http import HttpRequest
 from django.urls import reverse
 
 import pytest
 
 from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
+from mozilla_django_oidc_db.plugins import OIDCAdminPlugin
+from mozilla_django_oidc_db.registry import register
+from mozilla_django_oidc_db.tests.factories import OIDCClientFactory
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
 
@@ -80,9 +84,16 @@ def test_check_idp_availability_available(
 @pytest.mark.auth_request
 def test_overwrite_scope(dummy_config, auth_request):
     """Test whether the scopes specified in the configuration can be overwritten."""
-    oidc_init = OIDCAuthenticationRequestInitView.as_view(
-        identifier="test-oidc", oidc_rp_scopes="not-email and-extra"
-    )
+
+    @register("test-extra-scope")
+    class OIDCTestExtraParamsPlugin(OIDCAdminPlugin):
+        def get_extra_params(self, request: HttpRequest, extra_params: dict) -> dict:
+            extra_params["scope"] = "not-email and-extra"
+            return extra_params
+
+    OIDCClientFactory.create(identifier="test-extra-scope")
+
+    oidc_init = OIDCAuthenticationRequestInitView.as_view(identifier="test-extra-scope")
     redirect_response = oidc_init(auth_request)
 
     assert redirect_response.status_code == 302
