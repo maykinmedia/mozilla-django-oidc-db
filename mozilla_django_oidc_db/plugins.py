@@ -50,11 +50,6 @@ class OIDCBasePluginProtocol(Protocol):
         ...
 
     @abstractmethod
-    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
-        """Return all users matching the specified subject."""
-        ...
-
-    @abstractmethod
     def handle_callback(self, request: HttpRequest) -> HttpResponse:
         """Return an HttpResponse based on the callback view specified on the plugin.
 
@@ -65,6 +60,9 @@ class OIDCBasePluginProtocol(Protocol):
 
         """
         ...
+
+    @abstractmethod
+    def get_extra_params(self, request: HttpRequest, extra_params: dict) -> dict: ...
 
 
 class BaseOIDCPlugin:
@@ -78,6 +76,9 @@ class BaseOIDCPlugin:
         config = self.get_config()
 
         return get_setting_from_config(config, attr, *args)
+
+    def get_extra_params(self, request: HttpRequest, extra_params: dict) -> dict:
+        return extra_params
 
 
 @runtime_checkable
@@ -96,6 +97,10 @@ class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
     def create_user(self, claims: JSONObject) -> AbstractUser: ...
 
     def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser: ...
+
+    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
+        """Return all users matching the specified subject."""
+        ...
 
 
 OIDCPlugin: TypeAlias = AbstractUserOIDCPluginProtocol | AnonymousUserOIDCPluginProtocol

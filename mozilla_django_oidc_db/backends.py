@@ -156,6 +156,8 @@ class OIDCAuthenticationBackend(BaseBackend):
         Extract the user information, configurable whether to use the ID token or
         the userinfo endpoint for this
         """
+        assert self.config
+
         if self.config.userinfo_claims_source == UserInformationClaimsSources.id_token:
             logger.debug("Extracting user information from ID token")
             return payload
@@ -229,6 +231,8 @@ class OIDCAuthenticationBackend(BaseBackend):
     @override
     def get_or_create_user(self, access_token: str, id_token: str, payload: JSONObject) -> AnonymousUser | AbstractUser | None:  # type: ignore (parent function returns only an AbstractUser | None)
         """Get or create a user based on the tokens received."""
+        assert self.config
+
         plugin = registry[self.config.identifier]
         assert isinstance(self.request, HttpRequest)
 

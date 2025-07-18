@@ -210,20 +210,6 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
             return digid_init(request, return_url="/some-fixed-url")
     """
 
-    oidc_rp_scopes: str = ""
-    """
-    OIDC scopes to include in the authentication request.
-
-    If not specified, the scopes specified in the configuration will be used.
-
-    .. code-block:: python
-
-        oidc_init = OIDCAuthenticationRequestInitView.as_view(
-            identifier="test-oidc", 
-            oidc_rp_scopes="email"
-        )
-    """
-
     def get(
         self, request: HttpRequest, return_url: str = "", *args, **kwargs
     ) -> HttpResponseRedirect:
@@ -332,10 +318,13 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
         Add a keycloak identity provider hint if configured.
         """
         extra = super().get_extra_params(request)
-        if self.oidc_rp_scopes:
-            extra["scope"] = self.oidc_rp_scopes
+
         if kc_idp_hint := self.get_settings("OIDC_KEYCLOAK_IDP_HINT", ""):
             extra["kc_idp_hint"] = kc_idp_hint
+
+        plugin = registry[self.identifier]
+        extra = plugin.get_extra_params(request, extra)
+
         return extra
 
 
