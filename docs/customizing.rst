@@ -30,6 +30,8 @@ We provide a model :class:`~mozilla_django_oidc_db.models.OIDCClient`.
 This makes some of the upstream library settings dynamic rather than having to specify
 them as Django settings. The :class:`~mozilla_django_oidc_db.models.OIDCClient` has a JSON field ``options`` that can be used
 to specify any configuration that is specific to an OIDC Identity Provider.
+The structure of this field is specified with a JSON schema and thanks to ``django-jsonform`` the admin displays a nice
+form for it instead of a plain text field.
 
 If you want to bring your own configuration, you should create a new :class:`~mozilla_django_oidc_db.models.OIDCClient`
 and a corresponding plugin that should implement the interface specified by either the 
@@ -38,9 +40,33 @@ The plugin should be registered with the same identifier as the corresponding :c
 You can inherit from the :class:`~mozilla_django_oidc_db.plugins.BaseOIDCPlugin` to inherit some
 of the base plugin behaviour.
 
-:class:`~mozilla_django_oidc_db.models.OpenIDConnectConfigBase` in a similar way. You
-can then define model fields or properties on your own model that correspond to the
-lowercased setting name, for example:
+
+Plugin
+======
+
+We use a plugin architecture to encapsulate any behaviour specific to a particular OIDC provider or Identity Provider.
+
+A custom plugin can be registered as follows:
+
+.. code-block:: python
+
+    from mozilla_django_oidc_db.registry import register
+
+    @register("oidc-custom-identifier")
+    class OIDCCustomPlugin(AbstractUserOIDCPluginProtocol):
+        ...
+
+The protocol :class:`~mozilla_django_oidc_db.plugins.OIDCBasePluginProtocol` specifies the functionality that all plugins
+should implement, while the :class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPluginProtocol` and 
+:class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPluginProtocol` specify additional methods that should be implemented 
+depending on whether Django users should be created when a user logs in with OIDC or not.
+
+At start-up, a signal will run after the migrations to create an ``OIDCClient`` (if it doesn't already exist) for every plugin
+registered.
+
+The :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` and the :class:`~mozilla_django_oidc_db.backends.OIDCAuthenticationBackend`
+both rely on the plugins. This should make it possible to implement all custom behaviour in the plugins without 
+having to override the callback view and the backend.
 
 
 OIDC flow initialization
@@ -49,38 +75,41 @@ OIDC flow initialization
 Typically when a user needs to authenticate, they click a button or link to do so. This
 navigation is tied to a particular URL path, for example ``/auth/oidc-custom/``.
 
-We provide :class:`~mozilla_django_oidc_db.views.OIDCInit` to point the user to a
-particular configuration. With the custom model from above:
+We provide :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView` to start an OIDC authentication flow.
+This view class is parametrized with the identifier of the config model, so that
+the specific configuration can be retrieved and settings such as the identity provider endpoint
+to redirect the user to can be obtained.
+
+This view is not necessarily meant to be exposed directly via a URL pattern, but
+rather specific views are to be created from it, e.g.:
 
 .. code-block:: python
-    :caption: myapp/urls.py
 
-    from django.urls import path
+    from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
-    from mozilla_django_oidc_db.views import OIDCInit
+    digid_init = OIDCAuthenticationRequestInitView.as_view(identifier="digid-oidc")
+    redirect_response = digid_init(request) # Redirect to some keycloak instance, for example.
 
-    from myapp.models import CustomConfig
+An example of a pre-configured view to use as the "default" could be as follows:
 
+.. code-block:: python
 
-    urlpatterns = [
-        ...,
-        path(
-            "auth/oidc-custom/",
-            OIDCInit.as_view(config_class=CustomConfig, allow_next_from_query=True),
-        ),
-        ...,
-    ]
+    from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 
-This ensures that whenever a user authenticates via the ``/auth/oidc-custom/`` URL that
-throughout the whole process your custom configuration will be used.
+    class OIDCDefaultAuthenticationRequestView(OIDCAuthenticationRequestInitView):
+        identifier = OIDC_ADMIN_CONFIG_IDENTIFIER
+        allow_next_from_query = True
 
-You can also subclass this view to modify the behaviour, optionally making it the
-default via the ``OIDC_AUTHENTICATE_CLASS`` setting.
+And then by configuring ``OIDC_AUTHENTICATE_CLASS`` to point to this class would result in this view being 
+used as default.
+
 
 Recommended override hooks
 --------------------------
 
-:meth:`mozilla_django_oidc_db.views.OIDCInit.check_idp_availability`
+.. TODO:: should this maybe be moved to the plugin? 
+
+:meth:`mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView.check_idp_availability`
     You can implement your own behaviour here to determine if the identity provider is
     available, before the user is redirected to the authentication endpoint.
 
@@ -88,9 +117,7 @@ Authentication backend(s)
 =========================
 
 The authentication backend :class:`~mozilla_django_oidc_db.backends.OIDCAuthenticationBackend`
-automatically picks up the configuration specified by the initialization view. Out of
-box, this will either create or update a django user with the user model specified from
-your settings (unless ``OIDC_CREATE_USER`` is set to ``False``).
+retrieves the ``OIDCClient`` whose identifier has been stored on the request session by the initialization view. 
 
 If you want real Django users to be managed, you don't need to do anything.
 
@@ -98,65 +125,33 @@ However, if you want to do more advanced stuff (like only storing certain claims
 django session), you can subclass our backend to modify the behaviour. Don't forget
 to add this backend to the ``AUTHENTICATION_BACKENDS`` setting.
 
-Recommended override hooks
---------------------------
-
-:meth:`mozilla_django_oidc_db.backends.OIDCAuthenticationBackend.get_or_create_user`
-    Override this method if you only want to extract some information and persist it
-    somewhere else.
-
-    You can return an :class:`~django.contrib.auth.models.AnonymousUser` instance to
-    signal successful authentication.
-
-:meth:`mozilla_django_oidc_db.backends.OIDCAuthenticationBackend._check_candidate_backend`
-    Based on ``self.config_class``, you can determine if this backend is relevant for
-    your authentication purposes. If you return ``False``, the backend will be skipped
-    and the next one in ``AUTHENTICATION_BACKENDS`` will be tried.
-
-    ``self.config_class`` will be the model specified in the init flow.
 
 
 Callback flow
 =============
 
 :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` takes care of preparing the
-request for the authentication backend(s). Then, it grabs the callback view to apply
-from the selected config model (by default this is
-:class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView`, making the
-settings dynamic).
-
-You can provide your own callback view handler and override behaviour. We recommend
-you use :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView` as a
-base. You can override any of the methods in
-:class:`mozilla_django_oidc.views.OIDCAuthenticationCallbackView` of the upstream
-library.
-
-Finally, you must point to this view by overriding the :meth:`~mozilla_django_oidc_db.models.OpenIDConnectConfigBase.get_callback_view`
-model method.
-
-For example:
+request for the authentication backend(s). It stores the ``OIDCClient`` in the ``request._oidcdb_config``
+Based on the identifier of the ``OIDCClient``, :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` calls the 
+method ``handle_callback`` of the corresponding plugin. This method should then call the appropriate callback view to use.
+For example, this could be:
 
 .. code-block:: python
 
-    # views.py
+    def handle_callback(self, request: HttpRequest) -> HttpResponse:
+        return default_callback_view(request)
+
+Where:
+
+.. code-block:: python
+
     from mozilla_django_oidc_db.views import OIDCAuthenticationCallbackView
 
-
-    class CustomCallbackView(OIDCAuthenticationCallbackView):
-        @property
-        def success_url(self):
-            return "/custom-success-url"
+    default_callback_view = OIDCAuthenticationCallbackView.as_view()
 
 
-    custom_callback_view = CustomCallbackView.as_view()
+You can implement your own callback view. We recommend using :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView`
+as a base.
 
-
-    # models.py
-
-    class CustomCallbackViewConfig(OpenIDConnectConfigBase):
-        ...
-
-        def get_callback_view(self):
-            from .views import custom_callback_view
-
-            return custom_callback_view
+From the ``get`` method in the callback view :class:`~mozilla_django_oidc.views.OIDCAuthenticationCallbackView`
+the backend ``authenticate`` method will be called.
