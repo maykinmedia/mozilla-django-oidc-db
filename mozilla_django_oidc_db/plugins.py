@@ -35,11 +35,6 @@ class OIDCBasePluginProtocol(Protocol):
     def get_setting(self, attr: str, *args) -> Any: ...
 
     @abstractmethod
-    def verify_claims(self, claims: JSONObject) -> bool:
-        """Verify the provided claims to decide if authentication should be allowed."""
-        ...
-
-    @abstractmethod
     def get_schema(self) -> JSONObject:
         """Get the JSON schema of the ``options`` field on the :class:`~mozilla_django_oidc_db.models.OIDCClient` model."""
         ...
@@ -100,6 +95,10 @@ class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
 
     def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
         """Return all users matching the specified subject."""
+        ...
+
+    def verify_claims(self, claims: JSONObject) -> bool:
+        """Verify the provided claims to decide if authentication should be allowed."""
         ...
 
 
