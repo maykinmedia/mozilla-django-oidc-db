@@ -8,8 +8,8 @@ from django.contrib.auth.models import (
     AbstractBaseUser,
     AbstractUser,
     AnonymousUser,
-    UserManager,
 )
+from django.db import models
 from django.http import HttpRequest
 
 import requests
@@ -20,7 +20,10 @@ from .config import dynamic_setting, lookup_config
 from .exceptions import MissingInitialisation
 from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
-from .plugins import AbstractUserOIDCPluginProtocol, AnonymousUserOIDCPluginProtocol
+from .plugins import (
+    AbstractUserOIDCPluginProtocol,
+    AnonymousUserOIDCPluginProtocol,
+)
 from .registry import register as registry
 from .typing import JSONObject
 from .utils import extract_content_type
@@ -144,8 +147,10 @@ class OIDCAuthenticationBackend(BaseBackend):
     def verify_claims(self, claims: JSONObject) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
         assert claims, "Empty claims should have been blocked earlier"
+        assert self.config
 
         plugin = registry[self.config.identifier]
+        assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
         return plugin.verify_claims(claims)
 
     @override
@@ -208,14 +213,17 @@ class OIDCAuthenticationBackend(BaseBackend):
                 )
 
     @override
-    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
+    def filter_users_by_claims(self, claims: JSONObject) -> models.Manager[AbstractUser]:  # type: ignore (parent function returns UserManager which is more specific than Manager)
+        assert self.config
         plugin = registry[self.config.identifier]
+
+        assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
         return plugin.filter_users_by_claims(claims)
 
     @override
     def create_user(self, claims: JSONObject) -> AbstractUser:
         """Create an authenticated user."""
-
+        assert self.config
         plugin = registry[self.config.identifier]
 
         assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
@@ -223,6 +231,7 @@ class OIDCAuthenticationBackend(BaseBackend):
 
     @override
     def update_user(self, user: AbstractUser, claims: JSONObject):
+        assert self.config
         plugin = registry[self.config.identifier]
 
         assert isinstance(plugin, AbstractUserOIDCPluginProtocol)
@@ -236,9 +245,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         plugin = registry[self.config.identifier]
         assert isinstance(self.request, HttpRequest)
 
-        if hasattr(plugin, "get_or_create_user"):
-            assert isinstance(plugin, AnonymousUserOIDCPluginProtocol)
-
+        if isinstance(plugin, AnonymousUserOIDCPluginProtocol):
             return plugin.get_or_create_user(
                 access_token, id_token, payload, self.request
             )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Iterable, Tuple
+from typing import TYPE_CHECKING, Callable, Iterable
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
 
@@ -37,7 +37,7 @@ class OIDCRegistry:
 
         return decorator
 
-    def items(self) -> Iterable[Tuple[str, OIDCPlugin]]:
+    def items(self) -> Iterable[tuple[str, OIDCPlugin]]:
         return self._registry.items()
 
     def __getitem__(self, key: str) -> OIDCPlugin:

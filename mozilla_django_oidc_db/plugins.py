@@ -5,8 +5,9 @@ from abc import abstractmethod
 from typing import Any, Protocol, TypeAlias, runtime_checkable
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AbstractUser, AnonymousUser, UserManager
+from django.contrib.auth.models import AbstractUser, AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models
 from django.http import HttpRequest, HttpResponse
 
 from glom import Path, glom
@@ -57,7 +58,9 @@ class OIDCBasePluginProtocol(Protocol):
         ...
 
     @abstractmethod
-    def get_extra_params(self, request: HttpRequest, extra_params: dict) -> dict: ...
+    def get_extra_params(
+        self, request: HttpRequest, extra_params: dict[str, str | bytes]
+    ) -> dict[str, str | bytes]: ...
 
 
 class BaseOIDCPlugin:
@@ -72,7 +75,9 @@ class BaseOIDCPlugin:
 
         return get_setting_from_config(config, attr, *args)
 
-    def get_extra_params(self, request: HttpRequest, extra_params: dict) -> dict:
+    def get_extra_params(
+        self, request: HttpRequest, extra_params: dict[str, str | bytes]
+    ) -> dict[str, str | bytes]:
         return extra_params
 
 
@@ -93,7 +98,9 @@ class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
 
     def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser: ...
 
-    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
+    def filter_users_by_claims(
+        self, claims: JSONObject
+    ) -> models.Manager[AbstractUser]:
         """Return all users matching the specified subject."""
         ...
 
@@ -168,7 +175,9 @@ class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
             msg = "{} alg requires OIDC_RP_IDP_SIGN_KEY or OIDC_OP_JWKS_ENDPOINT to be configured."
             raise ImproperlyConfigured(msg.format(config.oidc_rp_sign_algo))
 
-    def filter_users_by_claims(self, claims: JSONObject) -> UserManager[AbstractUser]:
+    def filter_users_by_claims(
+        self, claims: JSONObject
+    ) -> models.Manager[AbstractUser]:
         """Return all users matching the specified subject."""
         UserModel = get_user_model()
 
