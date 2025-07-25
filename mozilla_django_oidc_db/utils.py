@@ -74,7 +74,10 @@ def do_op_logout(config: OIDCClient, id_token: str) -> None:
        been tested with Keycloak, but the standard says nothing about server-to-server
        calls to log out a user.
     """
-    logout_endpoint = config.oidc_provider.oidc_op_logout_endpoint
+    provider = config.oidc_provider
+    assert provider
+
+    logout_endpoint = provider.oidc_op_logout_endpoint
     if not logout_endpoint:
         return
 
