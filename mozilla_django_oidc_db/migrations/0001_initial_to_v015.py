@@ -9,34 +9,6 @@ import mozilla_django_oidc_db.models
 
 class Migration(migrations.Migration):
 
-    replaces = [
-        ("mozilla_django_oidc_db", "0001_initial"),
-        (
-            "mozilla_django_oidc_db",
-            "0002_openidconnectconfig_oidc_op_discovery_endpoint",
-        ),
-        ("mozilla_django_oidc_db", "0003_auto_20210719_0803"),
-        ("mozilla_django_oidc_db", "0004_auto_20210812_1044"),
-        ("mozilla_django_oidc_db", "0005_openidconnectconfig_sync_groups_glob_pattern"),
-        ("mozilla_django_oidc_db", "0006_openidconnectconfig_unique_id_claim"),
-        ("mozilla_django_oidc_db", "0007_auto_20220307_1128"),
-        ("mozilla_django_oidc_db", "0008_auto_20220422_0849"),
-        ("mozilla_django_oidc_db", "0009_openidconnectconfig_default_groups"),
-        ("mozilla_django_oidc_db", "0010_openidconnectconfig_userinfo_claims_source"),
-        (
-            "mozilla_django_oidc_db",
-            "0011_alter_openidconnectconfig_userinfo_claims_source",
-        ),
-        ("mozilla_django_oidc_db", "0012_openidconnectconfig_superuser_group_names"),
-        ("mozilla_django_oidc_db", "0012_alter_openidconnectconfig_sync_groups"),
-        ("mozilla_django_oidc_db", "0013_merge_20231221_1529"),
-        ("mozilla_django_oidc_db", "0014_alter_openidconnectconfig_groups_claim"),
-        (
-            "mozilla_django_oidc_db",
-            "0015_openidconnectconfig_oidc_token_use_basic_auth",
-        ),
-    ]
-
     dependencies = [
         ("auth", "0001_initial"),
     ]
