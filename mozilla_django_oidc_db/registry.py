@@ -40,6 +40,9 @@ class OIDCRegistry:
     def items(self) -> Iterable[tuple[str, OIDCPlugin]]:
         return self._registry.items()
 
+    def __iter__(self):
+        return iter(self._registry)
+
     def __getitem__(self, key: str) -> OIDCPlugin:
         return self._registry[key]
 

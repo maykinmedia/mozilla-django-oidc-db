@@ -25,5 +25,5 @@ def populate_oidc_config_models(sender, **kwargs) -> None:
 
     OIDCClient = apps.get_model("mozilla_django_oidc_db", "OIDCClient")
 
-    for unique_identifier in registry.keys():
+    for unique_identifier in registry:
         OIDCClient.objects.get_or_create(identifier=unique_identifier)
