@@ -1,5 +1,3 @@
-from urllib.parse import parse_qs, urlparse
-
 from django.urls import reverse
 
 import pytest
@@ -7,7 +5,6 @@ import requests
 
 from mozilla_django_oidc_db.models import (
     OIDCClient,
-    OIDCProvider,
     UserInformationClaimsSources,
 )
 

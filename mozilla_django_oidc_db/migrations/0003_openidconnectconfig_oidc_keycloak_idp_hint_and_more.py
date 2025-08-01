@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0002_migrate_to_claim_field"),
     ]

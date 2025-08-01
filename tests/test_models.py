@@ -1,5 +1,3 @@
-from django.utils.translation import gettext as _
-
 from mozilla_django_oidc_db.fields import ClaimFieldDefault
 
 

@@ -140,7 +140,6 @@ def move_data_forward(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         (
             "mozilla_django_oidc_db",

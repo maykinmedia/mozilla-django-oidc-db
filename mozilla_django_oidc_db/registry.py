@@ -17,7 +17,6 @@ class OIDCRegistry:
     def __call__(
         self, unique_identifier: str
     ) -> Callable[[type[OIDCPlugin]], type[OIDCPlugin]]:
-
         if len(unique_identifier) > UNIQUE_PLUGIN_ID_MAX_LENGTH:
             raise ValueError(
                 f"The unique identifier '{unique_identifier}' is longer than "

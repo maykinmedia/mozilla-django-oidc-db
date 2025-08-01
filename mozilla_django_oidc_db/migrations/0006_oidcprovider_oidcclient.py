@@ -7,7 +7,6 @@ import mozilla_django_oidc_db.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0005_alter_openidconnectconfig_claim_mapping"),
     ]

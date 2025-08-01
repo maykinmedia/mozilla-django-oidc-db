@@ -96,7 +96,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
                 provider = OIDCProvider.objects.get(
                     identifier=config_model.oidc_provider_identifier
                 )
-            except ObjectDoesNotExist as exc:
+            except ObjectDoesNotExist:
                 raise ConfigurationRunFailed(
                     f"Could not find an existing OIDC Provider with "
                     f"identifier `{config_model.oidc_provider_identifier}`."

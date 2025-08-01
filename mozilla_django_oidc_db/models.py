@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import ClassVar
 
 from django.core.exceptions import (
     BadRequest,
@@ -143,7 +144,7 @@ class OIDCProvider(models.Model):
         return _("OIDC Provider {identifier}").format(identifier=self.identifier)
 
 
-class OIDCClientManager(models.Manager):
+class OIDCClientManager(models.Manager["OIDCClient"]):
     def resolve(self, identifier: str) -> OIDCClient:
         try:
             return OIDCClient.objects.select_related("oidc_provider").get(
@@ -256,7 +257,7 @@ class OIDCClient(models.Model):
         default=dict,
     )
 
-    objects = OIDCClientManager()
+    objects: ClassVar[OIDCClientManager] = OIDCClientManager()  # pyright: ignore[reportIncompatibleVariableOverride]
 
     class Meta:
         verbose_name = _("OIDC client")

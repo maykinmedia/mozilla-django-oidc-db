@@ -9,7 +9,6 @@ import mozilla_django_oidc_db.models
 
 
 class Migration(migrations.Migration):
-
     replaces = [
         ("mozilla_django_oidc_db", "0001_initial_to_v015"),
         ("mozilla_django_oidc_db", "0002_migrate_to_claim_field"),

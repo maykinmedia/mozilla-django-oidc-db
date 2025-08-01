@@ -91,7 +91,6 @@ def test_middleware_use_falsy_default(
     rf: RequestFactory,
     mocker,
 ):
-
     middleware = SessionRefresh(lambda x: x)
 
     request = rf.get("/")

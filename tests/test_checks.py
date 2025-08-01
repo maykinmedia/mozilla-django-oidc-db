@@ -80,8 +80,7 @@ def test_check_callback_class_not_a_string(app_configs, settings):
     assert messages[0] == Error(
         "'settings.OIDC_CALLBACK_CLASS' must be a string that can be imported.",
         hint=(
-            "Use 'mozilla_django_oidc_db.views.OIDCCallbackView' or a "
-            "subclass of it."
+            "Use 'mozilla_django_oidc_db.views.OIDCCallbackView' or a subclass of it."
         ),
         id="mozilla_django_oidc_db.E002",
     )
@@ -96,8 +95,7 @@ def test_check_callback_class_invalid_view(app_configs, settings):
     assert messages[0] == Warning(
         "'settings.OIDC_CALLBACK_CLASS' should be a subclass of 'OIDCInit'.",
         hint=(
-            "Use 'mozilla_django_oidc_db.views.OIDCCallbackView' or a "
-            "subclass of it."
+            "Use 'mozilla_django_oidc_db.views.OIDCCallbackView' or a subclass of it."
         ),
         id="mozilla_django_oidc_db.W002",
     )

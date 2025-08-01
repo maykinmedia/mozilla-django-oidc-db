@@ -8,7 +8,6 @@ import mozilla_django_oidc_db.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

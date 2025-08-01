@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("testapp", "0004_anotheremptyconfig"),
         ("mozilla_django_oidc_db", "0008_delete_openidconnectconfig"),

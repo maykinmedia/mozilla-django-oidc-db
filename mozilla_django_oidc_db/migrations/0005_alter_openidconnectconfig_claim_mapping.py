@@ -6,7 +6,6 @@ import mozilla_django_oidc_db.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0004_remove_openidconnectconfig_oidc_exempt_urls"),
     ]

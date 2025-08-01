@@ -1,4 +1,5 @@
 import os
+import importlib.util
 
 from django.urls import reverse_lazy
 
@@ -81,13 +82,9 @@ LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
 STATIC_URL = "/static/"
 
 # Django setup configuration settings
-try:
-    import django_setup_configuration
-
+if importlib.util.find_spec("django_setup_configuration") is not None:
     INSTALLED_APPS += ["django_setup_configuration"]
 
     SETUP_CONFIGURATION_STEPS = [
         "mozilla_django_oidc_db.setup_configuration.steps.AdminOIDCConfigurationStep",
     ]
-except ImportError:
-    pass
