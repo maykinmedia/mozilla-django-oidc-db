@@ -34,7 +34,6 @@ def test_authenticate_oidc_not_enabled(dummy_config, callback_request: HttpReque
 
 
 @pytest.mark.django_db
-@pytest.mark.disabled_config
 @pytest.mark.oidcconfig
 @pytest.mark.callback_request(
     init_view=OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc-disabled")

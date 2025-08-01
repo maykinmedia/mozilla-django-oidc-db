@@ -21,7 +21,6 @@ Install
 This will also install the following packages:
 
 - ``mozilla-django-oidc``
-- ``django-solo``
 - ``django-jsonform``
 
 You can optionally install `django-setup-configuration`_ support with:
@@ -40,7 +39,6 @@ Make sure the following libraries are added to your ``INSTALLED_APPS``:
     INSTALLED_APPS = [
         ...
         "django_jsonform",
-        "solo",
         "mozilla_django_oidc",
         "mozilla_django_oidc_db",
         ...
@@ -82,9 +80,6 @@ Furthermore, ensure the following settings are configured:
 
     OIDC_AUTHENTICATE_CLASS = "mozilla_django_oidc_db.views.OIDCAuthenticationRequestView"
     OIDC_CALLBACK_CLASS = "mozilla_django_oidc_db.views.OIDCCallbackView"
-    # Optionally, configure django-solo caching
-    # SOLO_CACHE = "solo"
-    # SOLO_CACHE_TIMEOUT = 1
 
 In order to properly catch admin login errors, add the following to urlpatterns:
 
@@ -97,21 +92,6 @@ In order to properly catch admin login errors, add the following to urlpatterns:
         path("admin/login/failure/", AdminLoginFailure.as_view(), name="admin-oidc-error"),
         ...
     ]
-
-You can optionally enable the configuration cache (prevent database lookups) by enabling
-the django-solo cache: ``SOLO_CACHE = "solo"``. Ensure this cache is configured in
-``CACHES`` (using the backend of choice):
-
-.. code-block:: python
-
-    CACHES = {
-        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
-        ...
-        "solo": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": "redis://127.0.0.1:6379",
-        },
-    }
 
 Add the urlpatterns:
 
@@ -127,8 +107,8 @@ Add the login link to your templates:
 
 .. code-block:: django
 
-    {% get_solo 'mozilla_django_oidc_db.OpenIDConnectConfig' as oidc_config %}
-    {% if oidc_config.enabled %}
+    {# TODO: expose admin_oidc_client via template tag #}
+    {% if admin_oidc_client.enabled %}
     <div class="submit-row">
         <a href="{% url 'oidc_authentication_init' %}">{% trans "Login with OIDC" %}</a>
     </div>

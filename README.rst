@@ -7,7 +7,7 @@
 mozilla-django-oidc-db
 ======================
 
-:Version: 0.23.0
+:Version: 0.24.0
 :Source: https://github.com/maykinmedia/mozilla-django-oidc-db
 :Keywords: OIDC, django, database, authentication
 
@@ -25,11 +25,11 @@ Features
 ========
 
 * Thin layer on top of `mozilla-django-oidc`_
-* Allows configuration of OpenID Connect variables via django-solo
+* Allows configuring OpenID connect providers and clients.
 * Overrides `mozilla-django-oidc`_ default behaviour, using the ``sub`` claim
   instead of the ``email`` claim as unique identifier for users
 
-``mozilla-django-oidc-db`` provides a database singleton for several configuration
+``mozilla-django-oidc-db`` provides database configuration for several configuration
 variables required for ``mozilla-django-oidc``, moving them from deploy-time to run-time.
 This enables modification of the configuration, without having to restart the application.
 
@@ -42,8 +42,8 @@ Usage
 
 Please see the hosted `documentation`_ for installation, configuration and usage instructions.
 
-.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
-    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
+.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db

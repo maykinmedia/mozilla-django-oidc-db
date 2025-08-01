@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.admin",
-    "solo",
     "django_jsonform",
     "mozilla_django_oidc",
     "mozilla_django_oidc_db",
