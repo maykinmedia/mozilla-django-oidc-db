@@ -5,7 +5,7 @@
 Welcome to mozilla-django-oidc-db's documentation!
 ==================================================
 
-|build-status| |black| |coverage|
+|build-status| |ruff| |coverage|
 
 |python-versions| |django-versions| |pypi-version|
 
@@ -51,8 +51,9 @@ Indices and tables
 .. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml/badge.svg
     :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml
 
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
+.. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db

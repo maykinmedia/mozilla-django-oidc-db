@@ -11,7 +11,7 @@ mozilla-django-oidc-db
 :Source: https://github.com/maykinmedia/mozilla-django-oidc-db
 :Keywords: OIDC, django, database, authentication
 
-|build-status| |coverage| |black|
+|build-status| |coverage| |ruff|
 
 |python-versions| |django-versions| |pypi-version|
 
@@ -49,8 +49,9 @@ Please see the hosted `documentation`_ for installation, configuration and usage
     :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db
     :alt: Coverage status
 
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
+.. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 .. |python-versions| image:: https://img.shields.io/pypi/pyversions/mozilla_django_oidc_db.svg
 
