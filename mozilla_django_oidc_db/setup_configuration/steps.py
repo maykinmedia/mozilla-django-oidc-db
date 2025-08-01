@@ -61,6 +61,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
             "Specifying the OIDC Provider settings directly in the OIDC configuration is deprecated. "
             "Provide the settings for the OIDC Provider separately.",
             DeprecationWarning,
+            stacklevel=2,
         )
 
         identifier = f"{config_model.identifier}-provider"
@@ -100,7 +101,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
                 raise ConfigurationRunFailed(
                     f"Could not find an existing OIDC Provider with "
                     f"identifier `{config_model.oidc_provider_identifier}`."
-                )
+                ) from exc
 
         all_settings = {
             "enabled": config_model.enabled,
@@ -127,6 +128,7 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
                 "``sync_groups_glob_pattern``, ``make_users_staff``, ``superuser_group_names`` and ``default_groups`` "
                 "are deprecated. Use the ``options`` attribute instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
             config.options = {
                 "user_settings": {

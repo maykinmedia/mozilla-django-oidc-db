@@ -58,9 +58,7 @@ tests = [
     "factory-boy",
     "pyquery",
     "tox",
-    "isort",
-    "black",
-    "flake8",
+    "ruff",
 ]
 coverage = [
     "pytest-cov",
@@ -76,15 +74,6 @@ release = [
 [tool.setuptools.packages.find]
 include = ["mozilla_django_oidc_db*"]
 namespaces = false
-
-[tool.isort]
-profile = "black"
-combine_as_imports = true
-known_django = "django"
-known_first_party="mozilla_django_oidc_db"
-sections=["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-skip = ["env", "node_modules", ".tox"]
-skip_glob = ["**/migrations/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -127,3 +116,33 @@ exclude_also = [
 omit = [
     "*/migrations/*",
 ]
+
+[tool.ruff.lint]
+extend-select = [
+    "UP",  # pyupgrade
+    "DJ",  # django
+    "LOG", # logging
+    "G",
+    "I",   # isort
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "PERF",# perflint
+    "B",   # flake8-bugbear
+]
+extend-ignore = [
+    "E501",  # a lot of line-length too long violations...
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+section-order = [
+    "future",
+    "standard-library",
+    "django",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+"django" = ["django"]

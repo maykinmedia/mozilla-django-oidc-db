@@ -68,14 +68,14 @@ class OIDCProviderForm(forms.ModelForm):
             except (
                 requests.exceptions.RequestException,
                 json.decoder.JSONDecodeError,
-            ):
+            ) as exc:
                 raise forms.ValidationError(
                     {
                         "oidc_op_discovery_endpoint": _(
                             "Something went wrong while retrieving the configuration."
                         )
                     }
-                )
+                ) from exc
         else:
             # Verify that the required endpoints were derived from the
             # discovery endpoint

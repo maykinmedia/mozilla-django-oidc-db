@@ -11,7 +11,6 @@ callback_view = AdminCallbackView.as_view()
 
 @register("test-oidc")
 class OIDCTestPlugin(OIDCAdminPlugin):
-
     def validate_settings(self) -> None:
         pass
 

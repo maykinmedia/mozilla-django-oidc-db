@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Iterable
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
 
@@ -17,7 +18,6 @@ class OIDCRegistry:
     def __call__(
         self, unique_identifier: str
     ) -> Callable[[type[OIDCPlugin]], type[OIDCPlugin]]:
-
         if len(unique_identifier) > UNIQUE_PLUGIN_ID_MAX_LENGTH:
             raise ValueError(
                 f"The unique identifier '{unique_identifier}' is longer than "
@@ -39,6 +39,9 @@ class OIDCRegistry:
 
     def items(self) -> Iterable[tuple[str, OIDCPlugin]]:
         return self._registry.items()
+
+    def __iter__(self):
+        return iter(self._registry)
 
     def __getitem__(self, key: str) -> OIDCPlugin:
         return self._registry[key]

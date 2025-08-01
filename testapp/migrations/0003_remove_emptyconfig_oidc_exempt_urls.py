@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("testapp", "0002_emptyconfig_oidc_keycloak_idp_hint_and_more"),
     ]

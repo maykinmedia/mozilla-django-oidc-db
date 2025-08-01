@@ -144,7 +144,7 @@ def store_config(request: HttpRequest) -> None:
     ):
         config_identifier = _config
 
-    request._oidcdb_config: OIDC = OIDCClient.objects.resolve(config_identifier)  # type: ignore
+    request._oidcdb_config = OIDCClient.objects.resolve(config_identifier)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 def lookup_config(request: HttpRequest) -> OIDCClient:

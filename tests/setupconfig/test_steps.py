@@ -72,7 +72,6 @@ def assert_full_values(identifier):
 
 @pytest.mark.django_db
 def test_configure_full(full_config_yml):
-
     # create groups so they can be found
     Group.objects.create(name="local.groups.Admins")
     Group.objects.create(name="local.groups.Read-only")
@@ -87,7 +86,6 @@ def test_configure_full(full_config_yml):
 
 @pytest.mark.django_db
 def test_configure_overwrite(full_config_yml, set_config_to_non_default_values):
-
     # create groups so they can be found
     Group.objects.create(name="local.groups.Admins")
     Group.objects.create(name="local.groups.Read-only")

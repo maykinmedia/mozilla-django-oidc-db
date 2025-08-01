@@ -6,7 +6,6 @@ import mozilla_django_oidc_db.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("mozilla_django_oidc_db", "0001_initial_to_v015"),
     ]

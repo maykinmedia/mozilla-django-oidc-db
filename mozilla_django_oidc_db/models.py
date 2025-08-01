@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from django.core.exceptions import (
     BadRequest,
     MultipleObjectsReturned,
@@ -19,12 +21,12 @@ from .typing import JSONObject
     "Left here so that proxy models that in the migrations have "
     'bases=("mozilla_django_oidc_db.openidconnectconfig",) can still run their migrations.'
 )
-class OpenIDConnectConfig(models.Model):
+class OpenIDConnectConfig(models.Model):  # noqa: DJ008
     class Meta:
         managed = False
 
 
-def get_options_schema(instance: "OIDCClient") -> JSONObject:
+def get_options_schema(instance: OIDCClient) -> JSONObject:
     plugin = registry[instance.identifier]
     return plugin.get_schema()
 
@@ -143,7 +145,7 @@ class OIDCProvider(models.Model):
         return _("OIDC Provider {identifier}").format(identifier=self.identifier)
 
 
-class OIDCClientManager(models.Manager):
+class OIDCClientManager(models.Manager["OIDCClient"]):
     def resolve(self, identifier: str) -> OIDCClient:
         try:
             return OIDCClient.objects.select_related("oidc_provider").get(
@@ -256,7 +258,7 @@ class OIDCClient(models.Model):
         default=dict,
     )
 
-    objects = OIDCClientManager()
+    objects: ClassVar[OIDCClientManager] = OIDCClientManager()  # pyright: ignore[reportIncompatibleVariableOverride]
 
     class Meta:
         verbose_name = _("OIDC client")

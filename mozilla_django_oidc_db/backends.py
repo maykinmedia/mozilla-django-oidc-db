@@ -179,7 +179,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         user_response = requests.get(
             self.config.oidc_provider.oidc_op_user_endpoint,
             headers={
-                "Authorization": "Bearer {0}".format(access_token),
+                "Authorization": f"Bearer {access_token}",
             },
             verify=self.get_settings("OIDC_VERIFY_SSL", True),
             timeout=self.get_settings("OIDC_TIMEOUT", None),
@@ -213,7 +213,9 @@ class OIDCAuthenticationBackend(BaseBackend):
                 )
 
     @override
-    def filter_users_by_claims(self, claims: JSONObject) -> models.Manager[AbstractUser]:  # type: ignore (parent function returns UserManager which is more specific than Manager)
+    def filter_users_by_claims(
+        self, claims: JSONObject
+    ) -> models.Manager[AbstractUser]:  # type: ignore (parent function returns UserManager which is more specific than Manager)
         assert self.config
         plugin = registry[self.config.identifier]
 
@@ -238,7 +240,9 @@ class OIDCAuthenticationBackend(BaseBackend):
         return plugin.update_user(user, claims)
 
     @override
-    def get_or_create_user(self, access_token: str, id_token: str, payload: JSONObject) -> AnonymousUser | AbstractUser | None:  # type: ignore (parent function returns only an AbstractUser | None)
+    def get_or_create_user(
+        self, access_token: str, id_token: str, payload: JSONObject
+    ) -> AnonymousUser | AbstractUser | None:  # type: ignore (parent function returns only an AbstractUser | None)
         """Get or create a user based on the tokens received."""
         assert self.config
 
