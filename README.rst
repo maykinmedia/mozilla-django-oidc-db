@@ -42,8 +42,8 @@ Usage
 
 Please see the hosted `documentation`_ for installation, configuration and usage instructions.
 
-.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/workflows/Run%20CI/badge.svg?branch=master
-    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions?query=workflow%3A%22Run+CI%22+branch%3Amaster
+.. |build-status| image:: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/maykinmedia/mozilla-django-oidc-db/actions/workflows/ci.yml
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db
