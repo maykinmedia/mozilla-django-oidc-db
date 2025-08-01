@@ -15,17 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ['3.10', '3.11', '3.12']
-        django: ['4.2']
+        python: ['3.10', '3.11', '3.12', '3.13']
+        django: ['4.2', '5.2']
         mozilla_django_oidc: ['4.0']
         setup_config_enabled: ['no', 'yes']
+        exclude:
+          - python: '3.13'
+            django: '4.2'
 
     name: "Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }},
       mozilla-django-oidc ${{ matrix.mozilla_django_oidc }}, Setup Config: ${{ matrix.setup_config_enabled }}))"
 
     services:
       postgres:
-        image: docker.io/library/postgres:12
+        image: docker.io/library/postgres:17
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
@@ -73,7 +76,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Build sdist and wheel
         run: |
