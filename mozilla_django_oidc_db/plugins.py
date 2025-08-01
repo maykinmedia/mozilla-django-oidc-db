@@ -47,11 +47,11 @@ class OIDCBasePluginProtocol(Protocol):
 
     @abstractmethod
     def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        """Return an HttpResponse based on the callback view specified on the plugin.
+        """Return an HttpResponse using a specific callback view.
 
         .. code:: python
 
-           def view(self, request: HttpRequest) -> HttpResponse:
+           def handle_callback(self, request: HttpRequest) -> HttpResponse:
                return admin_callback_view(request)
 
         """

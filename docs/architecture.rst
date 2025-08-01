@@ -10,16 +10,11 @@ The flow is captured in the ASCII art below.
 
 .. code-block:: none
 
-    +--------------+  +--------------+  +--------------+
-    | init@ConfigA |  | init@ConfigB |  | init@ConfigC |
-    +------+-------+  +-----+--------+  +------+-------+
-           |                |                  |
+    +-------------------------+  +-----------------------------------+
+    | OIDC_AUTHENTICATE_CLASS |  | OIDCAuthenticationRequestInitView |
+    +------+------------------+  +-------------+---------------------+
+           |                                   |
            +----------------+------------------+
-                            |
-                            v
-                     +------+------+
-                     |  OIDCInit   |
-                     +------+------+
                             |
                             v
                         +---+---+
@@ -27,19 +22,14 @@ The flow is captured in the ASCII art below.
                         +---+---+
                             |
                             v
-                +-----------+------------+
-                |  Routing Callback View |
-                +-----------+------------+
+                +-----------+--------------+
+                | Routing OIDCCallbackView |
+                +-----------+--------------+
                             |
                             v
-                +-----------+------------+
-                |                        |
-                v                        v
-          +-----+------+            +----+-------+
-          | Callback X |            | Callback Y |
-          +-----+------+            +----+-------+
-                |                        |
-                +-----------+------------+
+                +-----------+--------------+
+                | Plugin.handle_callback   |
+                +-----------+--------------+
                             |
                             v
                       +-----+--------+
@@ -52,42 +42,35 @@ The flow is captured in the ASCII art below.
                  +------------------------+
 
 
-The assumed configuration inheritance chain is:
-
-.. code-block:: python
-
-    class ConfigA(OpenIDConnectConfigBase):
-        ...
-
-
-    class ConfigB(OpenIDConnectConfigBase):
-        ...
-
-
-    class ConfigC(OpenIDConnectConfigBase):
-        ...
-
-
-That is - each config class has its own behaviours associated.
-
 Flow
 ====
 
-In this diagram, there are three OIDC init entrypoints, one for each configuration model.
-They share the initialization logic (:class:`~mozilla_django_oidc_db.views.OIDCInit`),
-which takes care of recording the desired configuration class to apply in the callback
-flow.
+This diagram shows that it is possible to choose the authentication request view
+either by setting the ``OIDC_AUTHENTICATE_CLASS`` variable, or by routing to a particular
+authentication request init view (:class:`~mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView`) 
+that can be specified as follows:
 
-Then, the user is redirected to the OpenID Provider, where they authenticate with their
+.. code:: python
+
+    view_init = OIDCAuthenticationRequestInitView.as_view(identifier="some-identifier")
+
+The initialisation view performs some extra logic compared to the parent 
+:class:`~mozilla_django_oidc.views.OIDCAuthenticationRequestView`, like recording the ``identifier`` of 
+the :class:`~mozilla_django_oidc_db.models.OIDCClient` in the session. 
+This is needed, so that in the callback we know which OIDC plugin
+should be used.
+
+Then, the user is redirected to the OpenID Connect Provider, where they authenticate with their
 credentials. On successful auth (or error situations), the user is redirected to the
-callback endpoint, ending up in our ``Routing Callback View``. This looks up which
-callback view function to apply, depending on the configuration specified during the
-init flow.
+callback endpoint configured with the variable ``OIDC_CALLBACK_CLASS`` (which should be set to our 
+:class:`~mozilla_django_oidc_db.views.OIDCCallbackView`). This looks up which pluging
+to use, depending on the ``identifier`` specified in the authentication request view.
+The plugin will then handle the request by routing it to the appropriate :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationCallbackView`.
 
 Typically, as part of the callback view, the ``settings.AUTHENTICATION_BACKENDS`` will
-be tried in order, which will hit (one of) our backends that completes the OpenID
-Connect flow, yielding user information. This would typically result in a django user
-being logged in and being redirected to the success (or failure) URL specified from
-the callback.
+be tried in order, which will hit the :class:`~mozilla_django_oidc_db.backends.OIDCAuthenticationBackend` backend
+which completes the OpenID Connect flow, yielding user information. 
 
-Note that not every configuration class needs to provide their own callback view.
+Depending on the plugin, this can result in a Django ``User`` being logged in and being redirected to 
+the success (or failure) URL specified from the callback. Alternatively, an ``AnonymousUser`` is redirected to 
+the success (or failure) URL specified from the callback.
