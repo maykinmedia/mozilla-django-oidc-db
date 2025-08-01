@@ -29,7 +29,6 @@ requires-python = ">=3.10"
 dependencies = [
     "django>=4.2",
     "django-jsonform>=2.12",
-    "django-solo",
     "glom",
     "mozilla-django-oidc>=3.0.0",
     "typing-extensions>=4.0.0",
@@ -47,7 +46,7 @@ setup-configuration = [
     "django-setup-configuration>=0.8.2",
 ]
 tests = [
-    "psycopg2",
+    "psycopg",
     "pytest",
     "pytest-django",
     "pytest-mock",
@@ -69,7 +68,6 @@ docs = [
 ]
 release = [
     "bump-my-version",
-    "twine",
 ]
 
 [tool.setuptools.packages.find]
