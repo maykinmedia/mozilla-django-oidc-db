@@ -2,6 +2,34 @@
 Changelog
 =========
 
+0.24.0 (2025-08-01)
+===================
+
+💥 Major rework release with breaking changes!
+
+The OpenID Connect configuration is no longer a singleton/solo model. Instead, we now
+use multiple records in the same database table for different configurations. If you
+only use this library for the admin OIDC login, the migration is automatic and the
+impact of the changes is minimal.
+
+If you defined your own configuration models/classes based on the abstract base models,
+then you the changes do affect you. You can take a look at our data migrations or the
+changes in django-digid-eherkenning for some inspiration on how to deal with them.
+
+**Changes**
+
+* Removed django-solo dependency
+* Split the solo model configuration into ``OIDCProvider`` configuration and
+  ``OIDCClient`` configuration, making it easier to re-use identity provider configuration
+  for multiple client IDs.
+* Client-specific configuration is now stored in a ``JSONField``, the shape of which is
+  determined by JsonSchema definitions via ``django-jsonform``. Each client is expected
+  to have a unique identifier.
+* Added plugin mechanism to register the schema definition for your own custom client
+  identifiers and configuration options.
+* Added automatic migration for the admin OIDC login configuration.
+* Confirmed support for Python 3.13 and Django 5.2
+
 0.23.0 (2025-04-08)
 ===================
 

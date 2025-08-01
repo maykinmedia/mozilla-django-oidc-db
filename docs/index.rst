@@ -15,11 +15,11 @@ Features
 ========
 
 * Thin layer on top of `mozilla-django-oidc`_
-* Allows configuration of OpenID Connect variables via django-solo
+* Allows configuring OpenID connect providers and clients.
 * Overrides `mozilla-django-oidc`_ default behaviour, using the ``sub`` claim
   instead of the ``email`` claim as unique identifier for users
 
-``mozilla-django-oidc-db`` provides a database singleton for several configuration
+``mozilla-django-oidc-db`` provides database configuration for several configuration
 variables required for ``mozilla-django-oidc``, moving them from deploy-time to run-time.
 This enables modification of the configuration, without having to restart the application.
 
