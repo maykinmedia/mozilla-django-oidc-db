@@ -1,11 +1,10 @@
-from typing import Literal, Union
+from typing import Annotated, Literal
 
 from django.utils.translation import gettext_lazy as _
 
 from django_setup_configuration.fields import DjangoModelRef
 from django_setup_configuration.models import ConfigurationModel
 from pydantic import AnyUrl, Discriminator, Field, Tag
-from typing_extensions import Annotated
 
 from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
 
@@ -60,10 +59,8 @@ def get_provider_config_model(endpoint_data):
 
 
 OIDCProviderConfigUnion = Annotated[
-    Union[
-        Annotated[OIDCFullProviderConfig, Tag("all")],
-        Annotated[OIDCDiscoveryProviderConfig, Tag("discovery")],
-    ],
+    Annotated[OIDCFullProviderConfig, Tag("all")]
+    | Annotated[OIDCDiscoveryProviderConfig, Tag("discovery")],
     Discriminator(get_provider_config_model),
 ]
 

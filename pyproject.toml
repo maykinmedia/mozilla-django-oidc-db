@@ -119,15 +119,18 @@ omit = [
 
 [tool.ruff.lint]
 extend-select = [
-    # "UP",  # pyupgrade
-    # "DJ",  # django
-    # "LOG", # logging
-    # "G",
-    # "I",   # isort
-    # "E",   # pycodestyle
-    # "F",   # pyflakes
-    # "PERF",# perflint
-    # "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "DJ",  # django
+    "LOG", # logging
+    "G",
+    "I",   # isort
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "PERF",# perflint
+    "B",   # flake8-bugbear
+]
+extend-ignore = [
+    "E501",  # a lot of line-length too long violations...
 ]
 
 [tool.ruff.lint.isort]

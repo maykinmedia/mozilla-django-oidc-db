@@ -73,7 +73,8 @@ def test_settings_still_validated(settings, sign_alg: str):
     backend.config = config
 
     with pytest.raises(ImproperlyConfigured):
-        backend.OIDC_RP_CLIENT_ID  # the exact setting doesn't matter
+        # the exact setting doesn't matter
+        backend.OIDC_RP_CLIENT_ID  # noqa: B018
 
     # check that the same error is raised by the upstream backend
     settings.OIDC_RP_SIGN_ALGO = sign_alg

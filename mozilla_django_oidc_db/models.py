@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import ClassVar
 
 from django.core.exceptions import (
@@ -20,12 +21,12 @@ from .typing import JSONObject
     "Left here so that proxy models that in the migrations have "
     'bases=("mozilla_django_oidc_db.openidconnectconfig",) can still run their migrations.'
 )
-class OpenIDConnectConfig(models.Model):
+class OpenIDConnectConfig(models.Model):  # noqa: DJ008
     class Meta:
         managed = False
 
 
-def get_options_schema(instance: "OIDCClient") -> JSONObject:
+def get_options_schema(instance: OIDCClient) -> JSONObject:
     plugin = registry[instance.identifier]
     return plugin.get_schema()
 

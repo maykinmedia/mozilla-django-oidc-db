@@ -179,7 +179,7 @@ class OIDCAuthenticationBackend(BaseBackend):
         user_response = requests.get(
             self.config.oidc_provider.oidc_op_user_endpoint,
             headers={
-                "Authorization": "Bearer {0}".format(access_token),
+                "Authorization": f"Bearer {access_token}",
             },
             verify=self.get_settings("OIDC_VERIFY_SSL", True),
             timeout=self.get_settings("OIDC_TIMEOUT", None),
