@@ -51,6 +51,7 @@ setup-configuration = [
 tests = [
     "psycopg",
     "pytest",
+    "pytest-cov",
     "pytest-django",
     "pytest-mock",
     "pytest-recording",
@@ -59,9 +60,6 @@ tests = [
     "pyquery",
     "tox",
     "ruff",
-]
-coverage = [
-    "pytest-cov",
 ]
 docs = [
     "sphinx",
