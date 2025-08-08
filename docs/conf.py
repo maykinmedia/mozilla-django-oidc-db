@@ -65,3 +65,5 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = []
 
 linkcheck_ignore = []
+
+todo_include_todos = True
