@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.25.0 (2025-08-08)
+===================
+
+Minor changes:
+
+* Added the template tag `get_oidc_admin_client` to retrieve the admin `OIDCClient` in templates.
+* Add Ruff for development and CI, format code and exclude linting changes from git blame.
+* Fix broken post migrate hook.
+* Updated the documentation to reflect the new state of the project after the big refactor.
+
 0.24.0 (2025-08-01)
 ===================
 
