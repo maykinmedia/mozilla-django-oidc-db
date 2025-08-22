@@ -45,3 +45,11 @@ Plugins
 .. automodule:: mozilla_django_oidc_db.plugins
     :members:
 
+
+.. _test-mixins-reference:
+
+Tests
+=====
+
+.. automodule:: mozilla_django_oidc_db.tests.mixins
+    :members:
