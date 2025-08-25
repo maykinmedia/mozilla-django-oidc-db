@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.25.1 (2025-08-25)
+===================
+
+Minor changes:
+
+* Add testing utility ``OIDCMixin`` that clear test records and stabilizes state and nonce for VCR (see :ref:`test-mixins-reference`)
+
 0.25.0 (2025-08-08)
 ===================
 
