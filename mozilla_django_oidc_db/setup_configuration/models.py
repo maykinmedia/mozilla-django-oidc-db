@@ -70,7 +70,7 @@ class OIDCConfigProviderModel(ConfigurationModel):
         OIDCProvider,
         "identifier",
         description="a unique identifier for this OIDC provider.",
-        examples=["admin-oidc-provider"],
+        examples=["test-oidc-provider"],
     )
     endpoint_config: OIDCProviderConfigUnion
 
@@ -95,7 +95,31 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
 
     enabled: bool = DjangoModelRef(OIDCClient, "enabled", default=True)
     oidc_rp_scopes_list: list[str] = DjangoModelRef(OIDCClient, "oidc_rp_scopes_list")
-    options: dict = DjangoModelRef(OIDCClient, "options", default_factory=dict)
+    options: dict = DjangoModelRef(
+        OIDCClient,
+        "options",
+        default_factory=dict,
+        examples=[
+            {
+                "user_settings": {
+                    "claim_mappings": {
+                        "username": ["sub"],
+                        "email": ["email"],
+                        "first_name": ["given_name"],
+                        "last_name": ["family_name"],
+                    },
+                    "username_case_sensitive": False,
+                },
+                "groups_settings": {
+                    "make_users_staff": True,
+                    "superuser_group_names": ["superuser"],
+                    "sync": True,
+                    "sync_pattern": "*",
+                    "claim_mapping": ["roles"],
+                },
+            }
+        ],
+    )
 
     endpoint_config: OIDCProviderConfigUnion | None = Field(
         description=_("Configuration for the OIDC Provider endpoints."),
