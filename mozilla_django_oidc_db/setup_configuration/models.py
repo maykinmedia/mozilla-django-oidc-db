@@ -138,7 +138,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
             "last_name": ["family_name"],
         },
         description=_("Mapping from User model field names to a path in the claim."),
-        deprecated=True,
+        deprecated="Moved to options",
     )
     oidc_token_use_basic_auth: bool = Field(
         default=False,
@@ -172,19 +172,19 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     username_claim: list[str] = Field(
         default_factory=lambda: ["sub"],
         description=_("Path in the claims to the value to use as username."),
-        deprecated=True,
+        deprecated="Moved to options",
         examples=[["nested", "username", "claim"]],
     )
     groups_claim: list[str] = Field(
         default_factory=lambda: ["roles"],
         description=_("Path in the claims to the value with group names."),
-        deprecated=True,
+        deprecated="Moved to options",
         examples=[["nested", "group", "claim"]],
     )
     superuser_group_names: list[str] = Field(
         default_factory=list,
         description=_("Superuser group names"),
-        deprecated=True,
+        deprecated="Moved to options",
         examples=[["superusers"]],
     )
     default_groups: list[str] = Field(
@@ -201,13 +201,13 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     )
     sync_groups_glob_pattern: str = Field(
         description=_("Pattern that the group names to sync should follow."),
-        deprecated=True,
+        deprecated="Moved to options",
         examples=["*"],
         default="*",
     )
     make_users_staff: bool = Field(
         description=_("Whether to make the users staff."),
-        deprecated=True,
+        deprecated="Moved to options",
         examples=[False],
         default=False,
     )
