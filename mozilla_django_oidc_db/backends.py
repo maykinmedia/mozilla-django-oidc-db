@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, cast, override
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
@@ -14,7 +14,6 @@ from django.http import HttpRequest
 
 import requests
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend as BaseBackend
-from typing_extensions import override
 
 from .config import dynamic_setting, lookup_config
 from .exceptions import MissingInitialisation

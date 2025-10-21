@@ -1,9 +1,8 @@
-from typing import Any
+from typing import Any, override
 
 from django.urls import reverse
 
 from mozilla_django_oidc.middleware import SessionRefresh as BaseSessionRefresh
-from typing_extensions import override
 
 from .config import (
     BadRequest,

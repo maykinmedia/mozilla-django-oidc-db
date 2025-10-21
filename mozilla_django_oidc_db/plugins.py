@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
-from typing import Any, Protocol, TypeAlias, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, AnonymousUser
@@ -109,7 +109,7 @@ class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
         ...
 
 
-OIDCPlugin: TypeAlias = AbstractUserOIDCPluginProtocol | AnonymousUserOIDCPluginProtocol
+type OIDCPlugin = AbstractUserOIDCPluginProtocol | AnonymousUserOIDCPluginProtocol
 
 
 admin_callback_view = AdminCallbackView.as_view()
