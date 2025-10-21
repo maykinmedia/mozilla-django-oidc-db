@@ -30,8 +30,6 @@ missing = object()
 # ABSTRACT BASE CLASSES
 #
 
-type OIDCPlugin = AbstractUserOIDCPlugin | AnonymousUserOIDCPlugin
-
 
 class BaseOIDCPlugin(ABC):
     """
