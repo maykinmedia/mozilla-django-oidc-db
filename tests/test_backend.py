@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth.models import Group, User
+from django.contrib.sessions.backends.base import SessionBase
 from django.core.exceptions import BadRequest, ImproperlyConfigured
 from django.http import HttpRequest
 from django.test import RequestFactory
@@ -634,7 +635,7 @@ def test_groups_claim_wrong_type(dummy_config, callback_request: HttpRequest):
 
 def test_authenticate_without_previous_state(rf: RequestFactory):
     request = rf.get("/oidc/callback", {"state": "foo", "code": "bar"})
-    request.session = {}
+    request.session = SessionBase()
     backend = OIDCAuthenticationBackend()
 
     with pytest.raises(BadRequest):

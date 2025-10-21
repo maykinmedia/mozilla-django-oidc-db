@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseRedirect
 from django.test import Client
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -228,6 +228,7 @@ def test_wrong_config_model_used(
     )
 
     assert callback_response.status_code == 302
+    assert isinstance(callback_response, HttpResponseRedirect)
     assert callback_response.url == "/admin/login/failure/"
 
 

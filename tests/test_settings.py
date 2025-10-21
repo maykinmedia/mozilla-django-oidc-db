@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 
 import pytest
@@ -94,7 +95,8 @@ def test_middleware_use_falsy_default(
     middleware = SessionRefresh(lambda x: x)
 
     request = rf.get("/")
-    request.session = {CONFIG_IDENTIFIER_SESSION_KEY: dummy_config.identifier}
+    request.session = SessionBase()
+    request.session.update({CONFIG_IDENTIFIER_SESSION_KEY: dummy_config.identifier})
 
     mocker.patch.object(middleware, "is_refreshable_url", return_value=True)
     middleware._set_config_from_request(request)

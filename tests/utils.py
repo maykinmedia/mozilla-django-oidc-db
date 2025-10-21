@@ -5,6 +5,7 @@ from pyquery import PyQuery as pq
 from requests import Session
 
 from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
+from mozilla_django_oidc_db.typing import JSONObject
 
 
 def keycloak_login(
@@ -52,18 +53,21 @@ def keycloak_login(
 
 
 def create_or_update_configuration(
-    identifier_provider: str, identifier_config: str, data: dict
+    identifier_provider: str, identifier_config: str, data: JSONObject
 ) -> OIDCClient:
     """Create or update a OIDCClient and OIDCProvider.
 
-    The fields for the OIDCProvider are extracted from data and used to create/update the provider configuration.
-    Then the fields for the OIDCClient are extracted and used to create/update the configuration. The foreign key
-    to the provider will point to the just created/updated provider.
+    The fields for the OIDCProvider are extracted from data and used to create/update
+    the provider configuration. Then the fields for the OIDCClient are extracted and
+    used to create/update the configuration. The foreign key to the provider will point
+    to the just created/updated provider.
 
-    It is possible to provide an extra field in the ``data`` dict called ``extra_options``. This is a dict with as key
-    a dotted path for within the ``options`` field of the configuration, and as value the value to use for the specified field.
-    For example, if ``extra_options`` is ``{"user_settings.claim_mappings.username": ["sub", "blob"]}``, then the configuration
-    will have an options field:
+    It is possible to provide an extra field in the ``data`` dict called
+    ``extra_options``. This is a dict with as key a dotted path for within the
+    ``options`` field of the configuration, and as value the value to use for the
+    specified field. For example, if ``extra_options`` is
+    ``{"user_settings.claim_mappings.username": ["sub", "blob"]}``, then the
+    configuration will have an options field:
 
     .. code:: python
 
@@ -96,7 +100,9 @@ def create_or_update_configuration(
         defaults=fields_config,
     )
     config.oidc_provider = oidc_provider
-    for path, value in data.get("extra_options", {}).items():
+    extra_options = data.get("extra_options", {})
+    assert isinstance(extra_options, dict)
+    for path, value in extra_options.items():
         assign(config.options, path, value)
     config.save()
 

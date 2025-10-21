@@ -22,6 +22,8 @@ DATABASES = {
     }
 }
 
+FORMS_URLFIELD_ASSUME_HTTPS = True
+
 CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     "oidc": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},

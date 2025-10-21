@@ -5,6 +5,7 @@ Test the init flow.
 from urllib.parse import parse_qs, urlsplit
 
 from django.core.exceptions import DisallowedRedirect
+from django.http import HttpResponseRedirect
 
 import pytest
 
@@ -28,6 +29,7 @@ def test_redirects_to_oidc_provider(dummy_config, auth_request):
     response = init_view(auth_request, return_url="/fixed-next")
 
     assert response.status_code == 302
+    assert isinstance(response, HttpResponseRedirect)
     parsed_url = urlsplit(response.url)
     assert parsed_url.scheme == "https"
     assert parsed_url.netloc == "example.com"
