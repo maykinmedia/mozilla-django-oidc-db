@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.core.exceptions import DisallowedRedirect, PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest, HttpResponseBase, HttpResponseRedirect
-from django.urls import reverse_lazy
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import TemplateView
@@ -22,6 +22,7 @@ from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from .exceptions import OIDCProviderOutage
 from .models import OIDCClient
 from .registry import register as registry
+from .typing import GetParams
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,9 @@ class AdminCallbackView(OIDCAuthenticationCallbackView):
     Intercept errors raised by the authentication backend and display them.
     """
 
-    failure_url = reverse_lazy("admin-oidc-error")
+    @property
+    def failure_url(self):
+        return reverse("admin-oidc-error")
 
     def get(self, request: HttpRequest, *args, **kwargs):
         try:
@@ -313,19 +316,17 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
             )
             raise OIDCProviderOutage("Identity provider appears to be down.") from exc
 
-    def get_extra_params(self, request: HttpRequest) -> dict[str, str]:
+    def get_extra_params(self, request: HttpRequest) -> GetParams:
         """
         Add a keycloak identity provider hint if configured.
         """
-        extra = super().get_extra_params(request)
+        extra: GetParams = super().get_extra_params(request)
 
         if kc_idp_hint := self.get_settings("OIDC_KEYCLOAK_IDP_HINT", ""):
-            extra["kc_idp_hint"] = kc_idp_hint
+            extra = {**extra, "kc_idp_hint": kc_idp_hint}
 
         plugin = registry[self.identifier]
-        extra = plugin.get_extra_params(request, extra)
-
-        return extra
+        return plugin.get_extra_params(request, extra)
 
 
 class OIDCAuthenticationRequestView(OIDCAuthenticationRequestInitView):

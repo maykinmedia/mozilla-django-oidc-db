@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Protocol
 
 from django.http import HttpRequest, HttpResponseBase
@@ -10,6 +10,8 @@ type JSONValue = JSONPrimitive | list[JSONValue] | JSONObject
 type JSONObject = MutableMapping[str, JSONValue]
 
 type ClaimPath = Sequence[str]
+
+type GetParams = Mapping[str, str | bytes]
 
 
 class DjangoView(Protocol):

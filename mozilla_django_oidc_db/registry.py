@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, MutableMapping
 from typing import TYPE_CHECKING
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class OIDCRegistry:
-    _registry: dict[str, OIDCPlugin]
+    _registry: MutableMapping[str, OIDCPlugin]
 
     def __init__(self):
         self._registry = {}

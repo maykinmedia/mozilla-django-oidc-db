@@ -6,7 +6,7 @@ configuration model instance rather than in Django settings, while also handling
 settings that are still defined in the django settings layer.
 """
 
-from typing import Any, Generic, Protocol, Self, TypeVar, Unpack, overload
+from typing import Any, Protocol, Self, TypeVar, Unpack, overload
 
 from django.core.exceptions import (
     BadRequest,
@@ -70,7 +70,7 @@ class SettingsHolder(Protocol[T]):
     def get_settings(self, attr: str, *args: T) -> T: ...
 
 
-class DynamicSettingKwargs(TypedDict, Generic[T], total=False):
+class DynamicSettingKwargs[T](TypedDict, total=False):
     default: T
 
 

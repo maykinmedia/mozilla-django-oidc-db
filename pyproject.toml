@@ -121,7 +121,10 @@ include = [
     "testapp",
     "tests",
 ]
-ignore = []
+ignore = [
+    # at the time of writing, the type definitions in factory-boy are still broken
+    "mozilla_django_oidc_db/tests/factories.py",
+]
 # pythonVersion = "3.10"
 pythonPlatform = "Linux"
 

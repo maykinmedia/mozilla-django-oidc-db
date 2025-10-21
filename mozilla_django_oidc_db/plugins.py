@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
-from abc import abstractmethod
-from typing import Any, Protocol, runtime_checkable
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponseBase
 
 from glom import Path, glom
 
@@ -18,7 +18,7 @@ from .exceptions import MissingIdentifierClaim
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
-from .typing import ClaimPath, JSONObject
+from .typing import ClaimPath, GetParams, JSONObject
 from .utils import get_groups_by_name, obfuscate_claims
 from .views import AdminCallbackView
 
@@ -26,98 +26,163 @@ logger = logging.getLogger(__name__)
 
 missing = object()
 
+#
+# ABSTRACT BASE CLASSES
+#
 
-class OIDCBasePluginProtocol(Protocol):
+type OIDCPlugin = AbstractUserOIDCPlugin | AnonymousUserOIDCPlugin
+
+
+class BaseOIDCPlugin(ABC):
+    """
+    Base class/interface for all plugins to implement.
+    """
+
     identifier: str
-    schema: JSONObject
+    """
+    The unique identifier for the plugin.
 
-    def get_config(self) -> OIDCClient: ...
+    Typically provided through the ``@register(IDENTIFIER)`` decorator when registering
+    a plugin in downstream code.
+    """
 
-    def get_setting(self, attr: str, *args) -> Any: ...
+    def __init__(self, identifier: str):
+        self.identifier = identifier
+
+    def get_config(self) -> OIDCClient:
+        """
+        Resolve the instance holding the configuration options.
+        """
+        return OIDCClient.objects.resolve(self.identifier)
+
+    def get_setting(self, attr: str, *args) -> Any:
+        """
+        Look up a particular configuration parameter for the configuration options.
+
+        :param attr: The setting/configuration parameter to look up.
+        :param args: Any additional arguments for the lookup behaviour, typically a
+          default value for missing settings is provided here.
+        """
+        config = self.get_config()
+        return get_setting_from_config(config, attr, *args)
 
     @abstractmethod
     def get_schema(self) -> JSONObject:
-        """Get the JSON schema of the ``options`` field on the :class:`~mozilla_django_oidc_db.models.OIDCClient` model."""
+        """
+        Return the JSON Schema definition for the client configuration options.
+
+        Each plugin provides certain behaviour that may have configuration parameters.
+        The configuration parameters are stored in the ``options`` JSONField of the
+        :class:`~mozilla_django_oidc_db.models.OIDCClient` model.
+
+        The admin integration needs a JSON Schema definitions to be able to configure
+        and validate the options when editing the client configuration.
+        """
         ...
 
     @abstractmethod
     def validate_settings(self) -> None:
-        """Check the validity of the settings in the provider and client configuration."""
+        """
+        Check the validity of the settings in the provider and client configuration.
+
+        :raises ImproperlyConfigured: if invalid configuration is detected.
+        """
         ...
 
+    def get_extra_params(
+        self, request: HttpRequest, extra_params: GetParams
+    ) -> GetParams:
+        """
+        Return (additional) ``GET`` parameters for the redirect to the identity provider.
+
+        By default, the passed in ``extra_params`` are returned unmodified.
+
+        :arg extra_params: A mapping of query parameters already produced by
+          :class:`mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView`.
+        """
+        return extra_params
+
     @abstractmethod
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        """Return an HttpResponse using a specific callback view.
+    def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
+        """
+        Return an HttpResponse using a specific callback view.
+
+        Typed as ``HttpResponseBase`` because that's the annotation for
+        ``View.as_view()`` in django-stubs.
+
+        For example:
 
         .. code:: python
 
-           def handle_callback(self, request: HttpRequest) -> HttpResponse:
+           def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
                return admin_callback_view(request)
 
         """
         ...
 
-    @abstractmethod
-    def get_extra_params(
-        self, request: HttpRequest, extra_params: dict[str, str | bytes]
-    ) -> dict[str, str | bytes]: ...
+
+class AnonymousUserOIDCPlugin(BaseOIDCPlugin):
+    if TYPE_CHECKING:
+
+        def get_or_create_user(
+            self,
+            access_token: str,
+            id_token: str,
+            payload: JSONObject,
+            request: HttpRequest,
+        ) -> AnonymousUser | None: ...
 
 
-class BaseOIDCPlugin:
-    def __init__(self, identifier: str):
-        self.identifier = identifier
+class AbstractUserOIDCPlugin(BaseOIDCPlugin):
+    if TYPE_CHECKING:
 
-    def get_config(self) -> OIDCClient:
-        return OIDCClient.objects.resolve(self.identifier)
+        @abstractmethod
+        def create_user(self, claims: JSONObject) -> AbstractUser:
+            """
+            Create and return the Django user in the database from the validated claims.
+            """
+            ...
 
-    def get_setting(self, attr: str, *args) -> Any:
-        config = self.get_config()
+        @abstractmethod
+        def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
+            """
+            Update and return the Django user in the database from the validated claims.
+            """
+            ...
 
-        return get_setting_from_config(config, attr, *args)
+        @abstractmethod
+        def filter_users_by_claims(
+            self,
+            claims: JSONObject,
+        ) -> models.QuerySet[AbstractUser]:
+            """
+            Given the validated claims, filter for existing users in the database.
 
-    def get_extra_params(
-        self, request: HttpRequest, extra_params: dict[str, str | bytes]
-    ) -> dict[str, str | bytes]:
-        return extra_params
+            This method is called to test if a user already exists that should be
+            updated rather than created.
+            """
+            ...
 
-
-@runtime_checkable
-class AnonymousUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
-    def get_or_create_user(
-        self,
-        access_token: str,
-        id_token: str,
-        payload: JSONObject,
-        request: HttpRequest,
-    ) -> AnonymousUser | None: ...
-
-
-@runtime_checkable
-class AbstractUserOIDCPluginProtocol(OIDCBasePluginProtocol, Protocol):
-    def create_user(self, claims: JSONObject) -> AbstractUser: ...
-
-    def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser: ...
-
-    def filter_users_by_claims(
-        self, claims: JSONObject
-    ) -> models.Manager[AbstractUser]:
-        """Return all users matching the specified subject."""
-        ...
-
-    def verify_claims(self, claims: JSONObject) -> bool:
-        """Verify the provided claims to decide if authentication should be allowed."""
-        ...
+        def verify_claims(self, claims: JSONObject) -> bool:
+            """
+            Verify the provided claims to decide if authentication should be allowed.
+            """
+            ...
 
 
-type OIDCPlugin = AbstractUserOIDCPluginProtocol | AnonymousUserOIDCPluginProtocol
+#
+# CONCRETE IMPLEMENTATIONS
+#
 
 
 admin_callback_view = AdminCallbackView.as_view()
 
 
 @register(OIDC_ADMIN_CONFIG_IDENTIFIER)
-class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
-    schema = ADMIN_OPTIONS_SCHEMA
+class OIDCAdminPlugin(AbstractUserOIDCPlugin):
+    """
+    Implement the core plugin for admin authentication via OpenID Connect.
+    """
 
     def verify_claims(self, claims: JSONObject) -> bool:
         """Verify the provided claims to decide if authentication should be allowed."""
@@ -177,9 +242,12 @@ class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
 
     def filter_users_by_claims(
         self, claims: JSONObject
-    ) -> models.Manager[AbstractUser]:
+    ) -> models.QuerySet[AbstractUser]:
         """Return all users matching the specified subject."""
         UserModel = get_user_model()
+        assert issubclass(UserModel, AbstractUser), (
+            "The user model must inherit from AbstractUser."
+        )
 
         username = self.get_username(claims)
         assert username, (
@@ -197,11 +265,15 @@ class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
 
     def create_user(self, claims: JSONObject) -> AbstractUser:
         """Return object for a newly created user account."""
+        UserModel = get_user_model()
+        assert issubclass(UserModel, AbstractUser), (
+            "The user model must inherit from AbstractUser."
+        )
+
         username = self.get_username(claims)
 
         logger.debug("Creating Admin OIDC user: %s", username)
 
-        UserModel = get_user_model()
         user = UserModel.objects.create_user(**{UserModel.USERNAME_FIELD: username})
         self.update_user(user, claims)
         return user
@@ -337,5 +409,5 @@ class OIDCAdminPlugin(BaseOIDCPlugin, AbstractUserOIDCPluginProtocol):
     def get_schema(self) -> JSONObject:
         return ADMIN_OPTIONS_SCHEMA
 
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
+    def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
         return admin_callback_view(request)

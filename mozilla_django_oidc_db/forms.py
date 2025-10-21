@@ -56,15 +56,15 @@ class OIDCProviderForm(forms.ModelForm):
         return endpoints
 
     def clean(self):
-        cleaned_data = super().clean()
+        super().clean()
 
-        discovery_endpoint = cleaned_data.get("oidc_op_discovery_endpoint")
+        discovery_endpoint = self.cleaned_data.get("oidc_op_discovery_endpoint")
 
         # Derive the endpoints from the discovery endpoint
         if discovery_endpoint:
             try:
                 endpoints = self.get_endpoints_from_discovery(discovery_endpoint)
-                cleaned_data.update(**endpoints)
+                self.cleaned_data.update(**endpoints)
             except (
                 requests.exceptions.RequestException,
                 json.decoder.JSONDecodeError,
@@ -80,7 +80,7 @@ class OIDCProviderForm(forms.ModelForm):
             # Verify that the required endpoints were derived from the
             # discovery endpoint
             for field in self.required_endpoints:
-                if not cleaned_data.get(field):
+                if not self.cleaned_data.get(field):
                     self.add_error(field, _("This field is required."))
 
-        return cleaned_data
+        return self.cleaned_data
