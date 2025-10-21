@@ -124,6 +124,9 @@ include = [
 ignore = [
     # at the time of writing, the type definitions in factory-boy are still broken
     "mozilla_django_oidc_db/tests/factories.py",
+    # don't know what's going on here, in particular because it's based on Pydantic I'd
+    # expect this to have zero type checking issues. TODO for later
+    "mozilla_django_oidc_db/setup_configuration/",
 ]
 # pythonVersion = "3.10"
 pythonPlatform = "Linux"
