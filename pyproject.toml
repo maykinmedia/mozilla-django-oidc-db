@@ -60,6 +60,8 @@ tests = [
     "pyquery",
     "tox",
     "ruff",
+    "pyright",
+    "django-stubs",
 ]
 docs = [
     "sphinx",
@@ -109,11 +111,21 @@ exclude_also = [
     "@(abc\\.)?abstractmethod",
     "raise NotImplementedError",
     "\\.\\.\\.",
-    "pass",
+    "\\bpass$",
 ]
 omit = [
     "*/migrations/*",
 ]
+
+[tool.pyright]
+include = [
+    "mozilla_django_oidc_db",
+    "testapp",
+    "tests",
+]
+ignore = []
+# pythonVersion = "3.10"
+pythonPlatform = "Linux"
 
 [tool.ruff.lint]
 extend-select = [
