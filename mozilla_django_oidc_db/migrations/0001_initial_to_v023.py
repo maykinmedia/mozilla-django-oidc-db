@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "oidc_rp_scopes_list",
-                    django_jsonform.models.fields.ArrayField(
+                    django_jsonform.models.fields.ArrayField(  # type: ignore
                         base_field=models.CharField(
                             max_length=50, verbose_name="OpenID Connect scope"
                         ),
@@ -215,7 +215,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "superuser_group_names",
-                    django_jsonform.models.fields.ArrayField(
+                    django_jsonform.models.fields.ArrayField(  # type: ignore
                         base_field=models.CharField(
                             max_length=50, verbose_name="Superuser group name"
                         ),

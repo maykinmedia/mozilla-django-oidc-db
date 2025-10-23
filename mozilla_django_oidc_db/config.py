@@ -6,7 +6,7 @@ configuration model instance rather than in Django settings, while also handling
 settings that are still defined in the django settings layer.
 """
 
-from typing import Any, Generic, Protocol, TypeVar, overload
+from typing import Any, Protocol, Self, TypeVar, Unpack, overload
 
 from django.core.exceptions import (
     BadRequest,
@@ -14,7 +14,7 @@ from django.core.exceptions import (
 from django.http import HttpRequest
 
 from mozilla_django_oidc.utils import import_from_settings
-from typing_extensions import Self, TypedDict, Unpack
+from typing_extensions import TypedDict
 
 from .constants import CONFIG_IDENTIFIER_SESSION_KEY
 from .models import OIDCClient
@@ -70,11 +70,11 @@ class SettingsHolder(Protocol[T]):
     def get_settings(self, attr: str, *args: T) -> T: ...
 
 
-class DynamicSettingKwargs(TypedDict, Generic[T], total=False):
+class DynamicSettingKwargs[T](TypedDict, total=False):
     default: T
 
 
-class dynamic_setting(Generic[T]):
+class dynamic_setting[T]:
     """
     Descriptor to lazily access settings while explicitly defining them.
 

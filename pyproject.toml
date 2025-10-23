@@ -22,13 +22,11 @@ classifiers = [
     "Operating System :: Unix",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "django>=4.2",
     "django-jsonform>=2.12",
@@ -60,6 +58,8 @@ tests = [
     "pyquery",
     "tox",
     "ruff",
+    "pyright",
+    "django-stubs",
 ]
 docs = [
     "sphinx",
@@ -109,11 +109,27 @@ exclude_also = [
     "@(abc\\.)?abstractmethod",
     "raise NotImplementedError",
     "\\.\\.\\.",
-    "pass",
+    "\\bpass$",
 ]
 omit = [
     "*/migrations/*",
 ]
+
+[tool.pyright]
+include = [
+    "mozilla_django_oidc_db",
+    "testapp",
+    "tests",
+]
+ignore = [
+    # at the time of writing, the type definitions in factory-boy are still broken
+    "mozilla_django_oidc_db/tests/factories.py",
+    # don't know what's going on here, in particular because it's based on Pydantic I'd
+    # expect this to have zero type checking issues. TODO for later
+    "mozilla_django_oidc_db/setup_configuration/",
+]
+# pythonVersion = "3.10"
+pythonPlatform = "Linux"
 
 [tool.ruff.lint]
 extend-select = [

@@ -1,15 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Protocol, TypeAlias
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Literal, Protocol
 
 from django.http import HttpRequest, HttpResponseBase
 
-JSONPrimitive: TypeAlias = str | int | float | bool | None
-JSONValue: TypeAlias = "JSONPrimitive | list[JSONValue] | JSONObject"
-JSONObject: TypeAlias = dict[str, JSONValue]
+type EndpointFieldNames = Literal[
+    "oidc_op_authorization_endpoint",
+    "oidc_op_token_endpoint",
+    "oidc_op_user_endpoint",
+    "oidc_op_jwks_endpoint",
+    "oidc_op_logout_endpoint",
+]
 
-ClaimPath: TypeAlias = Sequence[str]
+type JSONPrimitive = str | int | float | bool | None
+type JSONValue = JSONPrimitive | list[JSONValue] | JSONObject
+type JSONObject = MutableMapping[str, JSONValue]
+
+type ClaimPath = Sequence[str]
+
+type GetParams = Mapping[str, str | bytes]
 
 
 class DjangoView(Protocol):

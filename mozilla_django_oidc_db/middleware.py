@@ -1,9 +1,8 @@
-from typing import Any
+from typing import Any, override
 
 from django.urls import reverse
 
 from mozilla_django_oidc.middleware import SessionRefresh as BaseSessionRefresh
-from typing_extensions import override
 
 from .config import (
     BadRequest,
@@ -68,8 +67,11 @@ class SessionRefresh(BaseSessionRefresh):
 
         return super().process_request(request)
 
+    # we can't use cached_property, because a middleware instance exists for the whole
+    # duration of the django server life cycle, and the relevant config can change
+    # between requests. See ``process_request``.
     @property
-    def exempt_urls(self):
+    def exempt_urls(self):  # pyright: ignore[reportIncompatibleVariableOverride]
         # In many cases, the OIDC_AUTHENTICATION_CALLBACK_URL will be the generic
         # callback handler and already be part of super().exempt_urls. However, this is
         # not a given, and consumers might have implemented different callback handlers,

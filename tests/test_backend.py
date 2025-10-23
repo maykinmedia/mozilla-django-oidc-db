@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth.models import Group, User
+from django.contrib.sessions.backends.base import SessionBase
 from django.core.exceptions import BadRequest, ImproperlyConfigured
 from django.http import HttpRequest
 from django.test import RequestFactory
@@ -17,12 +18,14 @@ from mozilla_django_oidc_db.models import (
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 from testapp.backends import MockBackend
 
+from .conftest import callback_request_mark as callback_request, oidcconfig
+
 #
 # DYNAMIC CONFIGURATION TESTS
 #
 
 
-@pytest.mark.oidcconfig(enabled=False)
+@oidcconfig(enabled=False)
 def test_authenticate_oidc_not_enabled(dummy_config, callback_request: HttpRequest):
     backend = OIDCAuthenticationBackend()
 
@@ -34,8 +37,8 @@ def test_authenticate_oidc_not_enabled(dummy_config, callback_request: HttpReque
 
 
 @pytest.mark.django_db
-@pytest.mark.oidcconfig
-@pytest.mark.callback_request(
+@oidcconfig
+@callback_request(
     init_view=OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc-disabled")
 )
 def test_authentication_loads_config_from_init_state(
@@ -89,7 +92,7 @@ def test_settings_still_validated(settings, sign_alg: str):
 #
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     extra_options={
         "user_settings.claim_mappings.username": ["sub"],
@@ -134,7 +137,7 @@ def test_obfuscates_sensitive_claims(dummy_config, caplog):
 #
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -166,7 +169,7 @@ def test_create_user_with_default_config(dummy_config, callback_request: HttpReq
     assert user.last_name == "Doe"
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -195,7 +198,7 @@ def test_case_insensitive_username_lookups(
     assert User.objects.count() == 1
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -238,7 +241,7 @@ def test_create_user_with_custom_and_complex_config(
     assert user.last_name == "Doe"
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -271,7 +274,7 @@ def test_create_user_with_mapped_groups(dummy_config, callback_request: HttpRequ
     assert group_names == {"supergroup"}
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -302,7 +305,7 @@ def test_groups_claim_string_instead_of_list(
     assert set(user.groups.values_list("name", flat=True)) == {"admins"}
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -363,7 +366,7 @@ def test_update_user_with_custom_and_complex_config(
     assert set(user.groups.values_list("name", flat=True)) == {"supergroup"}
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -392,7 +395,7 @@ def test_authenticate_user_no_group_sync_without_claim(
     assert not user.groups.exists()
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -420,7 +423,7 @@ def test_authenticate_user_groups_glob_pattern(
     assert set(user.groups.values_list("name", flat=True)) == {"myapp:editor"}
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -454,7 +457,7 @@ def test_authenticate_user_groups_and_default_groups(
     }
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -478,7 +481,7 @@ def test_authenticate_user_make_staff(dummy_config, callback_request: HttpReques
     assert user.is_superuser
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -506,7 +509,7 @@ def test_authenticate_user_make_superuser_based_on_group(
     assert not Group.objects.exists()
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -533,7 +536,7 @@ def test_remove_superuser_based_on_group(dummy_config, callback_request: HttpReq
     assert not user.is_superuser
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -567,7 +570,7 @@ def test_do_nothing_if_no_superuser_groups_configured(
 #
 
 
-@pytest.mark.oidcconfig(enabled=True)
+@oidcconfig(enabled=True)
 def test_authenticate_called_without_args(dummy_config):
     backend = OIDCAuthenticationBackend()
 
@@ -576,7 +579,7 @@ def test_authenticate_called_without_args(dummy_config):
     assert user is None
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -591,9 +594,7 @@ def test_username_claim_empty(dummy_config, callback_request: HttpRequest):
     assert user is None
 
 
-@pytest.mark.oidcconfig(
-    enabled=True, userinfo_claims_source=UserInformationClaimsSources.id_token
-)
+@oidcconfig(enabled=True, userinfo_claims_source=UserInformationClaimsSources.id_token)
 def test_empty_claims(dummy_config, callback_request: HttpRequest):
     backend = MockBackend(claims={})
 
@@ -602,7 +603,7 @@ def test_empty_claims(dummy_config, callback_request: HttpRequest):
     assert user is None
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -634,7 +635,7 @@ def test_groups_claim_wrong_type(dummy_config, callback_request: HttpRequest):
 
 def test_authenticate_without_previous_state(rf: RequestFactory):
     request = rf.get("/oidc/callback", {"state": "foo", "code": "bar"})
-    request.session = {}
+    request.session = SessionBase()
     backend = OIDCAuthenticationBackend()
 
     with pytest.raises(BadRequest):

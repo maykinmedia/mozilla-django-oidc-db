@@ -9,4 +9,6 @@ class PreConfiguredOIDCAuthenticationRequestView(OIDCAuthenticationRequestInitVi
 
 
 class CustomCallbackView(AdminCallbackView):
-    success_url = "/custom-success-url"
+    @property
+    def success_url(self):
+        return "/custom-success-url"

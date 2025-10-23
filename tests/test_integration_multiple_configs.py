@@ -6,11 +6,12 @@ from requests import Session
 
 from mozilla_django_oidc_db.models import OIDCClient
 
+from .conftest import oidcconfig
 from .utils import keycloak_login
 
 
 @pytest.mark.vcr
-@pytest.mark.oidcconfig(make_users_staff=True)
+@oidcconfig(extra_options={"make_users_staff": True})
 def test_use_config_class_from_state_over_config_class_from_session(
     keycloak_config: OIDCClient,
     dummy_config: OIDCClient,

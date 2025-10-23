@@ -18,9 +18,12 @@ We offer flexibility through a generic configuration mechanism.
 .. versionadded:: 0.17.0
     The generic configuration mechanism was added.
 
-.. versionadded:: 0.24.0
+.. versionchanged:: 0.24.0
     The models were refactored to no longer be solo-models.
 
+.. versionchanged:: 0.26.0
+    The type definitions and annotations were overhauled for correctness and
+    completeness.
 
 Models
 ======
@@ -28,23 +31,27 @@ Models
 We provide a model :class:`~mozilla_django_oidc_db.models.OIDCClient`.
 
 This makes some of the upstream library settings dynamic rather than having to specify
-them as Django settings. The :class:`~mozilla_django_oidc_db.models.OIDCClient` has a JSON field ``options`` that can be used
-to specify any configuration that is specific to an OIDC Identity Provider.
-The structure of this field is specified with a JSON schema and thanks to ``django-jsonform`` the admin displays a nice
-form for it instead of a plain text field.
+them as Django settings. The :class:`~mozilla_django_oidc_db.models.OIDCClient` has a
+JSON field ``options`` that can be used to specify any configuration that is specific to
+an OIDC Identity Provider. The structure of this field is specified with a JSON schema
+and thanks to ``django-jsonform`` the admin displays a nice form for it instead of a
+plain text field.
 
-If you want to bring your own configuration, you should create a new :class:`~mozilla_django_oidc_db.models.OIDCClient`
-and a corresponding plugin that should implement the interface specified by either the 
-:class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPluginProtocol` or the :class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPluginProtocol`.
-The plugin should be registered with the same identifier as the corresponding :class:`~mozilla_django_oidc_db.models.OIDCClient`.
-You can inherit from the :class:`~mozilla_django_oidc_db.plugins.BaseOIDCPlugin` to inherit some
-of the base plugin behaviour.
+If you want to bring your own configuration, you should create a new
+:class:`~mozilla_django_oidc_db.models.OIDCClient`
+and a corresponding plugin that should inherit from either either
+:class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPlugin` or
+:class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPlugin`.
+
+The plugin should be registered with the same identifier as the corresponding
+:class:`~mozilla_django_oidc_db.models.OIDCClient`.
 
 
 Plugin
 ======
 
-We use a plugin architecture to encapsulate any behaviour specific to a particular OIDC provider or Identity Provider.
+We use a plugin architecture to encapsulate any behaviour specific to a particular OIDC
+provider or Identity Provider.
 
 A custom plugin can be registered as follows:
 
@@ -53,20 +60,24 @@ A custom plugin can be registered as follows:
     from mozilla_django_oidc_db.registry import register
 
     @register("oidc-custom-identifier")
-    class OIDCCustomPlugin(AbstractUserOIDCPluginProtocol):
+    class OIDCCustomPlugin(AbstractUserOIDCPlugin):
         ...
 
-The protocol :class:`~mozilla_django_oidc_db.plugins.OIDCBasePluginProtocol` specifies the functionality that all plugins
-should implement, while the :class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPluginProtocol` and 
-:class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPluginProtocol` specify additional methods that should be implemented 
-depending on whether Django users should be created when a user logs in with OIDC or not.
+The abstract base class :class:`~mozilla_django_oidc_db.plugins.BaseOIDCPlugin` specifies
+the functionality that all plugins must implement, while the
+:class:`~mozilla_django_oidc_db.plugins.AnonymousUserOIDCPlugin` and
+:class:`~mozilla_django_oidc_db.plugins.AbstractUserOIDCPlugin` specify additional methods
+that should be implemented depending on whether Django users should be created when a
+user logs in with OIDC or not.
 
-At start-up, a signal will run after the migrations to create an ``OIDCClient`` (if it doesn't already exist) for every plugin
-registered.
+At start-up, a signal will run after the migrations to create an ``OIDCClient`` record
+(if it doesn't already exist) for every plugin registered, keeping code and database
+configuration in sync.
 
-The :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` and the :class:`~mozilla_django_oidc_db.backends.OIDCAuthenticationBackend`
-both rely on the plugins. This should make it possible to implement all custom behaviour in the plugins without 
-having to override the callback view and the backend.
+The :class:`~mozilla_django_oidc_db.views.OIDCCallbackView` and the
+:class:`~mozilla_django_oidc_db.backends.OIDCAuthenticationBackend` both rely on the
+plugins. This should make it possible to implement all custom behaviour in the plugins
+without having to override the callback view and the backend.
 
 
 OIDC flow initialization
@@ -75,10 +86,10 @@ OIDC flow initialization
 Typically when a user needs to authenticate, they click a button or link to do so. This
 navigation is tied to a particular URL path, for example ``/auth/oidc-custom/``.
 
-We provide :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView` to start an OIDC authentication flow.
-This view class is parametrized with the identifier of the config model, so that
-the specific configuration can be retrieved and settings such as the identity provider endpoint
-to redirect the user to can be obtained.
+We provide :class:`~mozilla_django_oidc_db.views.OIDCAuthenticationRequestInitView` to
+start an OIDC authentication flow. This view class is parametrized with the identifier
+of the config model, so that the specific configuration can be retrieved and settings
+such as the identity provider endpoint to redirect the user to can be obtained.
 
 This view is not necessarily meant to be exposed directly via a URL pattern, but
 rather specific views are to be created from it, e.g.:

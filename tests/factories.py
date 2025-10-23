@@ -2,7 +2,7 @@ import factory
 
 
 class UserFactory(factory.django.DjangoModelFactory):
-    class Meta:
+    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = "auth.User"
 
 

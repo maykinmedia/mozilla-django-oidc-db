@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="openidconnectconfig",
             name="new_groups_claim",
-            field=mozilla_django_oidc_db.fields.ClaimField(
+            field=mozilla_django_oidc_db.fields.ClaimField(  # type: ignore
                 base_field=models.CharField(
                     max_length=50, verbose_name="claim path segment"
                 ),
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="openidconnectconfig",
             name="new_username_claim",
-            field=mozilla_django_oidc_db.fields.ClaimField(
+            field=mozilla_django_oidc_db.fields.ClaimField(  # type: ignore
                 base_field=models.CharField(
                     max_length=50, verbose_name="claim path segment"
                 ),

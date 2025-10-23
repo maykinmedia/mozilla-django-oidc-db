@@ -8,6 +8,7 @@ from mozilla_django_oidc_db.models import (
     UserInformationClaimsSources,
 )
 
+from .conftest import oidcconfig
 from .utils import keycloak_login
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
@@ -88,7 +89,7 @@ def test_credentials_in_basic_auth_header(
 
 
 @pytest.mark.vcr
-@pytest.mark.oidcconfig(
+@oidcconfig(
     # Set up client configured to return JWT from userinfo endpoint instead of plain
     # JSON. Credentials from ``docker/import`` realm export.
     oidc_rp_client_id="test-userinfo-jwt",
@@ -115,7 +116,7 @@ def test_return_jwt_from_userinfo_endpoint(
 
 
 @pytest.mark.vcr
-@pytest.mark.oidcconfig(make_users_staff=True)
+@oidcconfig(extra_options={"make_users_staff": True})
 def test_session_refresh(
     keycloak_config,
     settings,

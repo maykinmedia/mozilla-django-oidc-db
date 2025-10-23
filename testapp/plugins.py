@@ -1,4 +1,4 @@
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponseBase
 
 from mozilla_django_oidc_db.plugins import OIDCAdminPlugin
 from mozilla_django_oidc_db.registry import register
@@ -9,8 +9,13 @@ from .views import CustomCallbackView
 callback_view = AdminCallbackView.as_view()
 
 
+class TestPlugin(OIDCAdminPlugin):
+    def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
+        return callback_view(request)
+
+
 @register("test-oidc")
-class OIDCTestPlugin(OIDCAdminPlugin):
+class OIDCTestPlugin(TestPlugin):
     def validate_settings(self) -> None:
         pass
 
@@ -29,36 +34,29 @@ class OIDCTestPlugin(OIDCAdminPlugin):
             },
         }
 
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        return callback_view(request)
-
 
 @register("test-oidc-not-configured")
-class OIDCTestNotConfiguredPlugin(OIDCAdminPlugin):
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        return callback_view(request)
+class OIDCTestNotConfiguredPlugin(TestPlugin):
+    pass
 
 
 @register("test-oidc-another-not-configured")
-class OIDCTestAnotherNotConfiguredPlugin(OIDCAdminPlugin):
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        return callback_view(request)
+class OIDCTestAnotherNotConfiguredPlugin(TestPlugin):
+    pass
 
 
 @register("test-oidc-disabled")
-class OIDCTestDisabledPlugin(OIDCAdminPlugin):
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        return callback_view(request)
+class OIDCTestDisabledPlugin(TestPlugin):
+    pass
 
 
 @register("test-keycloak")
-class OIDCTestKeycloakPlugin(OIDCAdminPlugin):
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
-        return callback_view(request)
+class OIDCTestKeycloakPlugin(TestPlugin):
+    pass
 
 
 @register("test-keycloak-custom")
 class OIDCTestKeycloakCustomPlugin(OIDCAdminPlugin):
-    def handle_callback(self, request: HttpRequest) -> HttpResponse:
+    def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
         callback_view = CustomCallbackView.as_view()
         return callback_view(request)

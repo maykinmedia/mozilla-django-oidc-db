@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        toxenv: [ruff, docs]
+        toxenv: [ruff, docs, typecheck]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

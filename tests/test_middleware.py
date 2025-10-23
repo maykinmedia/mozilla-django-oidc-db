@@ -1,3 +1,4 @@
+from typing import Protocol, Unpack
 from urllib.parse import parse_qs, urlparse
 
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -11,7 +12,8 @@ from mozilla_django_oidc_db.constants import CONFIG_IDENTIFIER_SESSION_KEY
 from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OIDCClient
 
-from .utils import create_or_update_configuration
+from .conftest import oidcconfig
+from .utils import OIDCConfigOptions, create_or_update_configuration
 
 
 @pytest.fixture(scope="session")
@@ -45,26 +47,31 @@ def request_factory(rf: RequestFactory, session_middleware):
     return _factory
 
 
+class ConfigFactory(Protocol):
+    def __call__(
+        self, config_identifier: str, /, **overrides: Unpack[OIDCConfigOptions]
+    ) -> OIDCClient: ...
+
+
 @pytest.fixture()
-def config_factory(db):
-    def _factory(config_identifier: str, /, **overrides):
+def config_factory(db) -> ConfigFactory:
+    def _factory(config_identifier: str, /, **overrides: Unpack[OIDCConfigOptions]):
         BASE = f"https://mock-oidc-provider-{config_identifier}:9999"
 
+        config_options: OIDCConfigOptions = {
+            "enabled": True,
+            "oidc_rp_client_id": "fake",
+            "oidc_rp_client_secret": "even-faker",
+            "oidc_rp_sign_algo": "RS256",
+            "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
+            "oidc_op_jwks_endpoint": f"{BASE}/oidc/jwks",
+            "oidc_op_authorization_endpoint": f"{BASE}/oidc/auth",
+            "oidc_op_token_endpoint": f"{BASE}/oidc/token",
+            "oidc_op_user_endpoint": f"{BASE}/oidc/user",
+            **overrides,
+        }
         config = create_or_update_configuration(
-            f"{config_identifier}-provider",
-            config_identifier,
-            {
-                "enabled": True,
-                "oidc_rp_client_id": "fake",
-                "oidc_rp_client_secret": "even-faker",
-                "oidc_rp_sign_algo": "RS256",
-                "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
-                "oidc_op_jwks_endpoint": f"{BASE}/oidc/jwks",
-                "oidc_op_authorization_endpoint": f"{BASE}/oidc/auth",
-                "oidc_op_token_endpoint": f"{BASE}/oidc/token",
-                "oidc_op_user_endpoint": f"{BASE}/oidc/user",
-                **overrides,
-            },
+            f"{config_identifier}-provider", config_identifier, config_options
         )
 
         return config
@@ -72,7 +79,7 @@ def config_factory(db):
     return _factory
 
 
-@pytest.mark.oidcconfig(enabled=False)
+@oidcconfig(enabled=False)
 def test_sessionrefresh_oidc_not_enabled(
     dummy_config: OIDCClient,
     request_factory,
@@ -86,7 +93,7 @@ def test_sessionrefresh_oidc_not_enabled(
     assert result is None
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     oidc_rp_client_id="initial-client-id",
     oidc_rp_scopes_list=["openid", "email"],
@@ -120,7 +127,7 @@ def test_sessionrefresh_config_always_refreshed(
     assert query2["scope"] == ["openid email other_scope"]
 
 
-@pytest.mark.oidcconfig(enabled=True)
+@oidcconfig(enabled=True)
 def test_sessionrefresh_config_use_defaults(
     dummy_config,
     settings,
@@ -154,7 +161,7 @@ def test_sessionrefresh_config_use_defaults(
 )
 def test_sessionfresh_selects_correct_backend_based_on_session_parameters(
     config_identifier,
-    config_factory,
+    config_factory: ConfigFactory,
     request_factory,
     session_refresh: SessionRefresh,
     mocker,
@@ -190,7 +197,7 @@ def test_sessionfresh_selects_correct_backend_based_on_session_parameters(
 )
 def test_sessionfresh_adds_config_specific_callback_url_to_exempt_urls(
     config_identifier,
-    config_factory,
+    config_factory: ConfigFactory,
     request_factory,
     session_refresh: SessionRefresh,
     mocker,

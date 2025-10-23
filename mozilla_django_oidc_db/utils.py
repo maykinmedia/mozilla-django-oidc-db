@@ -7,7 +7,9 @@ from django.contrib.auth.models import Group
 
 import requests
 from glom import Path, PathAccessError, assign, glom
-from requests.utils import _parse_content_type_header
+from requests.utils import (
+    _parse_content_type_header,  # pyright: ignore[reportAttributeAccessIssue]
+)
 
 from .models import OIDCClient
 from .typing import ClaimPath, JSONObject, JSONValue

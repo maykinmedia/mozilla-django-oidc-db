@@ -1,26 +1,31 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any
+import itertools
+from collections.abc import Callable, Iterator
+from typing import TYPE_CHECKING, Protocol, Unpack, overload
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.sessions.backends.db import SessionStore
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseBase
 from django.test import RequestFactory
 
 import pytest
+from pytest_mock import MockFixture
 
 from mozilla_django_oidc_db.constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from tests.utils import create_or_update_configuration
+
+from .utils import OIDCConfigOptions, create_or_update_configuration
 
 if TYPE_CHECKING:
     from mozilla_django_oidc_db.models import OIDCClient
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
+type Markable = Callable[..., object] | type  # copied from pytest types
+
 
 @pytest.fixture
-def mock_state_and_nonce(mocker):
+def mock_state_and_nonce(mocker: MockFixture):
     mocker.patch(
         "mozilla_django_oidc.views.get_random_string",
         return_value="not-a-random-string",
@@ -32,7 +37,7 @@ def mock_state_and_nonce(mocker):
 
 
 @pytest.fixture
-def disabled_config(request, db) -> Iterator[OIDCClient]:
+def disabled_config(request: pytest.FixtureRequest, db) -> Iterator[OIDCClient]:
     """
     OIDC configuration with enabled=False.
 
@@ -64,12 +69,25 @@ def disabled_config(request, db) -> Iterator[OIDCClient]:
     yield config
 
 
-def _get_data_for_config(request: HttpRequest) -> dict[str, Any]:
+class OIDCConfigMark(Protocol):
+    @overload
+    def __call__[M: Markable](self, arg: M) -> M: ...
+
+    @overload
+    def __call__(
+        self, **options: Unpack[OIDCConfigOptions]
+    ) -> pytest.MarkDecorator: ...
+
+
+oidcconfig: OIDCConfigMark = pytest.mark.oidcconfig
+
+
+def _get_data_for_config(request: pytest.FixtureRequest) -> OIDCConfigOptions:
     marker = request.node.get_closest_marker("oidcconfig")
-    overrides: dict[str, Any] = marker.kwargs if marker else {}
+    overrides: OIDCConfigOptions = marker.kwargs if marker else {}
     BASE = "https://mock-oidc-provider:9999"
 
-    fields = {
+    fields: OIDCConfigOptions = {
         # Provider config
         "oidc_op_discovery_endpoint": f"{BASE}/oidc/",
         "oidc_op_jwks_endpoint": f"{BASE}/oidc/jwks",
@@ -90,13 +108,14 @@ def _get_data_for_config(request: HttpRequest) -> dict[str, Any]:
             },
             "groups_settings": {"make_users_staff": True, "sync": False},
         },
-        **overrides,
     }
+    for key, value in overrides.items():
+        fields[key] = value
     return fields
 
 
 @pytest.fixture
-def dummy_config(request, db) -> Iterator[OIDCClient]:
+def dummy_config(request: pytest.FixtureRequest, db) -> Iterator[OIDCClient]:
     """
     OIDC configuration for a fictious provider.
 
@@ -110,7 +129,7 @@ def dummy_config(request, db) -> Iterator[OIDCClient]:
 
 
 @pytest.fixture
-def filled_admin_config(request, db) -> Iterator[OIDCClient]:
+def filled_admin_config(request: pytest.FixtureRequest, db) -> Iterator[OIDCClient]:
     """
     Admin OIDC configuration for a fictious provider.
 
@@ -126,7 +145,7 @@ def filled_admin_config(request, db) -> Iterator[OIDCClient]:
 
 
 @pytest.fixture
-def keycloak_config(request, db) -> Iterator[OIDCClient]:
+def keycloak_config(request: pytest.FixtureRequest, db) -> Iterator[OIDCClient]:
     """
     Keycloak configuration for the provided docker-compose.yml setup.
 
@@ -147,17 +166,14 @@ def keycloak_config(request, db) -> Iterator[OIDCClient]:
     endpoints = OIDCProviderForm.get_endpoints_from_discovery(KEYCLOAK_BASE_URL)
 
     marker = request.node.get_closest_marker("oidcconfig")
-    overrides: dict[str, Any] = marker.kwargs if marker else {}
+    overrides: OIDCConfigOptions = marker.kwargs if marker else {}
 
-    fields = {
-        **endpoints,
+    fields: OIDCConfigOptions = {
         "enabled": True,
         "oidc_rp_client_id": "testid",
         "oidc_rp_client_secret": "7DB3KUAAizYCcmZufpHRVOcD0TOkNO3I",
         "oidc_rp_sign_algo": "RS256",
-        **endpoints,
         "oidc_rp_scopes_list": get_default_scopes() + ["bsn", "kvk"],
-        "sync_groups": False,
         "options": {
             "user_settings": {
                 "claim_mappings": {
@@ -167,8 +183,10 @@ def keycloak_config(request, db) -> Iterator[OIDCClient]:
             },
             "groups_settings": {"make_users_staff": True, "sync": False},
         },
-        **overrides,
     }
+    for key, value in itertools.chain(endpoints.items(), overrides.items()):
+        fields[key] = value
+
     config = create_or_update_configuration(
         "test-provider-keycloak", "test-keycloak", fields
     )
@@ -179,8 +197,19 @@ def keycloak_config(request, db) -> Iterator[OIDCClient]:
     yield config
 
 
+class AuthRequestMark(Protocol):
+    @overload
+    def __call__[M: Markable](self, arg: M) -> M: ...
+
+    @overload
+    def __call__(self, /, next: str) -> pytest.MarkDecorator: ...
+
+
+auth_request_mark: AuthRequestMark = pytest.mark.auth_request
+
+
 @pytest.fixture
-def auth_request(request, rf: RequestFactory):
+def auth_request(request: pytest.FixtureRequest, rf: RequestFactory):
     """
     A django request for the OIDC auth request flow.
     """
@@ -189,16 +218,29 @@ def auth_request(request, rf: RequestFactory):
     if next_url is None:
         next_url = "/ignored"
 
-    request = rf.get("/some-auth", {"next": next_url})
+    _request = rf.get("/some-auth", {"next": next_url})
     session = SessionStore()
     session.save()
-    request.session = session
-    return request
+    _request.session = session
+    return _request
+
+
+class CallbackRequestMark(Protocol):
+    @overload
+    def __call__[M: Markable](self, arg: M) -> M: ...
+
+    @overload
+    def __call__(
+        self, /, init_view: Callable[..., HttpResponseBase]
+    ) -> pytest.MarkDecorator: ...
+
+
+callback_request_mark: CallbackRequestMark = pytest.mark.callback_request
 
 
 @pytest.fixture
 def callback_request(
-    request, auth_request: HttpRequest, rf: RequestFactory
+    request: pytest.FixtureRequest, auth_request: HttpRequest, rf: RequestFactory
 ) -> HttpRequest:
     """
     A django request primed by an OIDC auth request flow, ready for the callback flow.

@@ -7,6 +7,7 @@ from requests import Session
 from mozilla_django_oidc_db.models import OIDCClient
 from mozilla_django_oidc_db.utils import do_op_logout
 
+from .conftest import oidcconfig
 from .utils import keycloak_login
 
 
@@ -51,7 +52,7 @@ def kc_session(
 
 
 @pytest.mark.vcr
-@pytest.mark.oidcconfig(oidc_op_logout_endpoint="")
+@oidcconfig(oidc_op_logout_endpoint="")
 def test_logout_without_endpoint_configured(
     keycloak_config: OIDCClient,
     kc_session: tuple[Client, Session],
@@ -88,7 +89,7 @@ def test_logout_with_logout_endpoint_configured(
     assert kc_response.headers["Content-Type"].startswith("text/html")
 
 
-@pytest.mark.oidcconfig(oidc_op_logout_endpoint="https://example.com/oidc/logout")
+@oidcconfig(oidc_op_logout_endpoint="https://example.com/oidc/logout")
 def test_logout_response_has_redirect(dummy_config: OIDCClient, requests_mock):
     requests_mock.post(
         "https://example.com/oidc/logout",

@@ -1,6 +1,8 @@
+from typing import Protocol
+
 from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseRedirect
 from django.test import Client
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -16,7 +18,15 @@ from mozilla_django_oidc_db.typing import JSONObject
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 from testapp.backends import MockBackend
 
+from .conftest import auth_request_mark as auth_request, oidcconfig
 from .factories import UserFactory
+
+
+class CallbackRequestMark(Protocol):
+    def __call__(self, claims: JSONObject) -> pytest.MarkDecorator: ...
+
+
+mock_backend_claims: CallbackRequestMark = pytest.mark.mock_backend_claims
 
 
 @pytest.fixture
@@ -41,10 +51,8 @@ def callback_client(callback_request: HttpRequest, client: Client) -> Client:
     return client
 
 
-@pytest.mark.mock_backend_claims(
-    {"email": "collision@example.com", "sub": "some_username"}
-)
-@pytest.mark.oidcconfig(
+@mock_backend_claims({"email": "collision@example.com", "sub": "some_username"})
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
@@ -84,14 +92,14 @@ def test_duplicate_email_unique_constraint_violated(
     assertContains(error_page, "duplicate key value violates unique constraint")
 
 
-@pytest.mark.mock_backend_claims(
+@mock_backend_claims(
     {
         "sub": "some_username",
         "email": "collision@example.com",
         "wrong_is_superuser_value_type": "",  # should be boolean instead of string
     }
 )
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
     extra_options={
@@ -124,14 +132,14 @@ def test_validation_error_during_authentication(
     assertContains(error_page, expected_error)
 
 
-@pytest.mark.mock_backend_claims(
+@mock_backend_claims(
     {
         "email": "nocollision@example.com",
         "sub": "some_username",
     }
 )
-@pytest.mark.auth_request(next="/admin/")
-@pytest.mark.oidcconfig(
+@auth_request(next="/admin/")
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
@@ -150,8 +158,8 @@ def test_happy_flow(
     assert user.username == "some_username"
 
 
-@pytest.mark.mock_backend_claims({})
-@pytest.mark.oidcconfig(
+@mock_backend_claims({})
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )
@@ -207,7 +215,7 @@ def test_invalid_reference_to_config_identifier(
 
 
 @pytest.mark.django_db
-@pytest.mark.oidcconfig(enabled=False, oidc_op_authorization_endpoint="bad")
+@oidcconfig(enabled=False, oidc_op_authorization_endpoint="bad")
 def test_wrong_config_model_used(
     dummy_config: OIDCClient,
     auth_request: HttpRequest,
@@ -228,11 +236,12 @@ def test_wrong_config_model_used(
     )
 
     assert callback_response.status_code == 302
+    assert isinstance(callback_response, HttpResponseRedirect)
     assert callback_response.url == "/admin/login/failure/"
 
 
-@pytest.mark.auth_request(next="/admin/")
-@pytest.mark.oidcconfig(
+@auth_request(next="/admin/")
+@oidcconfig(
     enabled=True,
     userinfo_claims_source=UserInformationClaimsSources.id_token,
 )

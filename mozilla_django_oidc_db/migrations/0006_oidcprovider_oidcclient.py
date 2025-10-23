@@ -175,7 +175,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "oidc_rp_scopes_list",
-                    django_jsonform.models.fields.ArrayField(
+                    django_jsonform.models.fields.ArrayField(  # type: ignore
                         base_field=models.CharField(
                             max_length=50, verbose_name="Scope"
                         ),
