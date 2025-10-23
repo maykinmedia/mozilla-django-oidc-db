@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mozilla-django-oidc-db"
-version = "0.25.1"
+version = "1.0.0"
 description = "A database-backed configuration for mozilla-django-oidc"
 authors = [
     {name = "Maykin Media", email = "support@maykinmedia.nl"}
@@ -14,7 +14,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["OIDC", "django", "database", "authentication"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.2",
@@ -84,7 +84,7 @@ markers = [
 ]
 
 [tool.bumpversion]
-current_version = "0.25.1"
+current_version = "1.0.0"
 files = [
     {filename = "pyproject.toml"},
     {filename = "README.rst"},
