@@ -1,0 +1,453 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-23 16:00+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: admin.py:19
+msgid "Activation"
+msgstr "Activering"
+
+#: admin.py:23 models.py:141 models.py:184
+msgid "OIDC Provider"
+msgstr "OIDC-Provider"
+
+#: admin.py:27
+msgid "Relying Party settings"
+msgstr "Instellingen voor Relying Party"
+
+#: admin.py:38
+msgid "Custom settings"
+msgstr "Eigen instellingen"
+
+#: admin.py:40
+msgid "Advanced settings"
+msgstr "Geavanceerde instellingen"
+
+#: fields.py:48
+msgid "claim path segment"
+msgstr "claimpadonderdeel"
+
+#: forms.py:81
+msgid "Something went wrong while retrieving the configuration."
+msgstr "Er ging iets fout bij het ophalen van de configuratie."
+
+#: forms.py:90
+msgid "This field is required."
+msgstr "Dit veld is verplicht."
+
+#: models.py:35
+msgid "Userinfo endpoint"
+msgstr "Userinfo-endpoint"
+
+#: models.py:36
+msgid "ID token"
+msgstr "ID-token"
+
+#: models.py:63 models.py:169
+msgid "identifier"
+msgstr "identificatie"
+
+#: models.py:64
+msgid "Unique identifier of the OIDC provider."
+msgstr "Unieke identificatie van de OIDC-provider."
+
+#: models.py:69
+msgid "Discovery endpoint"
+msgstr "Discovery-endpoint"
+
+#: models.py:72
+msgid ""
+"URL of your provider discovery endpoint ending with a slash (`.well-"
+"known/...` will be added automatically). If this is provided, the remaining "
+"endpoints can be omitted, as they will be derived from this endpoint."
+msgstr ""
+"URL naar de discovery-endpoint van je identity provider. (`.well-known/...`"
+"wordt hier automatisch aan toegevoegd). Wanneer deze waarde opgegeven is, "
+"dan kan je de overige endpoint-velden leeg laten omdat ze automatisch gevuld "
+"zullen worden."
+
+#: models.py:80
+msgid "JSON Web Key Set endpoint"
+msgstr "JSON Web Key Set-endpoint"
+
+#: models.py:83
+msgid ""
+"URL of your provider JSON Web Key Set endpoint. Required if `RS256` is used "
+"as signing algorithm."
+msgstr ""
+"URL naar de endpoint waar de JSON Web Key Sets te vinden zijn. Deze is verplicht "
+"als het ondertekenalgoritme `RS256` is."
+
+#: models.py:89
+msgid "Authorization endpoint"
+msgstr "Autorisatie-endpoint"
+
+#: models.py:91
+msgid "URL of your provider authorization endpoint"
+msgstr "URL naar de endpoint voor autorisatie van je provider."
+
+#: models.py:94
+msgid "Token endpoint"
+msgstr "Token-endpoint"
+
+#: models.py:96
+msgid "URL of your provider token endpoint"
+msgstr "URL naar de endpoint om tokens te verkrijgen van je provider."
+
+#: models.py:99
+msgid "User endpoint"
+msgstr "Gebruikers-endpoint"
+
+#: models.py:101
+msgid "URL of your provider userinfo endpoint."
+msgstr "URL naar de endpoint om gebruikersgegevens op te halen."
+
+#: models.py:104
+msgid "Logout endpoint"
+msgstr "Uitlog-endpoint"
+
+#: models.py:106
+msgid "URL of your provider logout endpoint."
+msgstr "URL naar de endpoint om een sessie uit te loggen."
+
+#: models.py:112
+msgid "Use Basic auth for token endpoint"
+msgstr "Gebruik 'Basic auth' voor het token-endpoint"
+
+#: models.py:115 setup_configuration/models.py:146
+msgid ""
+"If enabled, the client ID and secret are sent in the HTTP Basic auth header "
+"when obtaining the access token. Otherwise, they are sent in the request "
+"body."
+msgstr ""
+"Wanneer ingeschakeld, dan worden de client-ID en secret in de HTTP Basic auth "
+"header gecommuniceerd bij het ophalen van een acess token. Indien niet, dan "
+"worden ze in de request body opgestuurd."
+
+#: models.py:122
+msgid "Use nonce"
+msgstr "Gebruik nonce"
+
+#: models.py:123 setup_configuration/models.py:154
+msgid "Controls whether the client uses nonce verification"
+msgstr "Beïnvloed het gebruik van nonce-verificatie"
+
+#: models.py:128
+msgid "Nonce size"
+msgstr "Nonce-grootte"
+
+#: models.py:129 setup_configuration/models.py:160
+msgid "Sets the length of the random string used for nonce verification"
+msgstr "Stel de lengte van de willekeurige string in voor nonce-verificatie"
+
+#: models.py:134
+msgid "State size"
+msgstr "State-grootte"
+
+#: models.py:135 setup_configuration/models.py:167
+msgid "Sets the length of the random string used for state verification"
+msgstr "Stel de lengte van de willekeurige string in voor state-verificatie"
+
+#: models.py:142
+msgid "OIDC Providers"
+msgstr "OIDC-Providers"
+
+#: models.py:145
+#, python-brace-format
+msgid "OIDC Provider {identifier}"
+msgstr "OIDC-Provider {identifier}"
+
+#: models.py:170
+msgid "Unique identifier for the client."
+msgstr "Unieke identificatie voor de client."
+
+#: models.py:175
+msgid "enabled"
+msgstr "ingeschakeld"
+
+#: models.py:178
+msgid "The client must be enabled before users can authenticate through it."
+msgstr "De client moet ingeschakeld zijn voordat gebruikers ermee kunnen inloggen."
+
+#: models.py:185
+msgid "Specifies which OIDC Provider to use."
+msgstr "Selecteer welke OIDC-Provider gebruikt wordt."
+
+#: models.py:191
+msgid "Client ID"
+msgstr "Client-ID"
+
+#: models.py:193
+msgid "Client ID provided by the OIDC Provider"
+msgstr "Client-ID verstrekt door de OIDC-provider"
+
+#: models.py:196
+msgid "Secret"
+msgstr "Secret"
+
+#: models.py:198
+msgid "Secret provided by the OIDC Provider"
+msgstr "Secret verstrekt door de OIDC-provider"
+
+#: models.py:201
+msgid "Scopes"
+msgstr "Scopes"
+
+#: models.py:202
+msgid "Scope"
+msgstr "Scope"
+
+#: models.py:205
+msgid "Scopes that are requested during login"
+msgstr "(Autorisatie)-scopes die gevraagd worden tijdens het inloggen"
+
+#: models.py:208
+msgid "OpenID sign algorithm"
+msgstr "OpenID ondertekenalgoritme"
+
+#: models.py:210
+msgid "Algorithm the Identity Provider uses to sign ID tokens"
+msgstr "Het algoritme dat de Identity Provider gebruikt om ID-tokens te ondertekenen"
+
+#: models.py:214
+msgid "Sign key"
+msgstr "Onderteken-sleutel"
+
+#: models.py:217
+msgid ""
+"Key the Identity Provider uses to sign ID tokens in the case of an RSA sign "
+"algorithm. Should be the signing key in PEM or DER format."
+msgstr ""
+"De sleutel die de Identity Provider gebruikt om ID-tokens te ondertekenen wanneer "
+"er een RSA-ondertekenalgoritme gebruikt wordt. Gebruik PEM of DER-formaat."
+
+#: models.py:225
+msgid "Keycloak Identity Provider hint"
+msgstr "Keycloak Identity Provider hint"
+
+#: models.py:228
+msgid ""
+"Specific for Keycloak: parameter that indicates which identity provider "
+"should be used (therefore skipping the Keycloak login screen)."
+msgstr ""
+"Optie specifiek voor Keycloak: een parameter die aangeeft welke identity provider "
+"in Keycloak gebruikt moet worden (waarmee het Keycloak loginscherm overgeslagen "
+"wordt)."
+
+#: models.py:235
+msgid "user information claims extracted from"
+msgstr "gebruikersinformatie ophalen uit"
+
+#: models.py:240
+msgid ""
+"Indicates the source from which the user information claims should be "
+"extracted. This can be the ID token or the User Info endpoint."
+msgstr ""
+"Geef aan welke bron gebruikt moet worden voor het ophalen van gebruikersgegevens. "
+"Dit kan het ID-token zijn of een aanroep van de gebruikers-endpoint."
+
+#: models.py:246
+msgid "check OIDC Provider availability"
+msgstr "controleer beschikbaarheid OIDC-provider"
+
+#: models.py:249
+msgid ""
+"Whether to check OIDC Provider availability before doing the authentication "
+"request."
+msgstr ""
+"Indien ingeschakeld, dan wordt de beschikbaarheid van de OIDC-provider getest "
+"voor de gebruiker naar de loginpagina geleid wordt."
+
+#: models.py:255
+msgid "options"
+msgstr "opties"
+
+#: models.py:256
+msgid "Options relevant for a specific Identity Provider."
+msgstr "Opties relevant voor een specifieke Identity Provider."
+
+#: models.py:264
+msgid "OIDC client"
+msgstr "OIDC-client"
+
+#: models.py:265
+msgid "OIDC clients"
+msgstr "OIDC-clients"
+
+#: models.py:268
+#, python-brace-format
+msgid "OIDC client {identifier}"
+msgstr "OIDC-client {identifier}"
+
+#: schemas.py:6
+msgid "OIDC Configuration options."
+msgstr "OIDC-instellingen."
+
+#: schemas.py:11
+msgid "Settings for managing the local Django Users."
+msgstr "Instellingen om lokale Django-gebruikers te beheren."
+
+#: schemas.py:16
+msgid ""
+"Mapping between the Django User model fields and a path to a claim value."
+msgstr ""
+"Vertaling tussen Django-gebruikervelden en de waardelocaties in de claims."
+
+#: schemas.py:21
+msgid "Path to the claim to use as username."
+msgstr "Locatie van de claim die de gebruikersnaam bevat."
+
+#: schemas.py:28
+msgid "Path to the claim to use as first name."
+msgstr "Locatie van de claim die de voornaam bevat."
+
+#: schemas.py:35
+msgid "Path to the claim to use as last name."
+msgstr "Locatie van de claim die de achternaam bevat."
+
+#: schemas.py:42
+msgid "Path to the claim to use as email."
+msgstr "Locatie van de claim die het e-mailadres bevat."
+
+#: schemas.py:54
+msgid ""
+"Whether the username of the Django User is case sensitive. Defaults to true."
+msgstr ""
+"Geeft aan of de gebruikersnaam van een gebruiker hoofdlettergevoelig is. Standaard "
+"ingeschakeld."
+
+#: schemas.py:60
+msgid ""
+"List of paths to values in the claims which are considered sensitive. The "
+"username claim is considered sensitive by default."
+msgstr ""
+"Lijst van locaties in de claims waarvan de waarde als 'gevoelige informatie' "
+"beschouwd wordt. Standaard is de gebruikersnaam als gevoelig gemarkeerd."
+
+#: schemas.py:76
+msgid ""
+"Settings required to assign the created users to the right Django groups."
+msgstr ""
+"Instellingen om gebruikers aan de juiste groepen toe te kennen."
+
+#: schemas.py:82
+msgid ""
+"Path to the claim value that contains the groups that the user should be a "
+"member of."
+msgstr ""
+"Locatie van de claim die de groepen bevat waar de gebruiker lid van moet zijn."
+
+#: schemas.py:89
+msgid ""
+"Whether local Django user groups should be created for group names present "
+"in the groups claim (if they do not exist)."
+msgstr ""
+"Schakel in om lokale groepen aan te maken die aanwezigz ijn in de groepen-claim "
+"maar nog niet bestaan in de applicatie."
+
+#: schemas.py:95
+msgid ""
+"The glob pattern that local groups must match to be synchronised to the "
+"local database."
+msgstr ""
+"Het patroon ('glob') waar groepsnamen aan moet voldoen om gesynchroniseerd te "
+"worden met de lokale databank."
+
+#: schemas.py:101
+msgid ""
+"Names of the groups to which every user logging in with OIDC will be "
+"assigned."
+msgstr ""
+"Namen van groepen waaraan elke gebruiker die met OIDC inlogt automatisch toegekend "
+"wordt bij het inloggen."
+
+#: schemas.py:108
+msgid ""
+"Users will be flagged as being a staff user automatically. This allows users "
+"to login to the admin interface. By default they have no permissions, even "
+"if they are staff."
+msgstr ""
+"Indien ingeschakeld worden gebruikers automatisch gemarkeerd met 'stafstatus' wat "
+"hun toelaat om in te loggen op de beheeromgeving. Standaard hebben ze geen rechten, "
+"zelfs met stafstatus."
+
+#: schemas.py:114
+msgid ""
+"If any of these group names are present in the claims upon login, the user "
+"will be marked as a superuser. If none of these groups are present the user "
+"will lose superuser permissions."
+msgstr ""
+"Zodra één van deze groepsnamen aanwezig is in de groepen-claim wordt de gebruiker "
+"aangemerkt als 'supergebruiker' die alle rechten heeft. Indien geen enkele groep "
+"aanwezig is, dan verliest de gebruiker de supergebruiker-status."
+
+#: setup_configuration/models.py:125
+msgid "Configuration for the OIDC Provider endpoints."
+msgstr "Instellingen voor de OIDC-provider endpoints."
+
+#: setup_configuration/models.py:140
+msgid "Mapping from User model field names to a path in the claim."
+msgstr "Vertaling van gebruikersmodelvelden naar een locatie in de claims."
+
+#: setup_configuration/models.py:174
+msgid "Path in the claims to the value to use as username."
+msgstr "Locatie van de claim die de gebruikersnaam bevat."
+
+#: setup_configuration/models.py:180
+msgid "Path in the claims to the value with group names."
+msgstr "Locatie van de claim die de groepsnamen bevat."
+
+#: setup_configuration/models.py:186
+msgid "Superuser group names"
+msgstr "Supergebruiker-groepsnamen"
+
+#: setup_configuration/models.py:192
+msgid "Default group names"
+msgstr "Standaard groepsnamen"
+
+#: setup_configuration/models.py:197
+msgid "Whether to sync local groups"
+msgstr "Lokale groepen synchroniseren"
+
+#: setup_configuration/models.py:203
+msgid "Pattern that the group names to sync should follow."
+msgstr "Patroon waaraan de groepsnamen voor synchronisatie moeten voldoen."
+
+#: setup_configuration/models.py:209
+msgid "Whether to make the users staff."
+msgstr "Geef gebruikers stafstatus."
+
+#: setup_configuration/models.py:236
+msgid "List of OIDC providers"
+msgstr "Lijst van OIDC-providers"
+
+#: templates/admin/oidc_failure.html:8
+msgid "There was an error while logging in with your organization account."
+msgstr "Er deed zich een fout voor bij het inloggen met je organisatie-account."
+
+#: templates/admin/oidc_failure.html:13
+msgid ""
+"There was a problem while logging in with your organization account. Please "
+"contact your administrator with this error message to resolve this:"
+msgstr ""
+"Er deed zich een fout voor bij het inloggen met je organisatie-account. Gelieve "
+"contact op te nemen met je beheerder en informeer hen van deze foutmelding om het "
+"probleem op te lossen:"
+
+#: templates/admin/oidc_failure.html:22
+msgid "Back to login"
+msgstr "Terug naar inloggen"
