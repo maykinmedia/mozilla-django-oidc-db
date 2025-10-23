@@ -130,6 +130,20 @@ def test_derive_endpoints_json_error(*m):
     }
 
 
+@pytest.mark.vcr
+def test_derive_endpoints_google_oidc():
+    endpoints = OIDCProviderForm.get_endpoints_from_discovery(
+        base_url="https://accounts.google.com"
+    )
+
+    assert endpoints == {
+        "oidc_op_authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+        "oidc_op_token_endpoint": "https://oauth2.googleapis.com/token",
+        "oidc_op_user_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+        "oidc_op_jwks_endpoint": "https://www.googleapis.com/oauth2/v3/certs",
+    }
+
+
 @pytest.mark.django_db
 def test_no_discovery_endpoint_other_fields_required():
     form_data = {

@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from urllib.parse import urljoin
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -49,13 +50,14 @@ class OIDCProviderForm(forms.ModelForm):
 
     @classmethod
     def get_endpoints_from_discovery(cls, base_url: str) -> EndpointsMapping:
-        response = requests.get(f"{base_url}{OPEN_ID_CONFIG_PATH}", timeout=10)
+        response = requests.get(urljoin(base_url, OPEN_ID_CONFIG_PATH), timeout=10)
         response.raise_for_status()
         configuration = response.json()
 
         endpoints: EndpointsMapping = {
-            model_attr: configuration.get(oidc_attr)
+            model_attr: endpoint
             for model_attr, oidc_attr in cls.oidc_mapping.items()
+            if (endpoint := configuration.get(oidc_attr))
         }
         return endpoints
 
