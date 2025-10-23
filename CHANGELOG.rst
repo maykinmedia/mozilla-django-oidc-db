@@ -2,6 +2,66 @@
 Changelog
 =========
 
+1.0.0 (2025-10-23)
+==================
+
+After a long time we feel the library is finally ready for a 1.0 version!
+
+Releases 0.17.0 and 0.24.0 included a large rework of the architecture of the library,
+which we considered essential before even thinking of a 1.0 version. Since then, we've
+found no major issues and have adapted the library in a number of real projects in
+production with varying degrees of complexity.
+
+From now on, breaking changes will result in a major version bump.
+
+This release itself contains some (technically) breaking changes, but we expect they won't
+really affect you.
+
+**💥 Breaking changes**
+
+* Dropped support for Python 3.10
+* Dropped support for Python 3.11
+* Reworked types and classes used for the plugin system, in particular:
+
+  * Removed :class:`mozilla_django_oidc_db.plugins.OIDCBasePluginProtocol`, instead there is
+    an abstract base class :class:`mozilla_django_oidc_db.plugins.BaseOIDCPlugin`.
+  * Removed :class:`mozilla_django_oidc_db.plugins.BaseOIDCPlugin`, instead there is
+    :class:`mozilla_django_oidc_db.plugins.BaseOIDCPlugin`.
+  * Removed :class:`mozilla_django_oidc_db.plugins.AnonymousUserOIDCPluginProtocol`,
+    instead there is an abstract base class
+    :class:`mozilla_django_oidc_db.plugins.AnonymousUserOIDCPlugin`.
+  * Removed :class:`mozilla_django_oidc_db.plugins.AbstractUserOIDCPluginProtocol`,
+    instead there is an abstract base class
+    :class:`mozilla_django_oidc_db.plugins.AbstractUserOIDCPlugin`.
+
+  Typically now you should only be subclassing either ``AnonymousUserOIDCPlugin`` or
+  ``AbstractUserOIDCPlugin`` - they inherit from the abstract base class and provide
+  all necessary functionalities.
+
+* The django-setup-configuration format appears to not be (fully) backwards compatible
+  since release 0.24.0. Downstream projects should mention this in their changelogs
+  and/or provide a migration path.
+
+**New features**
+
+* [`#121`_] Added Dutch translations.
+
+**Bugfixes**
+
+* [`#120`_] Fixed the retrieval of optional endpoints causing database errors.
+* [`#113`_] Removed Open Forms reference in generic failure template.
+
+**Project maintenance**
+
+* [`#154`_] Improved documentation for setup-configuration integration.
+* Improved the static type hints and added type-checking to the CI pipeline.
+* Updated to modern Python syntax.
+
+.. _#154: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/154
+.. _#120: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/120
+.. _#113: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/113
+.. _#121: https://github.com/maykinmedia/mozilla-django-oidc-db/issues/121
+
 0.25.1 (2025-08-25)
 ===================
 
