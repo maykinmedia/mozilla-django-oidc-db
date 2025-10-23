@@ -6,8 +6,10 @@ from mozilla_django_oidc_db.templatetags.mozilla_django_oidc_db import (
     get_oidc_admin_client,
 )
 
+from .conftest import oidcconfig
 
-@pytest.mark.oidcconfig(enabled=True)
+
+@oidcconfig(enabled=True)
 def test_templatetag_admin_oidc_enabled(filled_admin_config):
     retrieved_client = get_oidc_admin_client()
 

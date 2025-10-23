@@ -1,6 +1,10 @@
+from collections.abc import Mapping
+
+from .typing import EndpointFieldNames
+
 # Mapping the configuration model fieldnames for endpoints to their
 # corresponding names in the OIDC spec
-OIDC_MAPPING = {
+OIDC_MAPPING: Mapping[EndpointFieldNames, str] = {
     "oidc_op_authorization_endpoint": "authorization_endpoint",
     "oidc_op_token_endpoint": "token_endpoint",
     "oidc_op_user_endpoint": "userinfo_endpoint",

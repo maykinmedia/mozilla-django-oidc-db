@@ -4,13 +4,14 @@ import pytest
 
 from mozilla_django_oidc_db.registry import register as registry
 
+from .conftest import oidcconfig
 from .factories import UserFactory
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
-    username_claim=["username"],
     extra_options={
+        "user_settings.claim_mappings.username": ["username"],
         "user_settings.claim_mappings.first_name": [],
         "user_settings.claim_mappings.email": ["email"],
         "groups_settings.superuser_group_names": ["Superuser"],
@@ -46,10 +47,10 @@ def test_update_user_from_claims(dummy_config):
     assert user.is_superuser
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
-    username_claim=["username"],
     extra_options={
+        "user_settings.claim_mappings.username": ["username"],
         "groups_settings.claim_mapping": ["not-present"],
     },
 )

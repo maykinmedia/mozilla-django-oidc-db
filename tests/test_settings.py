@@ -13,6 +13,8 @@ from mozilla_django_oidc_db.middleware import SessionRefresh
 from mozilla_django_oidc_db.models import OIDCClient
 from testapp.views import PreConfiguredOIDCAuthenticationRequestView
 
+from .conftest import oidcconfig
+
 
 @pytest.mark.parametrize(
     "setting",
@@ -45,7 +47,7 @@ def test_backend_without_initialization_request_raises(setting: str):
         ("OIDC_RP_IDP_SIGN_KEY", None),
     ),
 )
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     oidc_rp_client_id="testid",
     oidc_rp_client_secret="secret",
@@ -67,7 +69,7 @@ def test_backend_reads_settings_from_model(
     assert value == expected
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     oidc_rp_client_id="testid",
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",
@@ -82,7 +84,7 @@ def test_view_settings_derived_from_model_oidc_enabled(
     assert view.OIDC_OP_AUTH_ENDPOINT == "http://some.endpoint/v1/auth"
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     oidc_rp_client_id="testid",
     oidc_op_authorization_endpoint="http://some.endpoint/v1/auth",

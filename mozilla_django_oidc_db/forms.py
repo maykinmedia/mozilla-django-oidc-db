@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -7,6 +8,9 @@ import requests
 
 from .constants import OIDC_MAPPING, OPEN_ID_CONFIG_PATH
 from .models import OIDCProvider
+from .typing import EndpointFieldNames
+
+type EndpointsMapping = Mapping[EndpointFieldNames, str]
 
 
 class OIDCProviderForm(forms.ModelForm):
@@ -44,12 +48,12 @@ class OIDCProviderForm(forms.ModelForm):
                 self.fields[endpoint].required = False
 
     @classmethod
-    def get_endpoints_from_discovery(cls, base_url: str):
+    def get_endpoints_from_discovery(cls, base_url: str) -> EndpointsMapping:
         response = requests.get(f"{base_url}{OPEN_ID_CONFIG_PATH}", timeout=10)
         response.raise_for_status()
         configuration = response.json()
 
-        endpoints = {
+        endpoints: EndpointsMapping = {
             model_attr: configuration.get(oidc_attr)
             for model_attr, oidc_attr in cls.oidc_mapping.items()
         }

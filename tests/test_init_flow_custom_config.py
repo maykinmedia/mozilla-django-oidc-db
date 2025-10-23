@@ -12,6 +12,8 @@ import pytest
 from mozilla_django_oidc_db.exceptions import OIDCProviderOutage
 from mozilla_django_oidc_db.views import OIDCAuthenticationRequestInitView
 
+from .conftest import oidcconfig
+
 pytestmark = [pytest.mark.django_db]
 
 init_view = OIDCAuthenticationRequestInitView.as_view(
@@ -19,7 +21,7 @@ init_view = OIDCAuthenticationRequestInitView.as_view(
 )
 
 
-@pytest.mark.oidcconfig(
+@oidcconfig(
     enabled=True,
     oidc_rp_client_id="fixed_client_id",
     oidc_rp_client_secret="supersecret",
@@ -45,7 +47,7 @@ def test_redirects_to_oidc_provider(dummy_config, auth_request):
     assert auth_request.session["oidc-db_redirect_next"] == "/fixed-next"
 
 
-@pytest.mark.oidcconfig()
+@oidcconfig
 def test_suspicious_return_url(dummy_config, auth_request):
     with pytest.raises(DisallowedRedirect):
         init_view(auth_request, return_url="http://evil.com/steal-my-data")
@@ -59,7 +61,7 @@ def test_suspicious_return_url(dummy_config, auth_request):
         {"return_url": None},
     ),
 )
-@pytest.mark.oidcconfig()
+@oidcconfig
 def test_forgotten_return_url(dummy_config, auth_request, get_kwargs):
     with pytest.raises(ValueError):
         init_view(auth_request, **get_kwargs)
@@ -75,7 +77,7 @@ oidc_init_with_idp_check = IDPCheckInitView.as_view(
 )
 
 
-@pytest.mark.oidcconfig(check_op_availability=True)
+@oidcconfig(check_op_availability=True)
 def test_idp_check_mechanism(dummy_config, auth_request, settings):
     with pytest.raises(OIDCProviderOutage):
         oidc_init_with_idp_check(auth_request)
