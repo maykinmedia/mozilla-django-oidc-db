@@ -243,9 +243,10 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
     ) -> models.QuerySet[AbstractUser]:
         """Return all users matching the specified subject."""
         UserModel = get_user_model()
-        assert issubclass(UserModel, AbstractUser), (
-            "The user model must inherit from AbstractUser."
-        )
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
 
         username = self.get_username(claims)
         assert username, (
@@ -264,9 +265,10 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
     def create_user(self, claims: JSONObject) -> AbstractUser:
         """Return object for a newly created user account."""
         UserModel = get_user_model()
-        assert issubclass(UserModel, AbstractUser), (
-            "The user model must inherit from AbstractUser."
-        )
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
 
         username = self.get_username(claims)
 
