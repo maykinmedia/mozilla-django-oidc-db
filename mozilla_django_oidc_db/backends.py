@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (
@@ -73,7 +73,8 @@ class OIDCAuthenticationBackend(BaseBackend):
         # django-stubs returns AbstractBaseUser, but we depend on properties of
         # AbstractUser.
         UserModel = get_user_model()
-        assert issubclass(UserModel, AbstractUser)
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser)
         self.UserModel = UserModel
 
     @override
