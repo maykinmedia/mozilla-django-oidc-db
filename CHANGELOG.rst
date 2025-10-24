@@ -2,6 +2,11 @@
 Changelog
 =========
 
+1.0.2 (2025-10-24)
+==================
+
+Bugfix release - same patch as 1.0.1 but fixed some missed cases.
+
 1.0.1 (2025-10-24)
 ==================
 
