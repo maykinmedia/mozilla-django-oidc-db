@@ -5,9 +5,9 @@ import pytest
 from requests import Session
 
 from mozilla_django_oidc_db.models import OIDCClient
+from mozilla_django_oidc_db.tests.utils import keycloak_login
 
 from .conftest import oidcconfig
-from .utils import keycloak_login
 
 
 @pytest.mark.vcr
