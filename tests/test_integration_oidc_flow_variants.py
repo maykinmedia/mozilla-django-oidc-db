@@ -7,9 +7,9 @@ from mozilla_django_oidc_db.models import (
     OIDCClient,
     UserInformationClaimsSources,
 )
+from mozilla_django_oidc_db.tests.utils import keycloak_login
 
 from .conftest import oidcconfig
-from .utils import keycloak_login
 
 KEYCLOAK_BASE_URL = "http://localhost:8080/realms/test/"
 
