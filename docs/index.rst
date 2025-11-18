@@ -56,7 +56,7 @@ Indices and tables
     :alt: Ruff
 
 .. |coverage| image:: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/mozilla-django-oidc-db
+    :target: https://app.codecov.io/gh/maykinmedia/mozilla-django-oidc-db
     :alt: Coverage status
 
 .. |python-versions| image:: https://img.shields.io/pypi/pyversions/mozilla_django_oidc_db.svg
