@@ -53,3 +53,6 @@ Tests
 
 .. automodule:: mozilla_django_oidc_db.tests.mixins
     :members:
+
+.. automodule:: mozilla_django_oidc_db.tests.utils
+    :members:
