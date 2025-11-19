@@ -20,7 +20,6 @@ from mozilla_django_oidc.views import (
 from .config import get_setting_from_config, lookup_config, store_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
 from .exceptions import OIDCProviderOutage
-from .models import OIDCClient
 from .registry import register as registry
 from .typing import GetParams
 
@@ -258,15 +257,16 @@ class OIDCAuthenticationRequestInitView(BaseOIDCAuthRequestInitView):
 
     def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
         """
-        Look up the request setting from the database config.
+        Look up the requested setting from the plugin, which defers to the DB config.
 
-        For the duration of the request, the configuration instance is cached on the
+        For the duration of the request, the plugin instance is cached on the
         view.
         """
-        if (config := getattr(self, "_config", None)) is None:
-            config = OIDCClient.objects.get(identifier=self.identifier)
-            self._config = config
-        return get_setting_from_config(config, attr, *args)
+        if (plugin := getattr(self, "_plugin", None)) is None:
+            plugin = registry[self.identifier]
+            plugin.validate_settings()
+            self.plugin = plugin
+        return plugin.get_setting(attr, *args)
 
     @staticmethod
     def _validate_return_url(request: HttpRequest, return_url: str) -> None:
