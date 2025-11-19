@@ -7,10 +7,10 @@ from mozilla_django_oidc.middleware import SessionRefresh as BaseSessionRefresh
 from .config import (
     BadRequest,
     dynamic_setting,
-    get_setting_from_config,
     lookup_config,
 )
 from .models import OIDCClient
+from .registry import register as registry
 
 
 class SessionRefresh(BaseSessionRefresh):
@@ -50,7 +50,8 @@ class SessionRefresh(BaseSessionRefresh):
         if (config := getattr(self, "_config", None)) is None:
             raise BadRequest("No config object was set from the request")
 
-        return get_setting_from_config(config, attr, *args)
+        plugin = registry[config.identifier]
+        return plugin.get_setting(attr, *args)
 
     def _set_config_from_request(self, request):
         self._config = lookup_config(request)
