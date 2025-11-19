@@ -2,10 +2,18 @@
 Changelog
 =========
 
+1.1.1 (2025-11-19)
+==================
+
+Hotfix release.
+
+* Fixed OpenID-setting derivation (such as the ``Redirect-URI``) implemented in the
+  plugin not being respected.
+
 1.1.0 (2025-11-18)
 ==================
 
-Minor release
+Minor release.
 
 * [#157] Relocate shared test utility ``keycloak_login`` to ``mozilla_django_oidc_db/tests/utils``
   to make sure upstream projects can make use of it
