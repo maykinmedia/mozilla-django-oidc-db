@@ -2,6 +2,7 @@
 Test the OIDC Authenticaton Request flow with our custom views.
 """
 
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from django.http import HttpRequest, HttpResponseRedirect
@@ -105,3 +106,28 @@ def test_overwrite_scope(dummy_config, auth_request):
     query = parse_qs(parsed_url.query)
 
     assert query["scope"] == ["not-email and-extra"]
+
+
+@oidcconfig()
+@auth_request
+def test_override_callback_url_plugin_settings_used(dummy_config, auth_request):
+    @register("test-settings-override")
+    class SettingsOverridePlugin(OIDCAdminPlugin):
+        def get_setting(self, attr: str, *args) -> Any:
+            if attr.lower() == "oidc_authentication_callback_url":
+                return "admin:index"
+            return super().get_setting(attr, *args)
+
+    OIDCClientFactory.create(identifier="test-settings-override")
+    oidc_init = OIDCAuthenticationRequestInitView.as_view(
+        identifier="test-settings-override"
+    )
+
+    redirect_response = oidc_init(auth_request)
+
+    assert redirect_response.status_code == 302
+    assert isinstance(redirect_response, HttpResponseRedirect)
+
+    parsed_url = urlsplit(redirect_response.url)
+    query = parse_qs(parsed_url.query)
+    assert query["redirect_uri"] == ["http://testserver/admin/"]
