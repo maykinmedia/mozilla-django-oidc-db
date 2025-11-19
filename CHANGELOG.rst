@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.25.2 (2025-11-19)
+===================
+
+Hotfix release.
+
+* Fixed OpenID-setting derivation (such as the ``Redirect-URI``) implemented in the
+  plugin not being respected.
+
 0.25.1 (2025-08-25)
 ===================
 
