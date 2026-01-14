@@ -57,6 +57,7 @@ A custom plugin can be registered as follows:
 
 .. code-block:: python
 
+    from mozilla_django_oidc_db.plugins import AbstractUserOIDCPlugin
     from mozilla_django_oidc_db.registry import register
 
     @register("oidc-custom-identifier")
