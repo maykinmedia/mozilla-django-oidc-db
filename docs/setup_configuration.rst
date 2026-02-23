@@ -30,8 +30,8 @@ put the ``AdminOIDCConfigurationStep`` in your django-setup-configuration steps:
         ...
     ]
 
-Setup Configuration Settings:
-=============================
+Setup Configuration Settings
+============================
 
 
 The setup configuration source must contain the following base keys to use this setup configuration step (using ``yaml`` as an example):

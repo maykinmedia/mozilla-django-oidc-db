@@ -7,6 +7,7 @@ from django_setup_configuration.models import ConfigurationModel
 from pydantic import AnyUrl, Discriminator, Field, Tag
 
 from mozilla_django_oidc_db.models import OIDCClient, OIDCProvider
+from mozilla_django_oidc_db.utils import get_registry_identifiers
 
 EXAMPLE_REALM = "http://keycloak.local:8080/realms/test"
 
@@ -89,7 +90,10 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     identifier: str = DjangoModelRef(
         OIDCClient,
         "identifier",
-        description="a unique identifier for this configuration",
+        description=(
+            "Unique identifier of the OIDC client configuration. "
+            f"Allowed values: [{', '.join(get_registry_identifiers())}]."
+        ),
         examples=["admin-oidc"],
     )
 
