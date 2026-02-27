@@ -13,6 +13,7 @@ from mozilla_django_oidc_db.setup_configuration.models import (
     OIDCConfigProviderModel,
     OIDCDiscoveryProviderConfig,
 )
+from mozilla_django_oidc_db.utils import get_registry_identifiers
 
 
 # TODO: We now have a single step that supports the yaml files used in versions <= 0.23.0 and >0.23.0.
@@ -90,6 +91,14 @@ class AdminOIDCConfigurationStep(BaseConfigurationStep[AdminOIDCConfigurationMod
     def _create_or_update_configuration(
         self, config_model: AdminOIDCConfigurationModelItem
     ) -> None:
+        if config_model.identifier not in (
+            available_identifiers := get_registry_identifiers()
+        ):
+            raise ConfigurationRunFailed(
+                f"Could not find an existing plugin with identifier `{config_model.identifier}`. "
+                f"Available identifiers: {available_identifiers}"
+            )
+
         if not config_model.oidc_provider_identifier:
             provider = self._create_or_update_provider_deprecated(config_model)
         else:

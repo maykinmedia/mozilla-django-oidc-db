@@ -12,6 +12,7 @@ from requests.utils import (
 )
 
 from .models import OIDCClient
+from .registry import register as registry
 from .typing import ClaimPath, JSONObject, JSONValue
 
 logger = logging.getLogger(__name__)
@@ -123,3 +124,7 @@ def get_groups_by_name(
         Group.objects.bulk_create(groups_to_create)
         existing_groups |= set(groups_to_create)
     return existing_groups
+
+
+def get_registry_identifiers() -> list[str]:
+    return [key for key, _ in registry.items()]

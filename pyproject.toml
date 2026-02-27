@@ -65,6 +65,9 @@ docs = [
     "sphinx",
     "sphinx-rtd-theme",
 ]
+mozilla-django-oidc = [
+    "mozilla-django-oidc~=4.0.0",
+]
 release = [
     "bump-my-version",
 ]

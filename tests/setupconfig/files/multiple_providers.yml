@@ -20,20 +20,16 @@ oidc_db_config_admin_auth:
       oidc_op_jwks_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/certs
       oidc_op_logout_endpoint: http://localhost:8080/realms/test/protocol/openid-connect/logout
   items:
-  - identifier: test-oidc-1
+  - identifier: admin-oidc
     oidc_rp_client_id: client-id-1
     oidc_rp_client_secret: secret
     oidc_provider_identifier: test-provider-discovery
     options:
       test: test
-  - identifier: test-oidc-2
+  - identifier: test-admin-oidc
     oidc_rp_client_id: client-id-2
     oidc_rp_client_secret: secret
     oidc_provider_identifier: test-provider-discovery
     options: {}
-  - identifier: test-oidc-3
-    oidc_rp_client_id: client-id-3
-    oidc_rp_client_secret: secret
-    oidc_provider_identifier: test-provider-full
-    options: {}
-  
+
+

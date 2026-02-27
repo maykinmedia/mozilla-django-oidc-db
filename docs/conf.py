@@ -22,6 +22,19 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "testapp.settings")
 
 django.setup()
 
+# Mock get_registry_identifiers for docs
+from mozilla_django_oidc_db import utils as oidc_utils  # noqa
+
+_original_get_registry_identifiers = oidc_utils.get_registry_identifiers
+
+
+def _mock_get_registry_identifiers():
+    ids = _original_get_registry_identifiers()
+    return [identifier for identifier in ids if not identifier.startswith("test-")]
+
+
+oidc_utils.get_registry_identifiers = _mock_get_registry_identifiers
+
 # -- Project information -----------------------------------------------------
 
 project = "mozilla_django_oidc_db"

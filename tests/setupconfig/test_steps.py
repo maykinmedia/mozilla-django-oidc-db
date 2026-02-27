@@ -299,16 +299,12 @@ def test_multiple_providers_configured(multiple_providers_yml):
     )
 
     assert (
-        OIDCClient.objects.get(identifier="test-oidc-1").oidc_provider.identifier
+        OIDCClient.objects.get(identifier="admin-oidc").oidc_provider.identifier
         == "test-provider-discovery"
     )
     assert (
-        OIDCClient.objects.get(identifier="test-oidc-2").oidc_provider.identifier
+        OIDCClient.objects.get(identifier="test-admin-oidc").oidc_provider.identifier
         == "test-provider-discovery"
-    )
-    assert (
-        OIDCClient.objects.get(identifier="test-oidc-3").oidc_provider.identifier
-        == "test-provider-full"
     )
     assert not provider_discovery.oidc_use_nonce
     assert provider_discovery.oidc_nonce_size == 48
@@ -324,3 +320,15 @@ def test_custom_options(custom_options_yml):
 
     assert config.options["test"] == "test"
     assert config.options["this"]["is"] == "a nested option!"
+
+
+@pytest.mark.django_db
+def test_client_identifier_not_configured(invalid_client):
+    with pytest.raises(ConfigurationRunFailed) as excinfo:
+        execute_single_step(AdminOIDCConfigurationStep, yaml_source=invalid_client)
+
+    assert (
+        "Could not find an existing plugin with identifier `invalid-admin-oidc`."
+        " Available identifiers:" in str(excinfo.value)
+    )
+    assert not OIDCClient.objects.filter(identifier="invalid-admin-oidc").exists()
