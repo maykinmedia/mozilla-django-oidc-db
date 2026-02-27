@@ -60,3 +60,8 @@ class OIDCTestKeycloakCustomPlugin(OIDCAdminPlugin):
     def handle_callback(self, request: HttpRequest) -> HttpResponseBase:
         callback_view = CustomCallbackView.as_view()
         return callback_view(request)
+
+
+@register("test-admin-oidc")
+class OIDCTestCustomPlugin(OIDCAdminPlugin):
+    pass

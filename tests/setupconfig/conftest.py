@@ -63,6 +63,11 @@ def custom_options_yml():
     return "tests/setupconfig/files/custom_options.yml"
 
 
+@pytest.fixture()
+def invalid_client():
+    return "tests/setupconfig/files/invalid_client.yml"
+
+
 @pytest.fixture
 def set_config_to_non_default_values():
     """
