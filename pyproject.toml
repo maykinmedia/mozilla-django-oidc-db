@@ -32,7 +32,6 @@ dependencies = [
     "django-jsonform>=2.12",
     "glom",
     "mozilla-django-oidc>=3.0.0,<5.0.0",
-    "typing-extensions>=4.0.0",
 ]
 
 [project.urls]
