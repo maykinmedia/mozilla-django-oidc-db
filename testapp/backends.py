@@ -1,5 +1,7 @@
+from typing import Any
+
 from mozilla_django_oidc_db.backends import OIDCAuthenticationBackend
-from mozilla_django_oidc_db.typing import JSONObject
+from mozilla_django_oidc_db.typing import JSONValue
 
 
 class MockBackend(OIDCAuthenticationBackend):
@@ -7,7 +9,7 @@ class MockBackend(OIDCAuthenticationBackend):
     Auth backend that mocks the actual code -> token exchange and verification.
     """
 
-    def __init__(self, claims: JSONObject):
+    def __init__(self, claims: dict[str, JSONValue]):
         super().__init__()
         self._claims = claims
 
@@ -17,5 +19,5 @@ class MockBackend(OIDCAuthenticationBackend):
             "access_token": "-mock-access-token-",
         }
 
-    def verify_token(self, token: str, **kwargs) -> JSONObject:
+    def verify_token(self, token: str, **kwargs) -> dict[str, Any]:
         return self._claims
