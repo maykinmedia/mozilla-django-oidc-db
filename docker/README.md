@@ -26,9 +26,15 @@ chmod o+rwx ./docker/import/
 Then open another terminal and run:
 
 ```bash
-docker-compose exec keycloak \
+docker compose exec keycloak \
    /opt/keycloak/bin/kc.sh \
    export \
    --file /opt/keycloak/data/import/test-realm.json \
    --realm test
 ```
+
+## Token expiry
+
+The tokens are configured to expire after 365 days rather than the default of 15 minutes,
+this is necessary for the JWT `exp` claim validation when re-using the response recorded
+in VCR cassettes.
