@@ -7,9 +7,6 @@ from django.contrib.auth.models import Group
 
 import requests
 from glom import Path, PathAccessError, assign, glom
-from requests.utils import (
-    _parse_content_type_header,  # pyright: ignore[reportAttributeAccessIssue]
-)
 
 from .models import OIDCClient
 from .registry import register as registry
@@ -49,19 +46,6 @@ def obfuscate_claims(
             continue
         assign(copied_claims, claim_path, obfuscate_claim_value(claim_value))
     return copied_claims
-
-
-def extract_content_type(ct_header: str) -> str:
-    """
-    Get the content type + parameters from content type header.
-
-    This is internal API since we use a requests internal utility, which may be
-    removed/modified at any time. However, this is a deliberate choices since I trust
-    requests to have a correct implementation more than coming up with one myself.
-    """
-    content_type, _ = _parse_content_type_header(ct_header)
-    # discard the params, we only want the content type itself
-    return content_type
 
 
 def do_op_logout(config: OIDCClient, id_token: str) -> None:

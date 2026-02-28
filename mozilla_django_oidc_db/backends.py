@@ -12,17 +12,14 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.http import HttpRequest
 
-import requests
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend as BaseBackend
 
 from .config import dynamic_setting, lookup_config
 from .exceptions import MissingInitialisation
-from .jwt import verify_and_decode_token
 from .models import OIDCClient, UserInformationClaimsSources
 from .plugins import AbstractUserOIDCPlugin, AnonymousUserOIDCPlugin
 from .registry import register as registry
 from .typing import JSONObject
-from .utils import extract_content_type
 
 logger = logging.getLogger(__name__)
 
@@ -167,49 +164,7 @@ class OIDCAuthenticationBackend(BaseBackend):
             return payload
 
         logger.debug("Retrieving user information from userinfo endpoint")
-
-        # copy of upstream get_userinfo which doesn't support application/jwt yet.
-        # Overridden to handle application/jwt responses.
-        # See https://github.com/mozilla/mozilla-django-oidc/issues/517
-        #
-        # Specifying the preferred format in the ``Accept`` header does not work with
-        # Keycloak, as it depends on the client settings.
-        assert self.config.oidc_provider
-        user_response = requests.get(
-            self.config.oidc_provider.oidc_op_user_endpoint,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-            },
-            verify=self.get_settings("OIDC_VERIFY_SSL", True),
-            timeout=self.get_settings("OIDC_TIMEOUT", None),
-            proxies=self.get_settings("OIDC_PROXY", None),
-        )
-        user_response.raise_for_status()
-
-        # From https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse
-        #
-        # > The UserInfo Endpoint MUST return a content-type header to indicate which
-        # > format is being returned.
-        content_type = extract_content_type(user_response.headers["Content-Type"])
-        match content_type:
-            case "application/json":
-                # the default case of upstream library
-                return user_response.json()
-            case "application/jwt":
-                token = user_response.content
-                # get the key from the configured keys endpoint
-                # XXX: tested with asymmetric encryption. algorithms like HS256 rely on
-                # out-of-band key exchange and are currently not supported until such a
-                # case arrives.
-                key = self.retrieve_matching_jwk(token)
-                payload = verify_and_decode_token(token, key)
-                return payload
-            case _:
-                raise ValueError(
-                    f"Got an invalid Content-Type header value ({content_type}) "
-                    "according to OpenID Connect Core 1.0 standard. Contact your "
-                    "vendor."
-                )
+        return super().get_userinfo(access_token, id_token, payload)
 
     @override
     def filter_users_by_claims(
