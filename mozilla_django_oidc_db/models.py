@@ -10,20 +10,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from django_jsonform.models.fields import ArrayField, JSONField
-from typing_extensions import deprecated
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
 from .registry import register as registry
 from .typing import JSONObject
-
-
-@deprecated(
-    "Left here so that proxy models that in the migrations have "
-    'bases=("mozilla_django_oidc_db.openidconnectconfig",) can still run their migrations.'
-)
-class OpenIDConnectConfig(models.Model):  # noqa: DJ008
-    class Meta:
-        managed = False
 
 
 def get_options_schema(instance: OIDCClient) -> JSONObject:
