@@ -2,6 +2,31 @@
 Changelog
 =========
 
+2.0.0 (2026-03-10)
+==================
+
+Maintenance release.
+
+**💥 Breaking changes**
+
+* [#164] The legacy ``OpenIDConnectConfig`` model reference is removed. If you have
+  references to this model in your migrations, you should first upgrade to 1.0+ and
+  squash your migrations, or edit your existing migration files.
+* [#169] Dropped support for mozilla-django-oidc 4 and older.
+
+**New features**
+
+* [#169] Added support for mozilla-django-oidc 5.0+.
+
+**Bugfixes**
+
+* [#171] Fixed missing validation in setup-configuration when importing invalid client
+  configuration identifiers.
+
+**Project maintenance**
+
+* Fixed missing imports in documentation code samples.
+
 1.1.1 (2025-11-19)
 ==================
 
