@@ -207,11 +207,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="CustomCallbackViewConfig",
             fields=[],
-            options={
-                "proxy": True,
-                "indexes": [],
-                "constraints": [],
-            },
-            bases=("mozilla_django_oidc_db.openidconnectconfig",),
+            options={},
         ),
     ]
