@@ -39,8 +39,8 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
@@ -64,6 +64,41 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: ${{ matrix.setup_config_enabled == 'yes' && 'setupconfig' || 'base' }}
 
+  migrations:
+    name: Check for model changes not present in the migrations
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: docker.io/library/postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install psycopg
+
+      - name: Run makemigrations to check for missing migrations
+        run: django-admin makemigrations --check --dry-run
+        env:
+          DJANGO_SETTINGS_MODULE: testapp.settings
+          PYTHONPATH: .
+          SECRET_KEY: dummy
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGHOST: localhost
+
   publish:
     name: Publish package to PyPI
     runs-on: ubuntu-latest
@@ -75,8 +110,8 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 

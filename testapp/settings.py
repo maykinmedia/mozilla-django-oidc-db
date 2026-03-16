@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.admin",
+    "django.contrib.postgres",
     "django_jsonform",
     "mozilla_django_oidc",
     "mozilla_django_oidc_db",
