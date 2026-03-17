@@ -2,6 +2,14 @@
 Changelog
 =========
 
+2.0.1 (2026-03-17)
+==================
+
+Bugfix release
+
+* Fixed missing migration due to removed ``OpenIDConnectConfig`` model.
+* Added a CI workflow to check for missing model migrations.
+
 2.0.0 (2026-03-10)
 ==================
 
