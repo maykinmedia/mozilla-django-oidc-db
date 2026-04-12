@@ -1,4 +1,3 @@
-from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.test import override_settings
 
@@ -39,13 +38,13 @@ def test_secret_not_stored_as_plaintext(dummy_config):
 
 
 @pytest.mark.django_db
-def test_missing_encryption_key_raises(dummy_config):
-    """EncryptedCharField raises ImproperlyConfigured when the key is absent."""
+def test_no_encryption_key_passes_through_plaintext(dummy_config):
+    """Without a key the field stores and returns values as plain text."""
     field = EncryptedCharField()
 
     with override_settings(OIDC_DB_ENCRYPTION_KEY=None):
-        with pytest.raises(ImproperlyConfigured, match="OIDC_DB_ENCRYPTION_KEY"):
-            field.get_prep_value("some-value")
+        assert field.get_prep_value("some-value") == "some-value"
+        assert field.from_db_value("some-value", None, None) == "some-value"
 
 
 @pytest.mark.django_db
