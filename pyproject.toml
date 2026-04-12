@@ -28,6 +28,7 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography",
     "django>=4.2",
     "django-jsonform>=2.12",
     "glom",

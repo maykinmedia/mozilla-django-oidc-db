@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from django_jsonform.models.fields import ArrayField, JSONField
 
 from .constants import UNIQUE_PLUGIN_ID_MAX_LENGTH
+from .fields import EncryptedCharField
 from .registry import register as registry
 from .typing import JSONObject
 
@@ -182,9 +183,8 @@ class OIDCClient(models.Model):
         max_length=1000,
         help_text=_("Client ID provided by the OIDC Provider"),
     )
-    oidc_rp_client_secret = models.CharField(
+    oidc_rp_client_secret = EncryptedCharField(
         _("Secret"),
-        max_length=1000,
         help_text=_("Secret provided by the OIDC Provider"),
     )
     oidc_rp_scopes_list = ArrayField(
@@ -200,9 +200,8 @@ class OIDCClient(models.Model):
         help_text=_("Algorithm the Identity Provider uses to sign ID tokens"),
         default="RS256",
     )
-    oidc_rp_idp_sign_key = models.CharField(
+    oidc_rp_idp_sign_key = EncryptedCharField(
         _("Sign key"),
-        max_length=1000,
         help_text=_(
             "Key the Identity Provider uses to sign ID tokens in the case of an RSA sign algorithm. "
             "Should be the signing key in PEM or DER format."

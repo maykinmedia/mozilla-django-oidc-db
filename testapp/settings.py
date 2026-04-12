@@ -9,6 +9,11 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
 
+import base64  # noqa: E402
+
+# Fixed 32-byte key for tests — do NOT use in production.
+OIDC_DB_ENCRYPTION_KEY = base64.urlsafe_b64encode(b"test-oidc-db-encryption-key-test")
+
 USE_TZ = True
 
 DATABASES = {
