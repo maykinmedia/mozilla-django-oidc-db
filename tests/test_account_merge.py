@@ -27,9 +27,8 @@ from mozilla_django_oidc_db.views import (
 )
 from testapp.backends import MockBackend
 
-from .conftest import callback_request_mark as callback_request, oidcconfig
+from .conftest import oidcconfig
 from .factories import UserFactory
-
 
 # ---------------------------------------------------------------------------
 # Fixtures shared across callback-level tests
