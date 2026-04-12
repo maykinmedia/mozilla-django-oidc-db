@@ -1,0 +1,49 @@
+{% extends "admin/login.html" %}
+{% load i18n %}
+
+
+{% block content %}
+
+<div id="content-main">
+    <p>
+        {% blocktrans trimmed %}
+            An existing account with your email address was found.
+            Enter your current password to confirm you own this account.
+            After linking, you will log in exclusively through your organisation account.
+        {% endblocktrans %}
+    </p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <p class="errornote">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </p>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="form-row{% if field.errors %} errors{% endif %}">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.errors %}
+                    <ul class="errorlist">
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="submit-row">
+            <input type="submit" value="{% trans "Link accounts" %}">
+        </div>
+    </form>
+
+    <p>
+        <a href="{% url 'admin:login' %}">{% trans "Cancel" %}</a>
+    </p>
+</div>
+
+{% endblock %}

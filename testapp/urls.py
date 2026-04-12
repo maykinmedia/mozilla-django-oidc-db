@@ -26,4 +26,5 @@ urlpatterns = [
         name="login-keycloak-custom",
     ),
     path("oidc/", include("mozilla_django_oidc.urls")),
+    path("oidc/", include("mozilla_django_oidc_db.urls")),
 ] + staticfiles_urlpatterns()

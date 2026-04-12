@@ -3,13 +3,14 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib import admin
+from django.contrib.auth import login as auth_login
 from django.core.exceptions import DisallowedRedirect, PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest, HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
-from django.views.generic import TemplateView
+from django.views.generic import FormView, TemplateView
 
 import requests
 from mozilla_django_oidc.views import (
@@ -19,7 +20,8 @@ from mozilla_django_oidc.views import (
 
 from .config import get_setting_from_config, lookup_config, store_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import OIDCProviderOutage
+from .exceptions import AccountMergeRequired, OIDCProviderOutage
+from .forms import AccountMergeForm
 from .registry import register as registry
 from .typing import GetParams
 
@@ -44,6 +46,15 @@ which we deliberately do not rely on as their usage may change and it is private
 In some situations the value of this session key needs to be used as base to properly
 display problems (used in the ``failure_url`` flow of the callback view).
 """
+
+_OIDC_MERGE_CANDIDATE_PK_KEY = "oidc-merge-candidate-pk"
+"""Session key holding the primary key of the existing user to merge into."""
+
+_OIDC_MERGE_CLAIMS_KEY = "oidc-merge-claims"
+"""Session key holding the OIDC claims dict to apply after merging."""
+
+_OIDC_MERGE_CONFIG_KEY = "oidc-merge-config"
+"""Session key holding the OIDC config identifier for the merge flow."""
 
 
 def get_exception_message(exc: Exception) -> str:
@@ -84,6 +95,10 @@ class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
     Base callback view that retrieves the settings from the config object.
     """
 
+    #: URL name for the account-merge view.  Override in subclasses to point to
+    #: a differently named URL (e.g. an admin-styled version).
+    merge_view_url_name = "oidc-account-merge"
+
     def get_settings(self, attr: str, *args: Any) -> Any:  # type: ignore
         """
         Look up the request setting from the database config.
@@ -96,11 +111,31 @@ class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
             self._config = configuration
         return get_setting_from_config(configuration, attr, *args)
 
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+        try:
+            return super().get(request, *args, **kwargs)
+        except AccountMergeRequired as exc:
+            return self._handle_merge_required(request, exc)
+
+    def _handle_merge_required(
+        self, request: HttpRequest, exc: AccountMergeRequired
+    ) -> HttpResponseRedirect:
+        """
+        Persist the merge state in the session and redirect to the merge view.
+        """
+        config = lookup_config(request)
+        request.session[_OIDC_MERGE_CANDIDATE_PK_KEY] = exc.candidate.pk
+        request.session[_OIDC_MERGE_CLAIMS_KEY] = exc.claims
+        request.session[_OIDC_MERGE_CONFIG_KEY] = config.identifier
+        return HttpResponseRedirect(reverse(self.merge_view_url_name))
+
 
 class AdminCallbackView(OIDCAuthenticationCallbackView):
     """
     Intercept errors raised by the authentication backend and display them.
     """
+
+    merge_view_url_name = "admin-oidc-account-merge"
 
     @property
     def failure_url(self):
@@ -145,6 +180,100 @@ class AdminLoginFailure(TemplateView):
         context = super().get_context_data(**kwargs)
         context.update(admin.site.each_context(self.request))
         context["oidc_error"] = self.request.session[_OIDC_ERROR_SESSION_KEY]
+        return context
+
+
+class OIDCAccountMergeView(FormView):
+    """
+    One-time account-merge view presented when an OIDC identity matches an
+    existing Django account by email but not by username.
+
+    The user must confirm ownership of the existing account by supplying its
+    current password.  On success the existing user's username is renamed to the
+    OIDC identifier and the local password is cleared.
+
+    Register this view (or :class:`AdminAccountMergeView`) in your URL conf:
+
+    .. code-block:: python
+
+        from mozilla_django_oidc_db.views import OIDCAccountMergeView
+
+        urlpatterns = [
+            path("oidc/account-merge/", OIDCAccountMergeView.as_view(), name="oidc-account-merge"),
+        ]
+    """
+
+    form_class = AccountMergeForm
+    template_name = "mozilla_django_oidc_db/account_merge.html"
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+        # Guard: only accessible when a merge is pending in the session.
+        if _OIDC_MERGE_CANDIDATE_PK_KEY not in request.session:
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user_pk"] = self.request.session[_OIDC_MERGE_CANDIDATE_PK_KEY]
+        return kwargs
+
+    def form_valid(self, form: AccountMergeForm) -> HttpResponseRedirect:
+        user = form.get_user()
+        claims = self.request.session[_OIDC_MERGE_CLAIMS_KEY]
+        config_identifier = self.request.session[_OIDC_MERGE_CONFIG_KEY]
+
+        plugin = registry[config_identifier]
+        plugin.merge_accounts(user, claims)
+
+        # Set the config identifier on the user so the user_logged_in signal
+        # can persist it on the session (required for SessionRefresh middleware).
+        user._oidcdb_config_identifier = config_identifier  # pyright: ignore[reportAttributeAccessIssue]
+
+        auth_login(
+            self.request,
+            user,
+            backend="mozilla_django_oidc_db.backends.OIDCAuthenticationBackend",
+        )
+
+        # Clean up merge session state.
+        for key in (
+            _OIDC_MERGE_CANDIDATE_PK_KEY,
+            _OIDC_MERGE_CLAIMS_KEY,
+            _OIDC_MERGE_CONFIG_KEY,
+        ):
+            self.request.session.pop(key, None)
+
+        return_url = self.request.session.get(_RETURN_URL_SESSION_KEY) or "/"
+        return HttpResponseRedirect(return_url)
+
+
+class AdminAccountMergeView(OIDCAccountMergeView):
+    """
+    Admin-styled variant of :class:`OIDCAccountMergeView`.
+
+    Uses the Django admin base template and redirects to the admin after a
+    successful merge.
+
+    Register this view in your URL conf:
+
+    .. code-block:: python
+
+        from mozilla_django_oidc_db.views import AdminAccountMergeView
+
+        urlpatterns = [
+            path(
+                "admin/login/account-merge/",
+                AdminAccountMergeView.as_view(),
+                name="admin-oidc-account-merge",
+            ),
+        ]
+    """
+
+    template_name = "admin/oidc_account_merge.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(admin.site.each_context(self.request))
         return context
 
 
