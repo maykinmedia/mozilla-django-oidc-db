@@ -82,9 +82,7 @@ def test_create_user_raises_account_merge_required_when_email_matches(dummy_conf
     plugin = registry["test-oidc"]
 
     with pytest.raises(AccountMergeRequired) as exc_info:
-        plugin.create_user(
-            claims={"sub": "oidc-uuid-sub", "email": "user@example.com"}
-        )
+        plugin.create_user(claims={"sub": "oidc-uuid-sub", "email": "user@example.com"})
 
     assert exc_info.value.candidate == existing
     assert exc_info.value.claims["sub"] == "oidc-uuid-sub"

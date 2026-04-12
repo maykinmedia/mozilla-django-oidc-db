@@ -274,9 +274,7 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
 
         return UserModel.objects.filter(**{lookup: username})
 
-    def _find_existing_user_by_email(
-        self, claims: JSONObject
-    ) -> AbstractUser | None:
+    def _find_existing_user_by_email(self, claims: JSONObject) -> AbstractUser | None:
         """
         Look up an existing Django user by the email in the OIDC claims.
 
