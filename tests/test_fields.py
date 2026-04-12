@@ -1,5 +1,3 @@
-import base64
-
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.test import override_settings
