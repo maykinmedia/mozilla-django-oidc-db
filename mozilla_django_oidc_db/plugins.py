@@ -282,6 +282,10 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
         Requires the ``email`` claim mapping to be configured.
         """
         UserModel = get_user_model()
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
         config = self.get_config()
 
         email_claim_path = (
@@ -333,6 +337,10 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
         and syncs any other mapped claim fields.
         """
         UserModel = get_user_model()
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
         oidc_username = self.get_username(claims)
         old_username = getattr(user, UserModel.USERNAME_FIELD)
 

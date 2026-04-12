@@ -111,9 +111,9 @@ class OIDCAuthenticationCallbackView(BaseOIDCCallbackView):
             self._config = configuration
         return get_setting_from_config(configuration, attr, *args)
 
-    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseRedirect:
         try:
-            return super().get(request, *args, **kwargs)
+            return super().get(request, *args, **kwargs)  # type: ignore[return-value]
         except AccountMergeRequired as exc:
             return self._handle_merge_required(request, exc)
 

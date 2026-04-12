@@ -20,6 +20,7 @@ import pytest
 from mozilla_django_oidc_db.exceptions import AccountMergeRequired
 from mozilla_django_oidc_db.models import UserInformationClaimsSources
 from mozilla_django_oidc_db.registry import register as registry
+from mozilla_django_oidc_db.typing import JSONObject
 from mozilla_django_oidc_db.views import (
     _OIDC_MERGE_CANDIDATE_PK_KEY,
     _OIDC_MERGE_CLAIMS_KEY,
@@ -39,7 +40,7 @@ from .factories import UserFactory
 def mock_auth_backend(request, mocker):
     """Patch Django auth backends with a MockBackend using the given claims."""
     marker = request.node.get_closest_marker("mock_backend_claims")
-    claims = marker.args[0] if marker else {"sub": "some_username"}
+    claims: JSONObject = marker.args[0] if marker else {"sub": "some_username"}
     mock_backend = MockBackend(claims=claims)
     backend_path = f"{MockBackend.__module__}.{MockBackend.__qualname__}"
     mocker.patch(
