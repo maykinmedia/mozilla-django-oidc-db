@@ -2,6 +2,7 @@ from django.db import connection
 from django.test import override_settings
 
 import pytest
+from cryptography.fernet import Fernet
 
 from mozilla_django_oidc_db.fields import EncryptedCharField
 
@@ -53,6 +54,22 @@ def test_empty_value_passthrough(dummy_config):
     field = EncryptedCharField()
     assert field.get_prep_value("") == ""
     assert field.get_prep_value(None) is None
+
+
+def test_generate_oidc_key_produces_valid_fernet_key():
+    """generate_oidc_key outputs a key that Fernet accepts without error."""
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    out = StringIO()
+    call_command("generate_oidc_key", stdout=out)
+    key = out.getvalue().strip()
+
+    # Must be a valid Fernet key — instantiation raises if it isn't.
+    fernet = Fernet(key)
+    token = fernet.encrypt(b"test")
+    assert fernet.decrypt(token) == b"test"
 
 
 @pytest.mark.django_db
