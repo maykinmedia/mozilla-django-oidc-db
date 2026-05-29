@@ -133,6 +133,14 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     oidc_provider_identifier: str = DjangoModelRef(
         OIDCProvider, "identifier", examples=["test-oidc-provider"], default=""
     )
+    # EncryptedCharField cannot be auto-detected by django_setup_configuration,
+    # so we declare the type explicitly here.
+    oidc_rp_client_secret: str = DjangoModelRef(
+        OIDCClient, "oidc_rp_client_secret", examples=["modify-this"]
+    )
+    oidc_rp_idp_sign_key: str = DjangoModelRef(
+        OIDCClient, "oidc_rp_idp_sign_key", examples=["modify-this"]
+    )
 
     ## DEPRECATED FIELDS
     claim_mapping: dict = Field(
@@ -220,17 +228,13 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
         django_model_refs = {
             OIDCClient: [
                 "oidc_rp_client_id",
-                "oidc_rp_client_secret",
                 "oidc_rp_sign_algo",
-                "oidc_rp_idp_sign_key",
                 "oidc_keycloak_idp_hint",
                 "userinfo_claims_source",
             ]
         }
         extra_kwargs = {
             "oidc_rp_client_id": {"examples": ["modify-this"]},
-            "oidc_rp_client_secret": {"examples": ["modify-this"]},
-            "oidc_rp_idp_sign_key": {"examples": ["modify-this"]},
             "oidc_keycloak_idp_hint": {"examples": ["some-identity-provider"]},
         }
 
