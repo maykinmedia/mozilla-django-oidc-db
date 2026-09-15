@@ -19,13 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ['3.12', '3.13']
-        django: ['4.2', '5.2']
+        python: ['3.12', '3.13', '3.14']
+        django: ['5.2']
         mozilla_django_oidc: ['5.0']
         setup_config_enabled: ['no', 'yes']
-        exclude:
-          - python: '3.13'
-            django: '4.2'
 
     name: "Run the test suite (Python ${{ matrix.python }}, Django ${{ matrix.django }},
       mozilla-django-oidc ${{ matrix.mozilla_django_oidc }}, Setup Config: ${{ matrix.setup_config_enabled }}))"
