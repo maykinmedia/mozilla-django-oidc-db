@@ -97,7 +97,4 @@ def test_logout_response_has_redirect(dummy_config: OIDCClient, requests_mock):
         headers={"Location": "http://testserver/endpoint-that-does-not-exist"},
     )
 
-    try:
-        do_op_logout(dummy_config, id_token="dummy-id-token")
-    except Exception:
-        pytest.fail("Logout should not crash")
+    do_op_logout(dummy_config, id_token="dummy-id-token")
