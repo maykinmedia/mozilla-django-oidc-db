@@ -30,8 +30,8 @@ def keycloak_login(
         ``state`` query parameters. Consume this with ``response = client.get(url)``.
     """
     cm = Session() if session is None else nullcontext(session)
-    with cm as session:
-        login_page = session.get(login_url)
+    with cm as _session:
+        login_page = _session.get(login_url)
         assert login_page.status_code == 200
 
         # process keycloak's login form and submit the username + password to
@@ -40,7 +40,7 @@ def keycloak_login(
         login_form = document("form#kc-form-login")
         submit_url = login_form.attr("action")
         assert isinstance(submit_url, str)
-        login_response = session.post(
+        login_response = _session.post(
             submit_url,
             data={
                 "username": username,
@@ -52,6 +52,9 @@ def keycloak_login(
         )
 
         assert login_response.status_code == 302
-        assert (redirect_uri := login_response.headers["Location"]).startswith(host)
+
+        redirect_uri = login_response.headers["Location"]
+
+        assert redirect_uri.startswith(host)
 
         return redirect_uri

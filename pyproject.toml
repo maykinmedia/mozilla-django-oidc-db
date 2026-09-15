@@ -16,7 +16,6 @@ keywords = ["OIDC", "django", "database", "authentication"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
-    "Framework :: Django :: 4.2",
     "Framework :: Django :: 5.2",
     "Intended Audience :: Developers",
     "Operating System :: Unix",
@@ -24,11 +23,12 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "django>=4.2",
+    "django>=5.2",
     "django-jsonform>=2.12",
     "glom",
     "mozilla-django-oidc>=5.0.0",
@@ -44,7 +44,8 @@ Changelog = "https://github.com/maykinmedia/mozilla-django-oidc-db/blob/master/C
 
 [project.optional-dependencies]
 setup-configuration = [
-    "django-setup-configuration>=0.11.0",
+    # TODO
+    "django-setup-configuration @ git+https://github.com/maykinmedia/django-setup-configuration.git@chore/upgrade-dependencies",
 ]
 tests = [
     "psycopg",
@@ -160,3 +161,6 @@ section-order = [
 
 [tool.ruff.lint.isort.sections]
 "django" = ["django"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["RUF012"]
