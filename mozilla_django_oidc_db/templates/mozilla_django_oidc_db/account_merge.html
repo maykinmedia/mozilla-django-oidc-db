@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% load i18n %}{% trans "Link your existing account" %}</title>
+</head>
+<body>
+    {% load i18n %}
+    <h1>{% trans "Link your existing account" %}</h1>
+
+    <p>
+        {% blocktrans trimmed %}
+            An existing account with your email address was found.
+            Enter your current password to confirm you own this account.
+            After linking, you will log in exclusively through your organisation account.
+        {% endblocktrans %}
+    </p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.errors %}
+            <ul>
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% for field in form %}
+            <div>
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.errors %}
+                    <ul>
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if field.help_text %}
+                    <small>{{ field.help_text }}</small>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit">{% trans "Link accounts" %}</button>
+    </form>
+</body>
+</html>

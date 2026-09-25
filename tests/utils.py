@@ -36,6 +36,7 @@ class OIDCConfigOptions(TypedDict, total=False):
     oidc_rp_idp_sign_key: str
     oidc_keycloak_idp_hint: str
     userinfo_claims_source: UserInformationClaimsSources
+    allow_account_merge: bool
     check_op_availability: bool
     options: JSONObject
     extra_options: JSONObject
