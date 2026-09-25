@@ -1,5 +1,7 @@
-from typing import Annotated, Literal
+from collections.abc import Sequence
+from typing import Annotated, ClassVar, Literal
 
+from django.db.models import Model
 from django.utils.translation import gettext_lazy as _
 
 from django_setup_configuration.fields import DjangoModelRef
@@ -76,7 +78,7 @@ class OIDCConfigProviderModel(ConfigurationModel):
     endpoint_config: OIDCProviderConfigUnion
 
     class Meta:
-        django_model_refs = {
+        django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
             OIDCProvider: [
                 "oidc_token_use_basic_auth",
                 "oidc_use_nonce",
@@ -217,7 +219,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
     )
 
     class Meta:
-        django_model_refs = {
+        django_model_refs: ClassVar[dict[type[Model], Sequence[str]]] = {
             OIDCClient: [
                 "oidc_rp_client_id",
                 "oidc_rp_client_secret",
@@ -227,7 +229,7 @@ class AdminOIDCConfigurationModelItem(ConfigurationModel):
                 "userinfo_claims_source",
             ]
         }
-        extra_kwargs = {
+        extra_kwargs: ClassVar[dict[str, dict[str, object]]] = {
             "oidc_rp_client_id": {"examples": ["modify-this"]},
             "oidc_rp_client_secret": {"examples": ["modify-this"]},
             "oidc_rp_idp_sign_key": {"examples": ["modify-this"]},

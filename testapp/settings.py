@@ -18,7 +18,7 @@ DATABASES = {
         "USER": os.getenv("PGUSER", "mozilla_django_oidc_db"),
         "PASSWORD": os.getenv("PGPASSWORD", "mozilla_django_oidc_db"),
         "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", 5432),
+        "PORT": int(os.getenv("DB_PORT", "5432")),
     }
 }
 

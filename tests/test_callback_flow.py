@@ -224,10 +224,10 @@ def test_wrong_config_model_used(
     init_view = OIDCAuthenticationRequestInitView.as_view(identifier="test-oidc")
     init_view(auth_request)
     # there is only one state expected
-    state_key = list(auth_request.session["oidc_states"].keys())[0]
+    state_key = next(iter(auth_request.session["oidc_states"].keys()))
     callback_url = reverse("oidc_authentication_callback")
     session = client.session
-    for key in auth_request.session.keys():
+    for key in auth_request.session.keys():  # ruff: ignore[SIM118]
         session[key] = auth_request.session[key]
     session.save()
 

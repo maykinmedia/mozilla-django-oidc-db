@@ -1,5 +1,6 @@
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from typing import ClassVar
 from urllib.parse import urljoin
 
 from django import forms
@@ -15,7 +16,7 @@ type EndpointsMapping = Mapping[EndpointFieldNames, str]
 
 
 class OIDCProviderForm(forms.ModelForm):
-    required_endpoints = [
+    required_endpoints: ClassVar[Sequence[str]] = [
         "oidc_op_authorization_endpoint",
         "oidc_op_token_endpoint",
         "oidc_op_user_endpoint",

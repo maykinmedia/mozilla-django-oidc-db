@@ -9,7 +9,8 @@ import pytest
 import requests_mock
 from requests.exceptions import RequestException
 
-from mozilla_django_oidc_db.forms import OIDCProviderForm
+from mozilla_django_oidc_db.constants import EndpointFieldNames
+from mozilla_django_oidc_db.forms import OIDC_MAPPING, OIDCProviderForm
 from mozilla_django_oidc_db.models import OIDCClient
 from tests.factories import UserFactory
 
@@ -65,10 +66,8 @@ def test_derive_endpoints_extra_field():
     class ExtendedOIDCProviderForm(OIDCProviderForm):
         required_endpoints = OIDCProviderForm.required_endpoints
         # Define an extra field to derive from the configuration
-        oidc_mapping = dict(
-            **OIDCProviderForm.oidc_mapping,
-            **{"logout_endpoint": "end_session_endpoint"},
-        )
+        oidc_mapping: dict[EndpointFieldNames, str] = OIDC_MAPPING
+        oidc_mapping["oidc_op_logout_endpoint"] = "end_session_endpoint"
 
     form = ExtendedOIDCProviderForm(data=form_data)
 
@@ -89,7 +88,7 @@ def test_derive_endpoints_extra_field():
     # The endpoint that was added to the mapping on the extended form
     # should be present in the cleaned data
     assert (
-        form.cleaned_data["logout_endpoint"]
+        form.cleaned_data["oidc_op_logout_endpoint"]
         == "http://provider.com/auth/realms/master/protocol/openid-connect/logout"
     )
 
