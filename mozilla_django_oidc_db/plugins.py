@@ -14,7 +14,7 @@ from glom import Path, glom
 
 from .config import get_setting_from_config
 from .constants import OIDC_ADMIN_CONFIG_IDENTIFIER
-from .exceptions import MissingIdentifierClaim
+from .exceptions import AccountMergeRequired, MissingIdentifierClaim
 from .models import OIDCClient
 from .registry import register
 from .schemas import ADMIN_OPTIONS_SCHEMA
@@ -167,6 +167,18 @@ class AbstractUserOIDCPlugin(BaseOIDCPlugin):
             """
             ...
 
+        def merge_accounts(
+            self, user: AbstractUser, claims: JSONObject
+        ) -> AbstractUser:
+            """
+            Merge an existing Django user account with an OIDC identity.
+
+            Called by the account-merge view after the user has confirmed ownership
+            of the existing account. Should rename the user's username to the OIDC
+            identifier from claims, clear the local password, and sync other fields.
+            """
+            ...
+
 
 #
 # CONCRETE IMPLEMENTATIONS
@@ -262,6 +274,35 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
 
         return UserModel.objects.filter(**{lookup: username})
 
+    def _find_existing_user_by_email(self, claims: JSONObject) -> AbstractUser | None:
+        """
+        Look up an existing Django user by the email in the OIDC claims.
+
+        Returns the user if exactly one match is found, ``None`` otherwise.
+        Requires the ``email`` claim mapping to be configured.
+        """
+        UserModel = get_user_model()
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
+        config = self.get_config()
+
+        email_claim_path = (
+            config.options["user_settings"]["claim_mappings"].get("email") or []
+        )
+        if not email_claim_path:
+            return None
+
+        email = glom(claims, Path(*email_claim_path), default=None)
+        if not email:
+            return None
+
+        try:
+            return UserModel.objects.get(email__iexact=str(email))
+        except (UserModel.DoesNotExist, UserModel.MultipleObjectsReturned):
+            return None
+
     def create_user(self, claims: JSONObject) -> AbstractUser:
         """Return object for a newly created user account."""
         UserModel = get_user_model()
@@ -270,6 +311,15 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
                 "The user model must inherit from AbstractUser."
             )
 
+        config = self.get_config()
+
+        # Before creating a new account, check whether an existing account with
+        # the same email should be merged instead.
+        if config.allow_account_merge:
+            candidate = self._find_existing_user_by_email(claims)
+            if candidate is not None:
+                raise AccountMergeRequired(candidate=candidate, claims=claims)
+
         username = self.get_username(claims)
 
         logger.debug("Creating Admin OIDC user: %s", username)
@@ -277,6 +327,35 @@ class OIDCAdminPlugin(AbstractUserOIDCPlugin):
         user = UserModel.objects.create_user(**{UserModel.USERNAME_FIELD: username})
         self.update_user(user, claims)
         return user
+
+    def merge_accounts(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
+        """
+        Merge an existing Django user account with an OIDC identity.
+
+        Renames the user's username to the OIDC identifier from the claims,
+        clears the local password so subsequent logins must go through OIDC,
+        and syncs any other mapped claim fields.
+        """
+        UserModel = get_user_model()
+        if TYPE_CHECKING:
+            assert issubclass(UserModel, AbstractUser), (
+                "The user model must inherit from AbstractUser."
+            )
+        oidc_username = self.get_username(claims)
+        old_username = getattr(user, UserModel.USERNAME_FIELD)
+
+        logger.info(
+            "Merging existing user account '%s' (pk=%s) with OIDC identity '%s'",
+            old_username,
+            user.pk,
+            oidc_username,
+        )
+
+        setattr(user, UserModel.USERNAME_FIELD, oidc_username)
+        user.set_unusable_password()
+        user.save(update_fields=[UserModel.USERNAME_FIELD, "password"])
+
+        return self.update_user(user, claims)
 
     def update_user(self, user: AbstractUser, claims: JSONObject) -> AbstractUser:
         """

@@ -232,6 +232,18 @@ class OIDCClient(models.Model):
     )
 
     # Additional settings
+    allow_account_merge = models.BooleanField(
+        _("allow account merge"),
+        default=False,
+        help_text=_(
+            "When enabled, a first-time OIDC login whose username does not match any "
+            "existing account but whose email address does will trigger a one-time "
+            "account-merge flow. The user must confirm ownership of the existing "
+            "account by providing their current password before the accounts are merged. "
+            "After merging the existing username is replaced with the OIDC identifier "
+            "and the local password is cleared."
+        ),
+    )
     check_op_availability = models.BooleanField(
         verbose_name=_("check OIDC Provider availability"),
         default=False,
